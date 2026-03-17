@@ -32,20 +32,27 @@ class VttController extends Controller
         $fit_score = $evaluacion_fit->fit;
         $fet_score = $evaluacion_fet->fet;
 
-        $vtt_score = ($fit_score * 0.60 + $fet_score * 0.40);
+        $vtt_score      = ($fit_score * 0.60 + $fet_score * 0.40);
         $vocacion_texto = $this->determinarVocacion($vtt_score);
 
-        $vtt = VocacionTuristicaTerritorio::updateOrCreate(
-            ['zona_id' => $zonaId],
-            [
-                'user_id' => $user->id,
-                'fit' => $fit_score,
-                'fet' => $fet_score,
-                'vtt' => $vtt_score,
-                'vocacion_texto' => $vocacion_texto,
-            ]
-        );
-                
+        // ✅ FIX: El admin (role_id === 1) solo consulta el VTT existente, nunca lo recalcula
+        //         ni sobrescribe el user_id del operativo que lo generó.
+        if ($user->role_id === 1) {
+            $vtt = VocacionTuristicaTerritorio::where('zona_id', $zonaId)->firstOrFail();
+        } else {
+            // Operativo (Jefe / Equipo): crea o actualiza con su propio user_id
+            $vtt = VocacionTuristicaTerritorio::updateOrCreate(
+                ['zona_id' => $zonaId],
+                [
+                    'user_id'        => $user->id,
+                    'fit'            => $fit_score,
+                    'fet'            => $fet_score,
+                    'vtt'            => $vtt_score,
+                    'vocacion_texto' => $vocacion_texto,
+                ]
+            );
+        }
+
         return view('operativo.vtt.resultado', compact('zona', 'vtt'));
     }
 

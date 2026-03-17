@@ -27,16 +27,16 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validado = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'confirmed', 'min:8'],
-            'role_id' => ['required', 'exists:roles,id'],
+            'role_id'  => ['required', 'exists:roles,id'],
             'telefono' => ['nullable', 'string', 'max:20'],
         ]);
 
         User::create($validado);
 
-        return redirect()->route('admin.users.index')->with('success', "Usuario creado correctamente");
+        return redirect()->route('admin.users.index')->with('success', 'Usuario creado correctamente');
     }
 
     public function edit(User $user)
@@ -48,19 +48,22 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $validado = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'password' => ['required', 'confirmed', 'min:8'],
-            'role_id' => ['required', 'exists:roles,id'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            // ✅ FIX: nullable + sometimes para que no falle si viene vacío
+            'password' => ['nullable', 'sometimes', 'confirmed', 'min:8'],
+            'role_id'  => ['required', 'exists:roles,id'],
             'telefono' => ['nullable', 'string', 'max:20'],
         ]);
+
+        // Si la contraseña viene vacía, se omite del update (no se sobreescribe)
         if (empty($validado['password'])) {
             unset($validado['password']);
         }
 
         $user->update($validado);
 
-        return redirect()->route('admin.users.index')->with('success', "Usuario actualizado correctamente");
+        return redirect()->route('admin.users.index')->with('success', 'Usuario actualizado correctamente');
     }
 
     public function destroy(User $user)
