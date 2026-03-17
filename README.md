@@ -1,3 +1,78 @@
+# Guía para Ejecutar el Proyecto Gestión-Turistica
+
+## Prerrequisitos
+- XAMPP (Apache y MySQL)
+- Composer
+- Node.js y npm
+- Git
+- Opcional: Laravel Herd
+---
+
+### 1. Clonar el repositorio
+git clone git@github.com/<user>/Gestion-Turistica.git
+cd Gestion-Turistica
+
+---
+
+### 2. Crear el archivo .env
+cp .env.example .env
+
+Luego editar .env manualmente y configurar:
+
+### Base de datos:
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=gestion_turistica
+DB_USERNAME=tu_usuario_mysql
+DB_PASSWORD=tu_password_mysql
+
+### URL de la aplicación:
+#### Con Herd:
+APP_URL=http://gestion-turistica.test
+#### Sin Herd:
+APP_URL=http://127.0.0.1:8000
+
+---
+
+### 3. Instalar dependencias de PHP
+`composer install`
+
+---
+
+### 4. Instalar dependencias de Node
+`npm install`
+
+---
+
+### 5. Construir los assets
+`npm run build`
+
+---
+
+### 6. Generar la clave de la aplicación
+`php artisan key:generate`
+
+---
+
+### 7. Migrar y seedear la base de datos
+`php artisan migrate --seed`
+
+---
+
+## EJECUCIÓN DEL PROYECTO
+
+### Opción A: Usando Laravel Herd
+Abrir en el navegador: http://gestion-turistica.test
+`npm run dev`
+
+---
+
+# Opción B: Usando php artisan serve
+`php artisan serve`
+# Abrir en el navegador: http://127.0.0.1:8000
+`npm run dev`
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">
