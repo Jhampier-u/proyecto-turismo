@@ -132,6 +132,13 @@
                     </table>
                 </div>
 
+                {{-- Radar Chart FET --}}
+                <div class="flex justify-center mb-10">
+                    <div style="width:450px;height:450px;">
+                        <canvas id="radarFET"></canvas>
+                    </div>
+                </div>
+
                 <div class="mt-8 text-center">
                     <a href="{{ route('operativo.evaluacion_fet.edit', $zona->id) }}"
                         class="inline-block px-5 py-2 bg-blue-600 text-white font-bold text-lg rounded-lg
@@ -145,7 +152,58 @@
                         Volver a Vocaci&oacute;n Tur&iacute;stica
                     </a>
 
+                </div>
             </div>
         </div>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script>
+        new Chart(document.getElementById('radarFET').getContext('2d'), {
+            type: 'radar',
+            data: {
+                labels: [
+                    'Demanda Turística',
+                    'Superestructura',
+                    'Imagen del Sitio'
+                ],
+                datasets: [{
+                    label: 'Calificación Media (0-3)',
+                    data: [
+                        {{ $fet->media_demanda }},
+                        {{ $fet->media_super }},
+                        {{ $fet->media_imagen }}
+                    ],
+                    backgroundColor: 'rgba(13, 148, 136, 0.15)',
+                    borderColor: 'rgba(13, 148, 136, 0.8)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(13, 148, 136, 1)',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    title: {
+                        display: true,
+                        text: 'Perfil de Factores Extrínsecos Territoriales (FET)',
+                        font: { size: 14, weight: 'bold' },
+                        color: '#374151'
+                    }
+                },
+                scales: {
+                    r: {
+                        min: 0, max: 3,
+                        ticks: { stepSize: 0.5, font: { size: 10 }, backdropColor: 'transparent' },
+                        pointLabels: { font: { size: 12, weight: '600' }, color: '#4b5563' },
+                        grid: { color: 'rgba(0,0,0,0.08)' },
+                        angleLines: { color: 'rgba(0,0,0,0.08)' }
+                    }
+                }
+            }
+        });
+    </script>
 </x-app-layout>

@@ -322,7 +322,10 @@ class EvaluacionPotencialidadController extends Controller
     {
         $zona = Zona::findOrFail($zonaId);
         $eval = EvaluacionPotencialidad::where('zona_id', $zonaId)->firstOrFail();
-        return view('operativo.evaluacion_potencialidad.ponderacion', compact('zona', 'eval'));
+        $config = PotencialidadCamposActivos::where('zona_id', $zonaId)->first();
+        $camposActivos = $config ? $config->campos_activos : $this->getAllCampos();
+        $secciones = self::$secciones;
+        return view('operativo.evaluacion_potencialidad.ponderacion', compact('zona', 'eval', 'camposActivos', 'secciones'));
     }
 
     // ── Método de campos (ya no se usa como página separada; redirige a edit) ──
@@ -364,7 +367,20 @@ class EvaluacionPotencialidadController extends Controller
         $rc_grupos = array_filter([$hasCampos($am) ? $rc_am : null, $hasCampos($np) ? $rc_np : null, $hasCampos($ec) ? $rc_ec : null], fn($v) => $v !== null);
         $val_rc = empty($rc_grupos) ? 0 : array_sum($rc_grupos) / count($rc_grupos);
 
-        $val_rt = $val_rn * 0.5 + $val_rc * 0.5;
+        // RT: redistribuir peso entre RN y RC según campos activos
+        $allRN = array_merge($litoral, $montana, $anp, $agua);
+        $allRC = array_merge($am, $np, $ec);
+        $hasRN = $hasCampos($allRN);
+        $hasRC = $hasCampos($allRC);
+        if ($hasRN && $hasRC) {
+            $val_rt = $val_rn * 0.5 + $val_rc * 0.5;
+        } elseif ($hasRN) {
+            $val_rt = $val_rn;
+        } elseif ($hasRC) {
+            $val_rt = $val_rc;
+        } else {
+            $val_rt = 0;
+        }
 
         // ── Planta Turística ────────────────────────────────────────────────
         $aloj  = ['pt_aloj_hoteles','pt_aloj_hostales','pt_aloj_hosterias','pt_aloj_haciendas','pt_aloj_lodges','pt_aloj_resorts','pt_aloj_refugios','pt_aloj_campamentos','pt_aloj_casa_huespedes','pt_aloj_ctc'];
@@ -385,8 +401,21 @@ class EvaluacionPotencialidadController extends Controller
         $val_tt = $avg($tt_campos);
         $val_i  = $avg($i_campos);
 
-        // FN = RT×40% + PT×20% + TT×20% + I×20%
-        $fn_total = $val_rt * 0.40 + $val_pt * 0.20 + $val_tt * 0.20 + $val_i * 0.20;
+        // FN: redistribuir pesos entre factores que sí tengan campos activos
+        $fn_pesos = [];
+        $allRT = array_merge($allRN, $allRC);
+        if ($hasCampos($allRT))    $fn_pesos['rt'] = 0.40;
+        if ($hasCampos($aloj) || $hasCampos($rest) || $hasCampos($inter) || $hasCampos($trans) || $hasCampos($guia))
+                                   $fn_pesos['pt'] = 0.20;
+        if ($hasCampos($tt_campos)) $fn_pesos['tt'] = 0.20;
+        if ($hasCampos($i_campos))  $fn_pesos['i']  = 0.20;
+
+        $fn_sum_pesos = array_sum($fn_pesos) ?: 1;
+        $fn_total = 0;
+        if (isset($fn_pesos['rt'])) $fn_total += $val_rt * ($fn_pesos['rt'] / $fn_sum_pesos);
+        if (isset($fn_pesos['pt'])) $fn_total += $val_pt * ($fn_pesos['pt'] / $fn_sum_pesos);
+        if (isset($fn_pesos['tt'])) $fn_total += $val_tt * ($fn_pesos['tt'] / $fn_sum_pesos);
+        if (isset($fn_pesos['i']))  $fn_total += $val_i  * ($fn_pesos['i']  / $fn_sum_pesos);
 
         // ── Factores Exógenos ───────────────────────────────────────────────
         $at_campos = array_keys(self::$secciones['Afluencia Turística']);
@@ -397,8 +426,17 @@ class EvaluacionPotencialidadController extends Controller
         $val_marketing   = $avg($mk_campos);
         $val_superestructura = $avg($st_campos);
 
-        // FX = Afluencia×40% + Marketing×30% + Superestructura×30%
-        $fx_total = $val_afluencia * 0.40 + $val_marketing * 0.30 + $val_superestructura * 0.30;
+        // FX: redistribuir pesos entre factores que sí tengan campos activos
+        $fx_pesos = [];
+        if ($hasCampos($at_campos)) $fx_pesos['at'] = 0.40;
+        if ($hasCampos($mk_campos)) $fx_pesos['mk'] = 0.30;
+        if ($hasCampos($st_campos)) $fx_pesos['st'] = 0.30;
+
+        $fx_sum_pesos = array_sum($fx_pesos) ?: 1;
+        $fx_total = 0;
+        if (isset($fx_pesos['at'])) $fx_total += $val_afluencia       * ($fx_pesos['at'] / $fx_sum_pesos);
+        if (isset($fx_pesos['mk'])) $fx_total += $val_marketing       * ($fx_pesos['mk'] / $fx_sum_pesos);
+        if (isset($fx_pesos['st'])) $fx_total += $val_superestructura * ($fx_pesos['st'] / $fx_sum_pesos);
 
         return [
             'val_rn_litoral'       => $rn_litoral, 'val_rn_montana'    => $rn_montana,

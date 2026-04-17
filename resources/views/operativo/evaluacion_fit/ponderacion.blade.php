@@ -166,6 +166,13 @@
                     </table>
                 </div>
 
+                {{-- Radar Chart FIT --}}
+                <div class="flex justify-center mb-10">
+                    <div style="width:450px;height:450px;">
+                        <canvas id="radarFIT"></canvas>
+                    </div>
+                </div>
+
                 <div class="mt-8 text-center">
                     <a href="{{ route('operativo.evaluacion_fit.edit', $zona->id) }}"
                         class="inline-block px-5 py-2 bg-blue-600 text-white font-bold text-lg rounded-lg
@@ -184,4 +191,57 @@
             </div>
         </div>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script>
+        new Chart(document.getElementById('radarFIT').getContext('2d'), {
+            type: 'radar',
+            data: {
+                labels: [
+                    'Recursos Turísticos (RTt)',
+                    'Atractivos (At)',
+                    'Prestadores de Servicios (PSt)',
+                    'Producto Turístico (PTt)',
+                    'Infraestructura (I)',
+                    'Facilidades Turísticas (Ft)'
+                ],
+                datasets: [{
+                    label: 'Calificación Media (0-3)',
+                    data: [
+                        {{ $fit->media_rtt }}, {{ $fit->media_at }},
+                        {{ $fit->media_pst }}, {{ $fit->media_ptt }},
+                        {{ $fit->media_i }}, {{ $fit->media_ft }}
+                    ],
+                    backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                    borderColor: 'rgba(37, 99, 235, 0.8)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(37, 99, 235, 1)',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    title: {
+                        display: true,
+                        text: 'Perfil de Factores Intrínsecos Territoriales (FIT)',
+                        font: { size: 14, weight: 'bold' },
+                        color: '#374151'
+                    }
+                },
+                scales: {
+                    r: {
+                        min: 0, max: 3,
+                        ticks: { stepSize: 0.5, font: { size: 10 }, backdropColor: 'transparent' },
+                        pointLabels: { font: { size: 11, weight: '600' }, color: '#4b5563' },
+                        grid: { color: 'rgba(0,0,0,0.08)' },
+                        angleLines: { color: 'rgba(0,0,0,0.08)' }
+                    }
+                }
+            }
+        });
+    </script>
 </x-app-layout>

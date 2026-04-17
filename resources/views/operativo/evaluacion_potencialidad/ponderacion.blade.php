@@ -99,7 +99,7 @@
                         <tbody class="text-gray-800">
                             {{-- Recursos Turísticos --}}
                             <tr class="bg-gray-50">
-                                <td rowspan="6" class="border border-gray-300 p-2 font-bold align-middle text-left">
+                                <td rowspan="7" class="border border-gray-300 p-2 font-bold align-middle text-left">
                                     Recursos Turísticos (RT) — 40%
                                 </td>
                                 <td class="border border-gray-300 p-2 text-left">RN — Zonas de Litoral</td>
@@ -132,8 +132,6 @@
                             <tr class="bg-gray-50">
                                 <td class="border border-gray-300 p-2 text-left">RC — Expresiones Contemporáneas</td>
                                 <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_rc_ec, 3) }}</td>
-                                <td class="border border-gray-300 p-2 text-gray-400 text-xs"></td>
-                                <td class="border border-gray-300 p-2 text-gray-400 text-xs"></td>
                             </tr>
                             {{-- Planta Turística --}}
                             <tr>
@@ -193,6 +191,27 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                {{-- ══════════════════════════════════════════
+                     RADAR CHARTS FACTORES ENDÓGENOS
+                ══════════════════════════════════════════ --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 flex justify-center">
+                        <div style="width:100%;max-width:380px;">
+                            <canvas id="radarRT"></canvas>
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 flex justify-center">
+                        <div style="width:100%;max-width:380px;">
+                            <canvas id="radarPT"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-center mb-10">
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50" style="width:100%;max-width:440px;">
+                        <canvas id="radarFN"></canvas>
+                    </div>
                 </div>
 
                 {{-- ══════════════════════════════════════════
@@ -256,6 +275,15 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                {{-- ══════════════════════════════════════════
+                     RADAR CHART FACTORES EXÓGENOS
+                ══════════════════════════════════════════ --}}
+                <div class="flex justify-center mb-10">
+                    <div style="width:420px;height:420px;">
+                        <canvas id="radarFX"></canvas>
+                    </div>
                 </div>
 
                 {{-- Tabla de rangos --}}
@@ -392,6 +420,155 @@
                     ctx.restore();
                 }
             }]
+        });
+    </script>
+
+    {{-- Radar Charts --}}
+    <script>
+        // ── Opciones base compartidas por los radars de FN ─────────────────
+        const radarBaseFN = (titulo, color) => ({
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: titulo,
+                    font: { size: 13, weight: 'bold' },
+                    color: '#374151'
+                },
+                tooltip: {
+                    callbacks: { label: c => `${c.label}: ${c.parsed.r.toFixed(3)}` }
+                }
+            },
+            scales: {
+                r: {
+                    min: 0, max: 2,
+                    ticks: { stepSize: 0.5, font: { size: 10 }, backdropColor: 'transparent' },
+                    pointLabels: { font: { size: 10, weight: '600' }, color: '#4b5563' },
+                    grid: { color: 'rgba(0,0,0,0.08)' },
+                    angleLines: { color: 'rgba(0,0,0,0.08)' }
+                }
+            }
+        });
+
+        // ── Radar Recursos Turísticos (RT) — subfactores ───────────────────
+        new Chart(document.getElementById('radarRT').getContext('2d'), {
+            type: 'radar',
+            data: {
+                labels: [
+                    'RN Litoral', 'RN Montaña', 'RN Áreas Protegidas', 'RN Cuerpos de Agua',
+                    'RC Artístico-Monum.', 'RC Nacionalidades', 'RC Expr. Contemp.'
+                ],
+                datasets: [{
+                    label: 'Valor (0-2)',
+                    data: [
+                        {{ $eval->val_rn_litoral }}, {{ $eval->val_rn_montana }},
+                        {{ $eval->val_rn_anp }}, {{ $eval->val_rn_agua }},
+                        {{ $eval->val_rc_am }}, {{ $eval->val_rc_np }}, {{ $eval->val_rc_ec }}
+                    ],
+                    backgroundColor: 'rgba(22, 163, 74, 0.15)',
+                    borderColor: 'rgba(22, 163, 74, 0.85)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(22, 163, 74, 1)',
+                    pointRadius: 4, pointHoverRadius: 6,
+                }]
+            },
+            options: radarBaseFN('Recursos Turísticos (RT) — Subfactores')
+        });
+
+        // ── Radar Planta Turística (PT) — subfactores ──────────────────────
+        new Chart(document.getElementById('radarPT').getContext('2d'), {
+            type: 'radar',
+            data: {
+                labels: ['Alojamiento', 'Restauración', 'Intermediación', 'Transportación', 'Guianza'],
+                datasets: [{
+                    label: 'Valor (0-2)',
+                    data: [
+                        {{ $eval->val_pt_alojamiento }}, {{ $eval->val_pt_restauracion }},
+                        {{ $eval->val_pt_intermediacion }}, {{ $eval->val_pt_transportacion }},
+                        {{ $eval->val_pt_interpretacion }}
+                    ],
+                    backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                    borderColor: 'rgba(37, 99, 235, 0.85)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(37, 99, 235, 1)',
+                    pointRadius: 4, pointHoverRadius: 6,
+                }]
+            },
+            options: radarBaseFN('Planta Turística (PT) — Subfactores')
+        });
+
+        // ── Radar General FN — Factores principales ────────────────────────
+        new Chart(document.getElementById('radarFN').getContext('2d'), {
+            type: 'radar',
+            data: {
+                labels: [
+                    'Recursos Turísticos (RT)',
+                    'Planta Turística (PT)',
+                    'Tipologías de Turismo (TT)',
+                    'Infraestructura (I)'
+                ],
+                datasets: [{
+                    label: 'Valor (0-2)',
+                    data: [
+                        {{ $eval->val_recursos_turisticos }},
+                        {{ $eval->val_planta_turistica }},
+                        {{ $eval->val_tipologias }},
+                        {{ $eval->val_infraestructura }}
+                    ],
+                    backgroundColor: 'rgba(79, 70, 229, 0.15)',
+                    borderColor: 'rgba(79, 70, 229, 0.85)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(79, 70, 229, 1)',
+                    pointRadius: 5, pointHoverRadius: 7,
+                }]
+            },
+            options: radarBaseFN('Factores Endógenos (FN) — Vista General')
+        });
+
+        // ── Radar FX: Factores Exógenos por subfactor ───────────────────────
+        new Chart(document.getElementById('radarFX').getContext('2d'), {
+            type: 'radar',
+            data: {
+                labels: ['Afluencia Turística', 'Marketing Turístico', 'Superestructura'],
+                datasets: [{
+                    label: 'Valor (0-2)',
+                    data: [
+                        {{ $eval->val_afluencia }},
+                        {{ $eval->val_marketing }},
+                        {{ $eval->val_superestructura }}
+                    ],
+                    backgroundColor: 'rgba(13, 148, 136, 0.15)',
+                    borderColor: 'rgba(13, 148, 136, 0.8)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(13, 148, 136, 1)',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    title: {
+                        display: true,
+                        text: 'Perfil de Factores Exógenos (FX)',
+                        font: { size: 14, weight: 'bold' },
+                        color: '#374151'
+                    }
+                },
+                scales: {
+                    r: {
+                        min: 0, max: 2,
+                        ticks: { stepSize: 0.5, font: { size: 10 }, backdropColor: 'transparent' },
+                        pointLabels: { font: { size: 11, weight: '600' }, color: '#4b5563' },
+                        grid: { color: 'rgba(0,0,0,0.08)' },
+                        angleLines: { color: 'rgba(0,0,0,0.08)' }
+                    }
+                }
+            }
         });
     </script>
 </x-app-layout>

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -l app/Http/Controllers/Operativo/EvaluacionFitController.php)",
+      "Bash(php -l app/Http/Controllers/Operativo/EvaluacionFetController.php)",
+      "Bash(php -l app/Http/Controllers/Operativo/VttController.php)",
+      "Bash(php artisan:*)"
+    ]
+  }
+}
