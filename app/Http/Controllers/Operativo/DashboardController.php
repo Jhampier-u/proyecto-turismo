@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Operativo;
 
 use App\Http\Controllers\Controller;
+use App\Models\EvaluacionPercepcion;
 use App\Models\EvaluacionPotencialidad;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,6 +31,9 @@ class DashboardController extends Controller
         $evaluaciones = EvaluacionPotencialidad::whereIn('zona_id', $zonas->pluck('id'))
             ->get()->keyBy('zona_id');
 
-        return view('operativo.dashboard', compact('zonas', 'evaluaciones'));
+        $percepciones = EvaluacionPercepcion::whereIn('zona_id', $zonas->pluck('id'))
+            ->get()->keyBy('zona_id');
+
+        return view('operativo.dashboard', compact('zonas', 'evaluaciones', 'percepciones'));
     }
 }

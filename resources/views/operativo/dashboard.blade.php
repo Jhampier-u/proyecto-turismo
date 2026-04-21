@@ -76,6 +76,8 @@
                                                class="block px-4 py-2 text-xs text-gray-700 hover:bg-gray-100">Factores Extrínsecos (FET)</a>
                                             <a href="{{ route('operativo.evaluacion_potencialidad.edit', $zona->id) }}"
                                                class="block px-4 py-2 text-xs text-purple-700 hover:bg-purple-50 font-semibold border-t border-gray-100 mt-1 pt-2">⭐ Potencialidad Turística</a>
+                                            <a href="{{ route('operativo.evaluacion_percepcion.edit', $zona->id) }}"
+                                               class="block px-4 py-2 text-xs text-emerald-700 hover:bg-emerald-50 font-semibold border-t border-gray-100 mt-1 pt-2">🧭 Matriz de Percepción</a>
                                         </div>
                                     </div>
                                 </div>
@@ -98,6 +100,21 @@
                                    title="{{ $evalConfirmada ? 'Ver resultados de Potencialidad' : ($eval ? 'Evaluación en borrador — continuar' : 'Evaluación no realizada — comenzar') }}">
                                     ⭐
                                     {{ $evalConfirmada ? 'Potencialidad' : ($eval ? 'En progreso' : 'Sin evaluar') }}
+                                </a>
+
+                                {{-- Botón Matriz de Percepción --}}
+                                @php
+                                    $percep = $percepciones[$zona->id] ?? null;
+                                    $percepConfirmada = $percep && $percep->estado === 'confirmado';
+                                @endphp
+                                <a href="{{ $percep
+                                    ? route('operativo.evaluacion_percepcion.ponderacion', $zona->id)
+                                    : route('operativo.evaluacion_percepcion.edit', $zona->id) }}"
+                                   class="inline-flex items-center gap-1 px-2 py-1.5 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest transition
+                                       {{ $percepConfirmada ? 'bg-emerald-600 hover:bg-emerald-700' : ($percep ? 'bg-emerald-400 hover:bg-emerald-500' : 'bg-gray-400 hover:bg-gray-500') }}"
+                                   title="{{ $percepConfirmada ? 'Ver resultados de la Matriz de Percepción' : ($percep ? 'Matriz en borrador — continuar' : 'Matriz no realizada — comenzar') }}">
+                                    🧭
+                                    {{ $percepConfirmada ? 'Percepción' : ($percep ? 'En progreso' : 'Sin evaluar') }}
                                 </a>
                             </div>
                         </div>

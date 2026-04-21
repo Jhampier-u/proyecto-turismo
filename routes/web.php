@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ZonaController;
 use App\Http\Controllers\Operativo\DashboardController;
 use App\Http\Controllers\Operativo\EvaluacionFetController;
 use App\Http\Controllers\Operativo\EvaluacionFitController;
+use App\Http\Controllers\Operativo\EvaluacionPercepcionController;
 use App\Http\Controllers\Operativo\EvaluacionPotencialidadController;
 use App\Http\Controllers\Operativo\InventarioController;
 use App\Http\Controllers\Operativo\VttController;
@@ -70,6 +71,11 @@ Route::middleware(['auth', 'personal'])->group(function () {
         Route::post('/evaluacion-potencialidad/campos',   [EvaluacionPotencialidadController::class, 'guardarCampos'])->name('evaluacion_potencialidad.campos');
         Route::post('/evaluacion-potencialidad/reconfigurar', [EvaluacionPotencialidadController::class, 'reconfigurarCampos'])->name('evaluacion_potencialidad.reconfigurar');
         Route::get('/evaluacion-potencialidad/resultados',[EvaluacionPotencialidadController::class, 'ponderacion'])->name('evaluacion_potencialidad.ponderacion');
+
+        // Matriz de Percepción de la Localidad
+        Route::get('/evaluacion-percepcion',             [EvaluacionPercepcionController::class, 'edit'])->name('evaluacion_percepcion.edit');
+        Route::post('/evaluacion-percepcion',            [EvaluacionPercepcionController::class, 'update'])->name('evaluacion_percepcion.update');
+        Route::get('/evaluacion-percepcion/resultados',  [EvaluacionPercepcionController::class, 'ponderacion'])->name('evaluacion_percepcion.ponderacion');
     });
 });
 
