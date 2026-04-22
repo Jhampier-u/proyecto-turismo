@@ -6,11 +6,30 @@
     </x-slot>
 
     @php
+        $readonly      = $readonly ?? false;
+        $sinDatos      = !$evaluacion;
         $etiquetaValor = fn($v) => match((int)$v) { 1 => 'Negativo', 2 => 'Neutral', 3 => 'Positivo', default => '—' };
         $colorValor    = fn($v) => match((int)$v) { 1 => 'bg-red-100 text-red-800', 2 => 'bg-yellow-100 text-yellow-800', 3 => 'bg-green-100 text-green-800', default => 'bg-gray-100 text-gray-600' };
-        $totalPct      = $evaluacion->percepcion_total * 100;
+        $totalPct      = $sinDatos ? 0 : $evaluacion->percepcion_total * 100;
         $interp        = $totalPct >= 70 ? ['Percepción Favorable', 'bg-green-600'] : ($totalPct >= 40 ? ['Percepción Moderada', 'bg-yellow-500'] : ['Percepción Desfavorable', 'bg-red-600']);
     @endphp
+
+    @if($sinDatos)
+        <div class="py-12">
+            <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-800 p-6 rounded shadow">
+                    <h3 class="font-bold text-lg mb-2">Matriz de Percepción no disponible</h3>
+                    <p>Esta zona aún no cuenta con una Matriz de Percepción registrada. El Jefe de Zona o el Equipo operativo deben completarla primero.</p>
+                </div>
+                <div class="mt-6 text-center">
+                    <a href="{{ auth()->user()->role_id === 1 ? route('admin.zonas.index') : route('operativo.dashboard') }}"
+                       class="inline-block px-5 py-2 bg-gray-200 text-black font-bold rounded-lg hover:bg-gray-400 shadow">
+                        Volver
+                    </a>
+                </div>
+            </div>
+        </div>
+    @else
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -141,18 +160,26 @@
                 @endif
 
                 <div class="mt-8 text-center space-x-3">
-                    <a href="{{ route('operativo.evaluacion_percepcion.edit', $zona->id) }}"
-                       class="inline-block px-5 py-2 bg-blue-600 text-white font-bold text-lg rounded-lg hover:bg-blue-700 hover:scale-105 transition-transform duration-200 shadow-md">
-                        Ver el Formulario
-                    </a>
-                    <a href="{{ route('operativo.dashboard') }}"
-                       class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
-                        Volver a Mis Zonas
-                    </a>
+                    @if(!$readonly)
+                        <a href="{{ route('operativo.evaluacion_percepcion.edit', $zona->id) }}"
+                           class="inline-block px-5 py-2 bg-blue-600 text-white font-bold text-lg rounded-lg hover:bg-blue-700 hover:scale-105 transition-transform duration-200 shadow-md">
+                            Ver el Formulario
+                        </a>
+                        <a href="{{ route('operativo.dashboard') }}"
+                           class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
+                            Volver a Mis Zonas
+                        </a>
+                    @else
+                        <a href="{{ route('admin.zonas.index') }}"
+                           class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
+                            Volver a Zonas
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
     </div>
+    @endif
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <script>

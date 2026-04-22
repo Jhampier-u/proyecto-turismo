@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Zona;
 use App\Models\Lugar;
 use App\Models\User;
+use App\Models\EvaluacionPercepcion;
 use App\Models\EvaluacionPotencialidad;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -117,5 +118,15 @@ class ZonaController extends Controller
         $zona = Zona::findOrFail($id);
         $evaluacion = EvaluacionPotencialidad::where('zona_id', $id)->first();
         return view('admin.zonas.potencialidad', compact('zona', 'evaluacion'));
+    }
+
+    // Vista admin de resultados de la Matriz de Percepción
+    public function percepcion($id) {
+        $zona = Zona::findOrFail($id);
+        $evaluacion = EvaluacionPercepcion::where('zona_id', $id)->first();
+        $categorias = \App\Http\Controllers\Operativo\EvaluacionPercepcionController::$categorias;
+        $readonly = true;
+        return view('operativo.evaluacion_percepcion.ponderacion',
+            compact('zona', 'evaluacion', 'categorias', 'readonly'));
     }
 }
