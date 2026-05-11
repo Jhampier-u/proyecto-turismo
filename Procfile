@@ -1,2 +1,0 @@
-web: bash start.sh
-release: php artisan migrate --force && php artisan db:seed --force
