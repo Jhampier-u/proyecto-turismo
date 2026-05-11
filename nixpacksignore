@@ -1,0 +1,22 @@
+# Ignorar archivos que no necesita producción
+node_modules
+.git
+.github
+tests
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+*.md
+*.log
+.env
+.env.example
+.editorconfig
+.gitignore
+.gitattributes
+phpunit.xml
+webpack.mix.js
+vite.config.js.timestamp-*
+CHANGELOG.md
+README.md
+_ide_helper.php
