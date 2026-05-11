@@ -1,2 +1,2 @@
-web: php artisan serve --host=0.0.0.0 --port=$PORT
+web: bash start.sh
 release: php artisan migrate --force && php artisan db:seed --force
