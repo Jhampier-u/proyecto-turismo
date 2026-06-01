@@ -1,0 +1,62 @@
+# Blueprint de Render — despliega Web Service + PostgreSQL en un solo paso.
+# https://render.com/docs/blueprint-spec
+
+databases:
+  - name: turismo-db
+    plan: free
+    databaseName: turismo
+    user: turismo
+
+services:
+  - type: web
+    name: gestion-turistica
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    healthCheckPath: /
+    autoDeploy: true
+
+    disk:
+      name: storage
+      mountPath: /var/data
+      sizeGB: 1
+
+    envVars:
+      - key: APP_NAME
+        value: "Gestión Turística"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_URL
+        sync: false           # lo pones manualmente con la URL que asigne Render
+
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: warning
+
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase: { name: turismo-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: turismo-db, property: port }
+      - key: DB_DATABASE
+        fromDatabase: { name: turismo-db, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: turismo-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: turismo-db, property: password }
+
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: FILESYSTEM_DISK
+        value: public
