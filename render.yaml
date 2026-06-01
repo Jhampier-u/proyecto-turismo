@@ -32,7 +32,8 @@ services:
       - key: APP_DEBUG
         value: "false"
       - key: APP_KEY
-        generateValue: true
+        sync: false           # Genera local con: php artisan key:generate --show
+                              # y pega el valor completo (base64:...)
       - key: APP_URL
         sync: false           # lo pones manualmente con la URL que asigne Render
 
