@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\IsAdmin::class,
             'personal' => \App\Http\Middleware\isPersonal::class,
         ]);
+
+        // Confiar en el proxy de Render / Cloudflare para detectar HTTPS
+        // a través del header X-Forwarded-Proto.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

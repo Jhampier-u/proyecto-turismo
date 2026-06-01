@@ -7,7 +7,10 @@
       "Bash(php artisan:*)",
       "Bash(python -c ' *)",
       "PowerShell($src = \"C:\\\\Users\\\\USUARIO\\\\Downloads\\\\MATRIZ PERCEPCIÓN DE LA LOCALIDAD.xlsx\"; $dst = \"$env:TEMP\\\\matriz_unzip\"; if \\(Test-Path $dst\\) { Remove-Item -Recurse -Force $dst }; Expand-Archive -Path $src -DestinationPath $dst; Get-ChildItem -Recurse $dst | Select-Object FullName)",
-      "PowerShell($src = \"C:\\\\Users\\\\USUARIO\\\\Downloads\\\\MATRIZ PERCEPCIÓN DE LA LOCALIDAD.xlsx\"; $tmp = \"$env:TEMP\\\\matriz.zip\"; Copy-Item $src $tmp -Force; $dst = \"$env:TEMP\\\\matriz_unzip\"; if \\(Test-Path $dst\\) { Remove-Item -Recurse -Force $dst }; Expand-Archive -Path $tmp -DestinationPath $dst; Get-ChildItem -Recurse $dst | Select-Object -Expand FullName)"
+      "PowerShell($src = \"C:\\\\Users\\\\USUARIO\\\\Downloads\\\\MATRIZ PERCEPCIÓN DE LA LOCALIDAD.xlsx\"; $tmp = \"$env:TEMP\\\\matriz.zip\"; Copy-Item $src $tmp -Force; $dst = \"$env:TEMP\\\\matriz_unzip\"; if \\(Test-Path $dst\\) { Remove-Item -Recurse -Force $dst }; Expand-Archive -Path $tmp -DestinationPath $dst; Get-ChildItem -Recurse $dst | Select-Object -Expand FullName)",
+      "WebFetch(domain:gestion-turistica.onrender.com)",
+      "Bash(curl -sI https://gestion-turistica.onrender.com/)",
+      "Bash(curl -s https://gestion-turistica.onrender.com/)"
     ]
   }
 }
