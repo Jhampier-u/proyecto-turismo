@@ -17,10 +17,12 @@ services:
     healthCheckPath: /
     autoDeploy: true
 
-    disk:
-      name: storage
-      mountPath: /var/data
-      sizeGB: 1
+    # NOTA: discos persistentes NO están disponibles en el plan free.
+    # Si subes al plan Starter, descomenta este bloque ($1/mes extra):
+    # disk:
+    #   name: storage
+    #   mountPath: /var/data
+    #   sizeGB: 1
 
     envVars:
       - key: APP_NAME
