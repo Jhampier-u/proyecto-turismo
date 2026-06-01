@@ -31,5 +31,12 @@ php artisan view:cache
 echo "▶ Ejecutando migraciones..."
 php artisan migrate --force
 
+# Si la tabla users está vacía, seedeamos datos iniciales.
+USERS_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tr -d '[:space:]' || echo "0")
+if [ "${USERS_COUNT}" = "0" ]; then
+    echo "▶ DB vacía, ejecutando seeders iniciales..."
+    php artisan db:seed --force || true
+fi
+
 echo "✓ App lista. Iniciando Apache en el puerto ${PORT}"
 exec "$@"

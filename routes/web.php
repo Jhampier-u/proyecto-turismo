@@ -15,6 +15,24 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => view('index'));
 
+// ── BOOTSTRAP REMOTO (Render free, sin Shell) ────────────────────────────────
+// Permite ejecutar migraciones + seeders desde el navegador con un token.
+// La ruta solo responde si la variable BOOTSTRAP_TOKEN está definida en el
+// entorno y coincide con el query string ?token=...
+Route::get('/__bootstrap', function (\Illuminate\Http\Request $request) {
+    $token = env('BOOTSTRAP_TOKEN');
+    if (! $token || $request->query('token') !== $token) {
+        abort(404);
+    }
+
+    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+    \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+
+    return '<pre>'
+        . htmlspecialchars(\Illuminate\Support\Facades\Artisan::output())
+        . "\n✓ Bootstrap completado</pre>";
+});
+
 Route::get('/dashboard', function () {
     return Auth::user()->role_id === 1
         ? redirect()->route('admin.dashboard')
