@@ -40,8 +40,8 @@ class DatabaseSeeder extends Seeder
             'telefono' => '0977777777'
         ]);
 
-        // Datos de prueba adicionales
-        if (app()->environment('local')) {
+        // Datos de prueba adicionales (también en producción para demo en Render)
+        if (app()->environment(['local', 'production'])) {
             $lugarId = DB::table('lugares')->where('nombre', 'Cuenca Rural')->value('id');
 
             if ($lugarId) {
