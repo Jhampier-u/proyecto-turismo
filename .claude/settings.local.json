@@ -10,7 +10,25 @@
       "PowerShell($src = \"C:\\\\Users\\\\USUARIO\\\\Downloads\\\\MATRIZ PERCEPCIÓN DE LA LOCALIDAD.xlsx\"; $tmp = \"$env:TEMP\\\\matriz.zip\"; Copy-Item $src $tmp -Force; $dst = \"$env:TEMP\\\\matriz_unzip\"; if \\(Test-Path $dst\\) { Remove-Item -Recurse -Force $dst }; Expand-Archive -Path $tmp -DestinationPath $dst; Get-ChildItem -Recurse $dst | Select-Object -Expand FullName)",
       "WebFetch(domain:gestion-turistica.onrender.com)",
       "Bash(curl -sI https://gestion-turistica.onrender.com/)",
-      "Bash(curl -s https://gestion-turistica.onrender.com/)"
+      "Bash(curl -s https://gestion-turistica.onrender.com/)",
+      "Bash(pdftotext -v)",
+      "Bash(cd /tmp)",
+      "Bash(pdftotext -layout \"C:/gestion-turistica/proyecto-turismo/Documentación/1 Plan de Trabajo.pdf\" plan.txt)",
+      "Bash(pdftotext -layout \"C:/gestion-turistica/proyecto-turismo/Documentación/2 Informe de Pasantía.pdf\" informe.txt)",
+      "Bash(pdftotext \"C:/gestion-turistica/proyecto-turismo/Documentación/1 Plan de Trabajo.pdf\" plan2.txt)",
+      "Bash(pdftoppm -v)",
+      "Bash(cp /tmp/informe.txt \"C:/gestion-turistica/proyecto-turismo/Documentación/informe_extracted.txt\" 2>&1; ls -la \"C:/gestion-turistica/proyecto-turismo/Documentación/informe_extracted.txt\")",
+      "Bash(mkdir -p \"C:/gestion-turistica/proyecto-turismo/entregables\")",
+      "Bash(npm list *)",
+      "Bash(npm install *)",
+      "Bash(node build_docx.js)",
+      "Bash(mv build_docx.js build_docx.cjs)",
+      "Bash(node build_docx.cjs)",
+      "Bash(npm init *)",
+      "Bash(node build_pptx.cjs)",
+      "Read(//c/Program Files/LibreOffice/program/**)",
+      "Read(//c/Program Files \\(x86\\)/LibreOffice/program/**)",
+      "Bash(php -l app/Http/Controllers/Operativo/InventarioController.php)"
     ]
   }
 }

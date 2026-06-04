@@ -31,15 +31,20 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
                                 <p class="text-gray-500 font-bold">Categoría</p>
-                                <p>{{ $inventario->categoria->padre->nombre }} > {{ $inventario->categoria->nombre }}</p>
+                                <p>
+                                    @if($inventario->categoria?->padre)
+                                        {{ $inventario->categoria->padre->nombre }} ›
+                                    @endif
+                                    {{ $inventario->categoria?->nombre ?? 'Sin categoría' }}
+                                </p>
                             </div>
                             <div>
                                 <p class="text-gray-500 font-bold">Propietario</p>
-                                <p>{{ $inventario->propietario->nombre }}</p>
+                                <p>{{ $inventario->propietario?->nombre ?? 'No especificado' }}</p>
                             </div>
                             <div>
                                 <p class="text-gray-500 font-bold">Ubicación</p>
-                                <p>{{ $inventario->ubicacion_detallada }}</p>
+                                <p>{{ $inventario->ubicacion_detallada ?: 'No especificada' }}</p>
                             </div>
                             <div>
                                 <p class="text-gray-500 font-bold">Estado Conservación</p>

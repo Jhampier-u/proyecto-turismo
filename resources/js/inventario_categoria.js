@@ -35,7 +35,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        if (!catPadre.value) {
+        // En la vista de edición ya viene una categoría preseleccionada — habilitar el select hijo
+        if (catPadre.value) {
+            selectHijo.disabled = false;
+        } else {
             selectHijo.innerHTML = '<option value="">Primero seleccione el tipo...</option>';
             selectHijo.disabled = true;
         }

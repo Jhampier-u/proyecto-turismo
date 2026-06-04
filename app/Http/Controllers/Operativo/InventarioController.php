@@ -43,13 +43,22 @@ class InventarioController extends Controller
     {
         $request->validate([
             'nombre_recurso' => 'required|string|max:200',
-            'categoria_id' => 'required|exists:categorias_recurso,id', // Debe ser la categoría final (hijo)
+            // Debe ser una categoría hijo (con parent_id no nulo)
+            'categoria_id' => [
+                'required',
+                \Illuminate\Validation\Rule::exists('categorias_recurso', 'id')
+                    ->whereNotNull('parent_id'),
+            ],
             'propietario_id' => 'required|exists:tipos_propietario,id',
             'descripcion' => 'required|string',
+            'ubicacion_detallada' => 'nullable|string|max:255',
             'accesibilidad' => 'nullable|string',
             'equipamiento_servicios' => 'nullable|string',
             'estado_conservacion' => 'required|in:Bueno,Regular,Malo',
-            'fotos.*' => 'image|mimes:jpeg,png,jpg|max:2048' // Validación de imágenes
+            'fotos.*' => 'image|mimes:jpeg,png,jpg|max:2048',
+        ], [
+            'categoria_id.required' => 'Debe seleccionar un subtipo de categoría.',
+            'categoria_id.exists'   => 'Debe seleccionar un subtipo válido (no una categoría principal).',
         ]);
 
         //Si falla la subida de fotos, no se crea el inventario
@@ -114,11 +123,15 @@ class InventarioController extends Controller
     public function edit($zonaId, $inventarioId)
     {
         $zona = Zona::findOrFail($zonaId);
-        $inventario = Inventario::findOrFail($inventarioId);
+        $inventario = Inventario::with('categoria')->findOrFail($inventarioId);
 
         $categoriasPadre = CategoriaRecurso::whereNull('parent_id')->get();
 
-        $subcategoriasActuales = CategoriaRecurso::where('parent_id', $inventario->categoria->parent_id)->get();
+        // Defensa por si la categoría no existe o si es una raíz sin parent_id
+        $parentId = $inventario->categoria?->parent_id;
+        $subcategoriasActuales = $parentId
+            ? CategoriaRecurso::where('parent_id', $parentId)->get()
+            : collect();
 
         $propietarios = TipoPropietario::all();
 
@@ -131,11 +144,21 @@ class InventarioController extends Controller
 
         $request->validate([
             'nombre_recurso' => 'required|string|max:200',
-            'categoria_id' => 'required|exists:categorias_recurso,id',
+            'categoria_id' => [
+                'required',
+                \Illuminate\Validation\Rule::exists('categorias_recurso', 'id')
+                    ->whereNotNull('parent_id'),
+            ],
             'propietario_id' => 'required|exists:tipos_propietario,id',
             'descripcion' => 'required|string',
+            'ubicacion_detallada' => 'nullable|string|max:255',
+            'accesibilidad' => 'nullable|string',
+            'equipamiento_servicios' => 'nullable|string',
             'estado_conservacion' => 'required|in:Bueno,Regular,Malo',
-            'nuevas_fotos.*' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+            'nuevas_fotos.*' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ], [
+            'categoria_id.required' => 'Debe seleccionar un subtipo de categoría.',
+            'categoria_id.exists'   => 'Debe seleccionar un subtipo válido (no una categoría principal).',
         ]);
 
         DB::transaction(function () use ($request, $inventario) {

@@ -8,6 +8,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/css/estilo.css',
                 'resources/js/app.js',
+                'resources/js/inventario_categoria.js',
             ],
             refresh: true,
         }),

@@ -13,6 +13,17 @@
                     @csrf
                     @method('PUT')
 
+                    @if ($errors->any())
+                        <div class="mb-6 bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded">
+                            <p class="font-bold mb-1">Revisa los siguientes campos:</p>
+                            <ul class="list-disc list-inside text-sm">
+                                @foreach ($errors->all() as $err)
+                                    <li>{{ $err }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <div class="mb-6 border-b pb-4">
                         <h3 class="text-lg font-bold text-gray-700 mb-4">1. Clasificación</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -125,5 +136,5 @@
             </div>
         </div>
     </div>
-@vite(['resources/js/inventario-categorias.js'])
+@vite(['resources/js/inventario_categoria.js'])
 </x-app-layout>

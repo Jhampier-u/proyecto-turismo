@@ -82,8 +82,8 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-600">
-                                    {{ $inv->categoria->nombre ?? 'N/A' }}
-                                    <br><span class="text-xs text-gray-400">{{ $inv->categoria->padre->nombre ?? '' }}</span>
+                                    {{ $inv->categoria?->nombre ?? 'N/A' }}
+                                    <br><span class="text-xs text-gray-400">{{ $inv->categoria?->padre?->nombre ?? '' }}</span>
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
@@ -152,9 +152,9 @@
                             </div>
 
                             <p class="text-xs text-indigo-600 font-medium mb-2">
-                                {{ $inv->categoria->padre->nombre ?? '' }}
-                                @if($inv->categoria->padre) › @endif
-                                {{ $inv->categoria->nombre ?? 'N/A' }}
+                                {{ $inv->categoria?->padre?->nombre ?? '' }}
+                                @if($inv->categoria?->padre) › @endif
+                                {{ $inv->categoria?->nombre ?? 'N/A' }}
                             </p>
 
                             <p class="text-xs text-gray-500 line-clamp-2 flex-1">{{ $inv->descripcion }}</p>
