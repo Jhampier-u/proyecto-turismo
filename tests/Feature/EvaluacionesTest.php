@@ -187,6 +187,53 @@ class EvaluacionesTest extends TestCase
         );
     }
 
+    public function test_el_mensaje_de_evaluacion_fit_cerrada_es_el_especifico_de_fit(): void
+    {
+        // Mismo caso que FET: fija el texto propio de FIT para que un
+        // refactor futuro no lo sustituya en silencio por el genérico.
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fit",
+            $this->todos(self::CAMPOS_FIT, 3) + ['accion_estado' => 'confirmado']
+        );
+
+        $this->actingAs($equipo)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fit",
+            $this->todos(self::CAMPOS_FIT, 0)
+        )->assertSessionHas(
+            'error',
+            'Evaluación cerrada. No puedes editar.'
+        );
+    }
+
+    public function test_el_mensaje_de_evaluacion_percepcion_cerrada_es_el_especifico_de_percepcion(): void
+    {
+        // Percepción migró a MatrizPonderadaController conservando el texto
+        // que ya usaba antes del refactor; este test lo fija.
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-percepcion",
+            $this->todos($this->itemsPercepcion(), 3) + ['accion_estado' => 'confirmado']
+        );
+
+        // El mínimo de la escala de Percepción es 1, no 0.
+        $this->actingAs($equipo)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-percepcion",
+            $this->todos($this->itemsPercepcion(), 1)
+        )->assertSessionHas(
+            'error',
+            'Evaluación cerrada. No puedes editar.'
+        );
+    }
+
     /**
      * Las páginas de resultados construyen las gráficas con datos interpolados
      * desde Blade. Un error ahí no rompe la petición pero deja el <canvas> en
