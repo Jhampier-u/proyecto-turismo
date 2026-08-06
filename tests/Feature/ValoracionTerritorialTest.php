@@ -143,4 +143,32 @@ class ValoracionTerritorialTest extends TestCase
 
         $this->assertSame($esperado, $evaluacion->cuadrante);
     }
+
+    public function test_el_formulario_se_renderiza_con_los_21_criterios(): void
+    {
+        $respuesta = $this->actingAs($this->jefe)->get($this->url());
+
+        $respuesta->assertOk();
+
+        foreach (array_keys(ValoracionTerritorial::todos()) as $campo) {
+            $respuesta->assertSee('name="' . $campo . '"', false);
+        }
+    }
+
+    /**
+     * El test anterior solo comprueba que existan los 21 `name="..."`, lo que
+     * pasaría igual con un <select> de etiquetas genéricas (0/1/2). La
+     * decisión de diseño de este formulario es que la descripción completa de
+     * cada nivel sea la opción, así que se verifica que el texto literal de
+     * un nivel concreto llegue al HTML.
+     */
+    public function test_el_formulario_muestra_la_descripcion_completa_de_los_niveles(): void
+    {
+        $respuesta = $this->actingAs($this->jefe)->get($this->url());
+
+        $respuesta->assertOk();
+        $respuesta->assertSee(
+            'Las vías de acceso al territorio cuentan con un mantenimiento adecuado y son de primer orden'
+        );
+    }
 }
