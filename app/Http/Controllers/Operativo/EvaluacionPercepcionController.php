@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers\Operativo;
 
-use App\Http\Controllers\Controller;
 use App\Models\EvaluacionPercepcion;
 use App\Models\Zona;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
-class EvaluacionPercepcionController extends Controller
+class EvaluacionPercepcionController extends MatrizPonderadaController
 {
     // Estructura: código → [nombre_campo_db, etiqueta]
     public static array $categorias = [
@@ -64,53 +63,6 @@ class EvaluacionPercepcionController extends Controller
             compact('zona', 'evaluacion', 'categorias'));
     }
 
-    public function update(Request $request, $zonaId)
-    {
-        $user             = Auth::user();
-        $evaluacionActual = EvaluacionPercepcion::where('zona_id', $zonaId)->first();
-
-        if ($evaluacionActual && $evaluacionActual->estado === 'confirmado' && $user->esEquipo()) {
-            return back()->with('error', 'Evaluación cerrada. No puedes editar.');
-        }
-
-        // Armar reglas de validación para los 16 ítems (1=Negativo, 2=Neutral, 3=Positivo)
-        $rules = [
-            'acciones_mejora' => 'nullable|string|max:5000',
-            'accion_estado'   => 'nullable|in:borrador,confirmado',
-        ];
-        foreach (self::$categorias as $cat) {
-            foreach (array_keys($cat['items']) as $campo) {
-                $rules[$campo] = 'required|integer|min:1|max:3';
-            }
-        }
-        $validated = $request->validate($rules);
-
-        // No es una columna de la tabla; se usa solo para decidir el estado.
-        unset($validated['accion_estado']);
-
-        $calc = $this->calcular($validated);
-
-        $estado = ($user->esJefe())
-            ? $request->input('accion_estado', 'borrador')
-            : 'borrador';
-
-        EvaluacionPercepcion::updateOrCreate(
-            ['zona_id' => $zonaId],
-            array_merge($validated, $calc, [
-                'user_id' => $user->id,
-                'estado'  => $estado,
-            ])
-        );
-
-        $mensaje = ($estado === 'confirmado')
-            ? 'Matriz de Percepción VALIDADA correctamente. Percepción total: ' . number_format($calc['percepcion_total'] * 100, 2) . '%'
-            : 'Borrador guardado. Percepción total: ' . number_format($calc['percepcion_total'] * 100, 2) . '%';
-
-        return redirect()
-            ->route('operativo.evaluacion_percepcion.ponderacion', $zonaId)
-            ->with('success', $mensaje);
-    }
-
     public function ponderacion($zonaId)
     {
         $zona       = Zona::findOrFail($zonaId);
@@ -121,7 +73,61 @@ class EvaluacionPercepcionController extends Controller
             compact('zona', 'evaluacion', 'categorias'));
     }
 
-    private function calcular(array $v): array
+    protected function modelo(): string
+    {
+        return EvaluacionPercepcion::class;
+    }
+
+    protected function rutaResultados(): string
+    {
+        return 'operativo.evaluacion_percepcion.ponderacion';
+    }
+
+    protected function escala(): array
+    {
+        return [1, 3];
+    }
+
+    protected function criterios(): array
+    {
+        $criterios = [];
+        foreach (self::$categorias as $codigo => $cat) {
+            $criterios[strtolower($codigo)] = array_keys($cat['items']);
+        }
+
+        return $criterios;
+    }
+
+    /** Añade el campo de texto libre, que no es un criterio puntuable. */
+    protected function prepararDatos(Request $request, $zonaId, ?Model $actual): array
+    {
+        $datos = parent::prepararDatos($request, $zonaId, $actual);
+
+        $extra = $request->validate(['acciones_mejora' => 'nullable|string|max:5000']);
+
+        return $datos + $extra;
+    }
+
+    protected function calcular(array $valores): array
+    {
+        return $this->calcularPercepcion($valores);
+    }
+
+    protected function mensajeExito(string $estado, array $datos): string
+    {
+        $pct = number_format($datos['percepcion_total'] * 100, 2);
+
+        return $estado === 'confirmado'
+            ? "Matriz de Percepción VALIDADA correctamente. Percepción total: {$pct}%"
+            : "Borrador guardado. Percepción total: {$pct}%";
+    }
+
+    protected function mensajeCerrada(): string
+    {
+        return 'Evaluación cerrada. No puedes editar.';
+    }
+
+    private function calcularPercepcion(array $v): array
     {
         $result = [];
         $total  = 0;
