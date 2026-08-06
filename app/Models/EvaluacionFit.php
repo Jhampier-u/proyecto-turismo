@@ -48,6 +48,27 @@ class EvaluacionFit extends Model
         'fit'
     ];
 
+    // PostgreSQL devuelve las columnas numeric como string; sin estos casts
+    // el tipo difiere entre local (SQLite) y producción.
+    protected function casts(): array
+    {
+        return [
+            'media_rtt' => 'float',
+            'fit_rtt' => 'float',
+            'media_at' => 'float',
+            'fit_at' => 'float',
+            'media_pst' => 'float',
+            'fit_pst' => 'float',
+            'media_ptt' => 'float',
+            'fit_ptt' => 'float',
+            'media_i' => 'float',
+            'fit_i' => 'float',
+            'media_ft' => 'float',
+            'fit_ft' => 'float',
+            'fit' => 'float',
+        ];
+    }
+
     public function zona()
     {
         return $this->belongsTo(Zona::class);

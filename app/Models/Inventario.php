@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Inventario extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'zona_id', 'categoria_id', 'propietario_id', 'creado_por_user_id',
         'nombre_recurso', 'ubicacion_detallada', 'descripcion',

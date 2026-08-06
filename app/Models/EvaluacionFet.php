@@ -34,6 +34,21 @@ class EvaluacionFet extends Model
         'fet'
     ];
 
+    // PostgreSQL devuelve las columnas numeric como string; sin estos casts
+    // el tipo difiere entre local (SQLite) y producción.
+    protected function casts(): array
+    {
+        return [
+            'media_demanda' => 'float',
+            'fet_demanda' => 'float',
+            'media_super' => 'float',
+            'fet_super' => 'float',
+            'media_imagen' => 'float',
+            'fet_imagen' => 'float',
+            'fet' => 'float',
+        ];
+    }
+
     public function zona()
     {
         return $this->belongsTo(Zona::class);

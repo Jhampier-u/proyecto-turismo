@@ -229,6 +229,16 @@ class EvaluacionPotencialidad extends Model
         'fx_total',
     ];
 
+    // PostgreSQL devuelve las columnas numeric como string; sin estos casts
+    // el tipo difiere entre local (SQLite) y producción.
+    protected function casts(): array
+    {
+        return [
+            'fn_total' => 'float',
+            'fx_total' => 'float',
+        ];
+    }
+
     public function zona()
     {
         return $this->belongsTo(Zona::class);

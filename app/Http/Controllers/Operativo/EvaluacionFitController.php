@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Operativo;
 use App\Http\Controllers\Controller;
 use App\Models\Zona;
 use App\Models\EvaluacionFit;
+use App\Models\VocacionTuristicaTerritorio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -22,7 +23,7 @@ class EvaluacionFitController extends Controller
         $user            = Auth::user();
         $evaluacionActual = EvaluacionFit::where('zona_id', $zonaId)->first();
 
-        if ($evaluacionActual && $evaluacionActual->estado === 'confirmado' && $user->role_id == 3) {
+        if ($evaluacionActual && $evaluacionActual->estado === 'confirmado' && $user->esEquipo()) {
             return back()->with('error', 'Evaluación cerrada. No puedes editar.');
         }
 
@@ -37,11 +38,14 @@ class EvaluacionFitController extends Controller
             'facilidades_senderos', 'facilidades_estacionamientos', 'facilidades_campamentos',
             'facilidades_miradores', 'facilidades_sanitarios',
         ];
-        $rules = [];
+        $rules = ['accion_estado' => 'nullable|in:borrador,confirmado'];
         foreach ($campos as $campo) {
             $rules[$campo] = 'required|integer|min:0|max:3';
         }
         $validated = $request->validate($rules);
+
+        // No es una columna de la tabla; se usa solo para decidir el estado.
+        unset($validated['accion_estado']);
 
         // 2. Cálculos ponderados
         $rtt       = [$validated['recursos_culturales'], $validated['recursos_naturales']];
@@ -74,7 +78,7 @@ class EvaluacionFitController extends Controller
 
         $fit = $fit_rtt + $fit_at + $fit_pst + $fit_ptt + $fit_i + $fit_ft;
 
-        $estado = ($user->role_id == 2)
+        $estado = ($user->esJefe())
             ? $request->input('accion_estado', 'borrador')
             : 'borrador';
 
@@ -94,6 +98,10 @@ class EvaluacionFitController extends Controller
             ['zona_id' => $zonaId],
             array_merge($validated, $datosCalculados)
         );
+
+        // Si con esto quedan FIT y FET confirmadas, se guarda la instantánea
+        // del VTT. Antes se escribía al abrir la página de resultados.
+        VocacionTuristicaTerritorio::registrar($zonaId, $user->id);
 
         $mensaje = ($estado === 'confirmado')
             ? 'Evaluación FIT VALIDADA y CERRADA correctamente.'

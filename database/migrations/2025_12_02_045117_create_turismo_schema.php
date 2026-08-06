@@ -161,10 +161,5 @@ Schema::create('evaluaciones_fit', function (Blueprint $table) {
         });
         
         Schema::dropIfExists('roles');
-        
-        Schema::dropIfExists('evaluacion_valores');
-        Schema::dropIfExists('evaluaciones');
-        Schema::dropIfExists('matriz_criterios');
-        Schema::dropIfExists('matriz_variables');
     }
 };

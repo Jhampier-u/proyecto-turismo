@@ -7,14 +7,12 @@ use App\Models\EvaluacionFet;
 use App\Models\EvaluacionFit;
 use App\Models\Zona;
 use App\Models\VocacionTuristicaTerritorio;
-use Illuminate\Support\Facades\Auth;
 
 class VttController extends Controller
 {
     public function resultadoFinal($zonaId)
     {
         $zona = Zona::findOrFail($zonaId);
-        $user = Auth::user();
 
         $evaluacion_fit = EvaluacionFit::where('zona_id', $zonaId)->first();
         $evaluacion_fet = EvaluacionFet::where('zona_id', $zonaId)->first();
@@ -29,41 +27,20 @@ class VttController extends Controller
                 ->with('error', 'El reporte no está disponible: La Evaluación FET debe ser VALIDADA primero.');
         }
 
-        $fit_score = $evaluacion_fit->fit;
-        $fet_score = $evaluacion_fet->fet;
+        // Esta acción es de solo lectura. La instantánea se guarda al confirmar
+        // la evaluación (VocacionTuristicaTerritorio::registrar), no al abrir
+        // esta página: antes un simple GET escribía en la base de datos.
+        //
+        // Los valores se recalculan siempre para que reflejen el FIT y el FET
+        // actuales aunque la instantánea guardada haya quedado desfasada.
+        $vtt = VocacionTuristicaTerritorio::where('zona_id', $zonaId)->first()
+            ?? new VocacionTuristicaTerritorio(['zona_id' => $zonaId]);
 
-        $vtt_score      = ($fit_score * 0.60 + $fet_score * 0.40);
-        $vocacion_texto = $this->determinarVocacion($vtt_score);
-
-        // ✅ FIX: El admin (role_id === 1) solo consulta el VTT existente, nunca lo recalcula
-        //         ni sobrescribe el user_id del operativo que lo generó.
-        if ($user->role_id === 1) {
-            $vtt = VocacionTuristicaTerritorio::where('zona_id', $zonaId)->firstOrFail();
-        } else {
-            // Operativo (Jefe / Equipo): crea o actualiza con su propio user_id
-            $vtt = VocacionTuristicaTerritorio::updateOrCreate(
-                ['zona_id' => $zonaId],
-                [
-                    'user_id'        => $user->id,
-                    'fit'            => $fit_score,
-                    'fet'            => $fet_score,
-                    'vtt'            => $vtt_score,
-                    'vocacion_texto' => $vocacion_texto,
-                ]
-            );
-        }
+        $vtt->fill(VocacionTuristicaTerritorio::calcular(
+            (float) $evaluacion_fit->fit,
+            (float) $evaluacion_fet->fet,
+        ));
 
         return view('operativo.vtt.resultado', compact('zona', 'vtt'));
-    }
-
-    private function determinarVocacion($score)
-    {
-        if ($score >= 2.1) {
-            return 'Alta Vocación Turística';
-        } elseif ($score >= 1.1) {
-            return 'Mediana Vocación Turística';
-        } else {
-            return 'Baja Vocación Turística';
-        }
     }
 }

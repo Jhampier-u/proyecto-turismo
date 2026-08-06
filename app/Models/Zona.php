@@ -11,6 +11,5 @@ class Zona extends Model {
         return $this->belongsToMany(User::class, 'zona_equipo', 'zona_id', 'user_id')->withPivot('asignado_at');
     }
     public function inventarios() { return $this->hasMany(Inventario::class); }
-    public function evaluaciones() { return $this->hasMany(Evaluacion::class); }
     public function camposActivos() { return $this->hasOne(PotencialidadCamposActivos::class); }
 }

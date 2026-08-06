@@ -7,6 +7,7 @@ use App\Models\EvaluacionPotencialidad;
 use App\Models\PotencialidadCamposActivos;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class EvaluacionPotencialidadController extends Controller
 {
@@ -237,19 +238,23 @@ class EvaluacionPotencialidadController extends Controller
         $user            = Auth::user();
         $evaluacionActual = EvaluacionPotencialidad::where('zona_id', $zonaId)->first();
 
-        if ($evaluacionActual && $evaluacionActual->estado === 'confirmado' && $user->role_id == 3) {
+        if ($evaluacionActual && $evaluacionActual->estado === 'confirmado' && $user->esEquipo()) {
             return back()->with('error', 'Evaluación cerrada. No puedes editar.');
         }
 
-        // Campos seleccionados (activos) enviados desde el formulario
-        $camposActivos = $request->input('campos', []);
+        // La selección de campos se valida contra la lista blanca antes de nada:
+        // sus valores se usan como claves de reglas de validación y se serializan
+        // a la columna JSON, así que no puede entrar texto arbitrario.
+        $request->validate([
+            'accion_estado' => 'nullable|in:borrador,confirmado',
+            'campos'        => 'nullable|array',
+            'campos.*'      => ['string', Rule::in($this->getAllCampos())],
+        ]);
 
-        // Solo el Jefe puede cambiar qué campos están activos
-        if ($user->role_id == 2) {
-            PotencialidadCamposActivos::updateOrCreate(
-                ['zona_id' => $zonaId],
-                ['campos_activos' => $camposActivos]
-            );
+        $esJefe = $user->esJefe();
+
+        if ($esJefe) {
+            $camposActivos = $request->input('campos', []);
         } else {
             // Equipo: conservar la configuración actual del Jefe
             $config = PotencialidadCamposActivos::where('zona_id', $zonaId)->first();
@@ -262,6 +267,15 @@ class EvaluacionPotencialidadController extends Controller
             $rules[$campo] = 'integer|min:0|max:2';
         }
         $request->validate($rules);
+
+        // Todo validado: recién ahora se persiste la configuración, para que un
+        // error de validación no deje la selección de campos ya modificada.
+        if ($esJefe) {
+            PotencialidadCamposActivos::updateOrCreate(
+                ['zona_id' => $zonaId],
+                ['campos_activos' => $camposActivos]
+            );
+        }
 
         // Construir el array de valores para todos los campos conocidos
         $todosLosCampos = $this->getAllCampos();
@@ -278,7 +292,7 @@ class EvaluacionPotencialidadController extends Controller
         // Calcular puntajes usando solo los campos activos
         $calc = $this->calcular($valores, $camposActivos);
 
-        $estado = ($user->role_id == 2)
+        $estado = ($user->esJefe())
             ? $request->input('accion_estado', 'borrador')
             : 'borrador';
 
@@ -303,7 +317,7 @@ class EvaluacionPotencialidadController extends Controller
     public function reconfigurarCampos($zonaId)
     {
         $user = Auth::user();
-        if ($user->role_id == 3) {
+        if ($user->esEquipo()) {
             return back()->with('error', 'Solo el Jefe de Zona puede reconfigurar los campos.');
         }
 
@@ -326,12 +340,6 @@ class EvaluacionPotencialidadController extends Controller
         $camposActivos = $config ? $config->campos_activos : $this->getAllCampos();
         $secciones = self::$secciones;
         return view('operativo.evaluacion_potencialidad.ponderacion', compact('zona', 'eval', 'camposActivos', 'secciones'));
-    }
-
-    // ── Método de campos (ya no se usa como página separada; redirige a edit) ──
-    public function guardarCampos(Request $request, $zonaId)
-    {
-        return redirect()->route('operativo.evaluacion_potencialidad.edit', $zonaId);
     }
 
     // ── Cálculo ponderado usando solo los campos activos ─────────────────────

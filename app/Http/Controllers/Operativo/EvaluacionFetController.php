@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Operativo;
 use App\Http\Controllers\Controller;
 use App\Models\Zona;
 use App\Models\EvaluacionFet;
+use App\Models\VocacionTuristicaTerritorio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -23,7 +24,7 @@ class EvaluacionFetController extends Controller
         $user            = Auth::user();
         $evaluacionActual = EvaluacionFet::where('zona_id', $zonaId)->first();
 
-        if ($evaluacionActual && $evaluacionActual->estado === 'confirmado' && $user->role_id == 3) {
+        if ($evaluacionActual && $evaluacionActual->estado === 'confirmado' && $user->esEquipo()) {
             return back()->with('error', 'Esta evaluación FET ya fue validada por el Jefe. No puedes editarla.');
         }
 
@@ -33,11 +34,14 @@ class EvaluacionFetController extends Controller
             'super_institucionalidad', 'super_organizacion', 'super_planificacion',
             'imagen_apertura', 'imagen_seguridad', 'imagen_percibida', 'imagen_marketing',
         ];
-        $rules = [];
+        $rules = ['accion_estado' => 'nullable|in:borrador,confirmado'];
         foreach ($campos as $campo) {
             $rules[$campo] = 'required|integer|min:0|max:3';
         }
         $validated = $request->validate($rules);
+
+        // No es una columna de la tabla; se usa solo para decidir el estado.
+        unset($validated['accion_estado']);
 
         // 2. Cálculos ponderados
         // ✅ FIX: renombradas de $fit_* a $fet_* para evitar confusión con EvaluacionFit
@@ -55,7 +59,7 @@ class EvaluacionFetController extends Controller
 
         $total_fet = $fet_demanda + $fet_super + $fet_imagen;
 
-        $estado = ($user->role_id == 2)
+        $estado = ($user->esJefe())
             ? $request->input('accion_estado', 'borrador')
             : 'borrador';
 
@@ -72,6 +76,10 @@ class EvaluacionFetController extends Controller
             ['zona_id' => $zonaId],
             array_merge($validated, $datosCalculados)
         );
+
+        // Si con esto quedan FIT y FET confirmadas, se guarda la instantánea
+        // del VTT. Antes se escribía al abrir la página de resultados.
+        VocacionTuristicaTerritorio::registrar($zonaId, $user->id);
 
         $mensaje = ($estado === 'confirmado')
             ? 'Evaluación FET VALIDADA y CERRADA correctamente.'

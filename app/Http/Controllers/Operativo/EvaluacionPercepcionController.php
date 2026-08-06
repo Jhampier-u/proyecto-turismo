@@ -69,12 +69,15 @@ class EvaluacionPercepcionController extends Controller
         $user             = Auth::user();
         $evaluacionActual = EvaluacionPercepcion::where('zona_id', $zonaId)->first();
 
-        if ($evaluacionActual && $evaluacionActual->estado === 'confirmado' && $user->role_id == 3) {
+        if ($evaluacionActual && $evaluacionActual->estado === 'confirmado' && $user->esEquipo()) {
             return back()->with('error', 'Evaluación cerrada. No puedes editar.');
         }
 
         // Armar reglas de validación para los 16 ítems (1=Negativo, 2=Neutral, 3=Positivo)
-        $rules = ['acciones_mejora' => 'nullable|string|max:5000'];
+        $rules = [
+            'acciones_mejora' => 'nullable|string|max:5000',
+            'accion_estado'   => 'nullable|in:borrador,confirmado',
+        ];
         foreach (self::$categorias as $cat) {
             foreach (array_keys($cat['items']) as $campo) {
                 $rules[$campo] = 'required|integer|min:1|max:3';
@@ -82,9 +85,12 @@ class EvaluacionPercepcionController extends Controller
         }
         $validated = $request->validate($rules);
 
+        // No es una columna de la tabla; se usa solo para decidir el estado.
+        unset($validated['accion_estado']);
+
         $calc = $this->calcular($validated);
 
-        $estado = ($user->role_id == 2)
+        $estado = ($user->esJefe())
             ? $request->input('accion_estado', 'borrador')
             : 'borrador';
 

@@ -20,6 +20,23 @@ class EvaluacionPercepcion extends Model
         'percepcion_total', 'acciones_mejora',
     ];
 
+    // PostgreSQL devuelve las columnas numeric como string; sin estos casts
+    // el tipo difiere entre local (SQLite) y producción.
+    protected function casts(): array
+    {
+        return [
+            'media_ds' => 'float',
+            'pond_ds' => 'float',
+            'media_pl' => 'float',
+            'pond_pl' => 'float',
+            'media_pe' => 'float',
+            'pond_pe' => 'float',
+            'media_no' => 'float',
+            'pond_no' => 'float',
+            'percepcion_total' => 'float',
+        ];
+    }
+
     public function zona()
     {
         return $this->belongsTo(Zona::class);
