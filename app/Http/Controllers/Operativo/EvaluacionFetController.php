@@ -2,93 +2,78 @@
 
 namespace App\Http\Controllers\Operativo;
 
-use App\Http\Controllers\Controller;
-use App\Models\Zona;
 use App\Models\EvaluacionFet;
+use App\Models\User;
 use App\Models\VocacionTuristicaTerritorio;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Zona;
 
-class EvaluacionFetController extends Controller
+class EvaluacionFetController extends MatrizPonderadaController
 {
+    protected function criterios(): array
+    {
+        return [
+            'demanda' => ['demanda_flujos', 'demanda_estadia'],
+            'super'   => ['super_institucionalidad', 'super_organizacion', 'super_planificacion'],
+            'imagen'  => ['imagen_apertura', 'imagen_seguridad', 'imagen_percibida', 'imagen_marketing'],
+        ];
+    }
+
+    protected function escala(): array
+    {
+        return [0, 3];
+    }
+
+    /** Peso de cada bloque sobre el total. Suman 1.0. */
+    private const PESOS = ['demanda' => 0.20, 'super' => 0.40, 'imagen' => 0.40];
+
+    protected function calcular(array $valores): array
+    {
+        $resultado = [];
+        $total = 0.0;
+
+        foreach ($this->criterios() as $bloque => $campos) {
+            $media = array_sum(array_map(fn($c) => $valores[$c], $campos)) / count($campos);
+            $ponderado = $media * self::PESOS[$bloque];
+
+            $resultado["media_{$bloque}"] = $media;
+            $resultado["fet_{$bloque}"]   = $ponderado;
+
+            $total += $ponderado;
+        }
+
+        $resultado['fet'] = $total;
+
+        return $resultado;
+    }
+
+    protected function modelo(): string
+    {
+        return EvaluacionFet::class;
+    }
+
+    protected function rutaResultados(): string
+    {
+        return 'operativo.evaluacion_fet.ponderacion';
+    }
+
+    protected function mensajeExito(string $estado, array $datos): string
+    {
+        return $estado === 'confirmado'
+            ? 'Evaluación FET VALIDADA y CERRADA correctamente.'
+            : 'Borrador FET guardado. El Jefe de Zona debe validarlo.';
+    }
+
+    protected function despuesDeGuardar($zonaId, User $user): void
+    {
+        VocacionTuristicaTerritorio::registrar($zonaId, $user->id);
+    }
+
     public function edit($zonaId)
     {
         $zona       = Zona::findOrFail($zonaId);
         $evaluacion = EvaluacionFet::firstOrNew(['zona_id' => $zonaId]);
 
         return view('operativo.evaluacion_fet.form', compact('zona', 'evaluacion'));
-    }
-
-    public function update(Request $request, $zonaId)
-    {
-        $user            = Auth::user();
-        $evaluacionActual = EvaluacionFet::where('zona_id', $zonaId)->first();
-
-        if ($evaluacionActual && $evaluacionActual->estado === 'confirmado' && $user->esEquipo()) {
-            return back()->with('error', 'Esta evaluación FET ya fue validada por el Jefe. No puedes editarla.');
-        }
-
-        // 1. Validación de inputs
-        $campos = [
-            'demanda_flujos', 'demanda_estadia',
-            'super_institucionalidad', 'super_organizacion', 'super_planificacion',
-            'imagen_apertura', 'imagen_seguridad', 'imagen_percibida', 'imagen_marketing',
-        ];
-        $rules = ['accion_estado' => 'nullable|in:borrador,confirmado'];
-        foreach ($campos as $campo) {
-            $rules[$campo] = 'required|integer|min:0|max:3';
-        }
-        $validated = $request->validate($rules);
-
-        // No es una columna de la tabla; se usa solo para decidir el estado.
-        unset($validated['accion_estado']);
-
-        // 2. Cálculos ponderados
-        // ✅ FIX: renombradas de $fit_* a $fet_* para evitar confusión con EvaluacionFit
-        $demanda      = [$validated['demanda_flujos'], $validated['demanda_estadia']];
-        $media_demanda = array_sum($demanda) / 2;
-        $fet_demanda   = $media_demanda * 0.20;
-
-        $super      = [$validated['super_institucionalidad'], $validated['super_organizacion'], $validated['super_planificacion']];
-        $media_super = array_sum($super) / 3;
-        $fet_super   = $media_super * 0.40;
-
-        $imagen      = [$validated['imagen_apertura'], $validated['imagen_seguridad'], $validated['imagen_percibida'], $validated['imagen_marketing']];
-        $media_imagen = array_sum($imagen) / 4;
-        $fet_imagen   = $media_imagen * 0.40;
-
-        $total_fet = $fet_demanda + $fet_super + $fet_imagen;
-
-        $estado = ($user->esJefe())
-            ? $request->input('accion_estado', 'borrador')
-            : 'borrador';
-
-        $datosCalculados = [
-            'user_id'      => $user->id,
-            'estado'       => $estado,
-            'media_demanda' => $media_demanda, 'fet_demanda' => $fet_demanda,
-            'media_super'   => $media_super,   'fet_super'   => $fet_super,
-            'media_imagen'  => $media_imagen,  'fet_imagen'  => $fet_imagen,
-            'fet'           => $total_fet,
-        ];
-
-        EvaluacionFet::updateOrCreate(
-            ['zona_id' => $zonaId],
-            array_merge($validated, $datosCalculados)
-        );
-
-        // Si con esto quedan FIT y FET confirmadas, se guarda la instantánea
-        // del VTT. Antes se escribía al abrir la página de resultados.
-        VocacionTuristicaTerritorio::registrar($zonaId, $user->id);
-
-        $mensaje = ($estado === 'confirmado')
-            ? 'Evaluación FET VALIDADA y CERRADA correctamente.'
-            : 'Borrador FET guardado. El Jefe de Zona debe validarlo.';
-
-        // ✅ FIX: redirige a la ponderación de la misma zona, consistente con EvaluacionFitController
-        return redirect()
-            ->route('operativo.evaluacion_fet.ponderacion', $zonaId)
-            ->with('success', $mensaje);
     }
 
     public function ponderacion($zonaId)
