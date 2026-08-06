@@ -78,7 +78,11 @@ class EvaluacionValoracionTerritorialController extends MatrizPonderadaControlle
     public function ponderacion($zonaId)
     {
         $zona       = Zona::findOrFail($zonaId);
-        $evaluacion = EvaluacionValoracionTerritorial::where('zona_id', $zonaId)->firstOrFail();
+        // ->first() y no ->firstOrFail(): la vista ya contempla el caso sin
+        // evaluación (ver ZonaController::valoracionTerritorial(), que sirve la
+        // misma vista al admin), así que ambas rutas comparten el mismo trato en
+        // vez de que una dé un 404 crudo y la otra un aviso legible.
+        $evaluacion = EvaluacionValoracionTerritorial::where('zona_id', $zonaId)->first();
 
         return view('operativo.evaluacion_valoracion_territorial.ponderacion', [
             'zona'       => $zona,

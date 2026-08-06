@@ -5,6 +5,42 @@
         </h2>
     </x-slot>
 
+    @php
+        $readonly = $readonly ?? false;
+        $sinDatos = !$evaluacion;
+    @endphp
+
+    @if($sinDatos)
+        <div class="py-12">
+            <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg shadow">
+                    <div class="flex items-center gap-4">
+                        <span class="text-4xl">🗺️</span>
+                        <div>
+                            <h3 class="font-bold text-yellow-800 text-lg">Evaluación aún no realizada</h3>
+                            <p class="text-yellow-700 mt-1">
+                                El equipo de la zona <strong>{{ $zona->nombre }}</strong> todavía no ha completado la
+                                Matriz de Valoración Territorial.
+                            </p>
+                            @if($readonly)
+                                <p class="text-yellow-600 text-sm mt-2">
+                                    Como administrador puedes consultar el formulario, pero <strong>no puedes validar los datos</strong>.
+                                    La validación es exclusiva del Jefe de Zona.
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <a href="{{ route('operativo.evaluacion_valoracion_territorial.edit', $zona->id) }}"
+                           class="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-5 rounded shadow transition">
+                            Ver Formulario de Evaluación
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @else
+
     <div class="py-12">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
@@ -111,21 +147,30 @@
 
                 {{-- Botones --}}
                 <div class="mt-8 flex gap-4 justify-center flex-wrap">
-                    <a href="{{ route('operativo.evaluacion_valoracion_territorial.edit', $zona->id) }}"
-                        class="inline-block px-5 py-2 bg-indigo-600 text-white font-bold text-lg rounded-lg hover:bg-indigo-700 hover:scale-105 transition-transform duration-200 shadow-md">
-                        ← Volver al Formulario
-                    </a>
-                    <a href="{{ route('operativo.dashboard') }}"
-                        class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
-                        Mis Zonas
-                    </a>
+                    @if(!$readonly)
+                        <a href="{{ route('operativo.evaluacion_valoracion_territorial.edit', $zona->id) }}"
+                            class="inline-block px-5 py-2 bg-indigo-600 text-white font-bold text-lg rounded-lg hover:bg-indigo-700 hover:scale-105 transition-transform duration-200 shadow-md">
+                            ← Volver al Formulario
+                        </a>
+                        <a href="{{ route('operativo.dashboard') }}"
+                            class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
+                            Mis Zonas
+                        </a>
+                    @else
+                        <a href="{{ route('admin.zonas.index') }}"
+                            class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
+                            Volver a Zonas
+                        </a>
+                    @endif
                 </div>
 
             </div>
         </div>
     </div>
+    @endif
 
     {{-- Gráfico de dispersión con Chart.js --}}
+    @unless($sinDatos)
     @php
         $punto = [['x' => (float) $evaluacion->ct_total, 'y' => (float) $evaluacion->uc_total]];
     @endphp
@@ -170,4 +215,5 @@
             },
         });
     </script>
+    @endunless
 </x-app-layout>

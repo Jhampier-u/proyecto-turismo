@@ -157,13 +157,15 @@ class ZonaController extends Controller
     // Vista admin de resultados de valoración territorial
     public function valoracionTerritorial($id) {
         $zona = Zona::findOrFail($id);
-        $evaluacion = EvaluacionValoracionTerritorial::where('zona_id', $id)->firstOrFail();
+        $evaluacion = EvaluacionValoracionTerritorial::where('zona_id', $id)->first();
+        $readonly = true;
 
         return view('operativo.evaluacion_valoracion_territorial.ponderacion', [
             'zona'       => $zona,
             'evaluacion' => $evaluacion,
             'ct'         => ValoracionTerritorial::CT,
             'uc'         => ValoracionTerritorial::UC,
+            'readonly'   => $readonly,
         ]);
     }
 }

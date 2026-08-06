@@ -14,10 +14,12 @@
             </a>
 
             @php
-                $bloqueado = $evaluacion->estado === 'confirmado' && auth()->user()->esEquipo();
+                $esJefe         = auth()->user()->esJefe();
+                $estaConfirmado = $evaluacion->estado === 'confirmado';
+                $bloqueado      = $estaConfirmado && !$esJefe;
             @endphp
 
-            @if($evaluacion->estado === 'confirmado')
+            @if($estaConfirmado)
                 <div class="mb-6 bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded">
                     <div class="flex justify-between items-center">
                         <div>
@@ -102,7 +104,7 @@
                             Guardar Borrador
                         </button>
 
-                        @if(auth()->user()->esJefe())
+                        @if($esJefe)
                             <button type="submit" name="accion_estado" value="confirmado"
                                     class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow"
                                     onclick="return confirm('Al validar, la evaluación queda cerrada para el equipo. ¿Continuar?');">
