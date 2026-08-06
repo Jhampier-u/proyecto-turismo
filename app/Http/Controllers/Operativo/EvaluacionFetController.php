@@ -63,6 +63,11 @@ class EvaluacionFetController extends MatrizPonderadaController
             : 'Borrador FET guardado. El Jefe de Zona debe validarlo.';
     }
 
+    protected function mensajeCerrada(): string
+    {
+        return 'Esta evaluación FET ya fue validada por el Jefe. No puedes editarla.';
+    }
+
     protected function despuesDeGuardar($zonaId, User $user): void
     {
         VocacionTuristicaTerritorio::registrar($zonaId, $user->id);

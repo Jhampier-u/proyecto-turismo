@@ -162,6 +162,31 @@ class EvaluacionesTest extends TestCase
         );
     }
 
+    public function test_el_mensaje_de_evaluacion_fet_cerrada_es_el_especifico_de_fet(): void
+    {
+        // El refactor que extrajo EvaluacionZonaController (f2514c0) dejó a
+        // EvaluacionFetController heredando el mensaje genérico de la base.
+        // Este test fija el texto específico de FET para que no se vuelva a
+        // perder en silencio en un futuro refactor.
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fet",
+            $this->todos(self::CAMPOS_FET, 3) + ['accion_estado' => 'confirmado']
+        );
+
+        $this->actingAs($equipo)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fet",
+            $this->todos(self::CAMPOS_FET, 0)
+        )->assertSessionHas(
+            'error',
+            'Esta evaluación FET ya fue validada por el Jefe. No puedes editarla.'
+        );
+    }
+
     /**
      * Las páginas de resultados construyen las gráficas con datos interpolados
      * desde Blade. Un error ahí no rompe la petición pero deja el <canvas> en
