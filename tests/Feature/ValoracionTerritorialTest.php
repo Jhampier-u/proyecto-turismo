@@ -113,6 +113,42 @@ class ValoracionTerritorialTest extends TestCase
         $this->assertSame('borrador', EvaluacionValoracionTerritorial::value('estado'));
     }
 
+    public function test_el_jefe_con_accion_estado_confirmado_deja_la_evaluacion_confirmada(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            $this->url(),
+            $this->todosEn(2) + ['accion_estado' => 'confirmado']
+        )->assertSessionHasNoErrors();
+
+        $this->assertSame('confirmado', EvaluacionValoracionTerritorial::value('estado'));
+    }
+
+    public function test_una_evaluacion_confirmada_queda_cerrada_para_el_equipo(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($this->jefe)->post(
+            $this->url(),
+            $this->todosEn(2) + ['accion_estado' => 'confirmado']
+        );
+
+        $this->actingAs($equipo)->post($this->url(), $this->todosEn(0))
+            ->assertSessionHas(
+                'error',
+                'Esta evaluación de Valoración Territorial ya fue validada por el Jefe de Zona. No puedes editarla.'
+            );
+
+        // Los valores del jefe siguen intactos: el intento del equipo no escribió nada.
+        $this->assertEqualsWithDelta(
+            2.0,
+            (float) EvaluacionValoracionTerritorial::value('ct_total'),
+            0.0001
+        );
+    }
+
     public function test_no_se_accede_desde_una_zona_ajena(): void
     {
         $ajeno = User::factory()->create([

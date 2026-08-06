@@ -62,6 +62,11 @@ class EvaluacionValoracionTerritorialController extends MatrizPonderadaControlle
             : "Borrador guardado. CT: {$ct} | UC: {$uc}";
     }
 
+    protected function mensajeCerrada(): string
+    {
+        return 'Esta evaluación de Valoración Territorial ya fue validada por el Jefe de Zona. No puedes editarla.';
+    }
+
     public function edit($zonaId)
     {
         $zona       = Zona::findOrFail($zonaId);
