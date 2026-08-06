@@ -7,6 +7,7 @@ use App\Http\Controllers\Operativo\EvaluacionFetController;
 use App\Http\Controllers\Operativo\EvaluacionFitController;
 use App\Http\Controllers\Operativo\EvaluacionPercepcionController;
 use App\Http\Controllers\Operativo\EvaluacionPotencialidadController;
+use App\Http\Controllers\Operativo\EvaluacionValoracionTerritorialController;
 use App\Http\Controllers\Operativo\InventarioController;
 use App\Http\Controllers\Operativo\VttController;
 use App\Http\Controllers\ProfileController;
@@ -79,6 +80,11 @@ Route::middleware(['auth', 'personal'])->group(function () {
         Route::get('/evaluacion-percepcion',             [EvaluacionPercepcionController::class, 'edit'])->name('evaluacion_percepcion.edit');
         Route::post('/evaluacion-percepcion',            [EvaluacionPercepcionController::class, 'update'])->name('evaluacion_percepcion.update');
         Route::get('/evaluacion-percepcion/resultados',  [EvaluacionPercepcionController::class, 'ponderacion'])->name('evaluacion_percepcion.ponderacion');
+
+        // Matriz de Valoración Territorial
+        Route::get('/valoracion-territorial',            [EvaluacionValoracionTerritorialController::class, 'edit'])->name('evaluacion_valoracion_territorial.edit');
+        Route::post('/valoracion-territorial',           [EvaluacionValoracionTerritorialController::class, 'update'])->name('evaluacion_valoracion_territorial.update');
+        Route::get('/valoracion-territorial/resultados', [EvaluacionValoracionTerritorialController::class, 'ponderacion'])->name('evaluacion_valoracion_territorial.ponderacion');
     });
 });
 
