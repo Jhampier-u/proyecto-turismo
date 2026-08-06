@@ -2,116 +2,94 @@
 
 namespace App\Http\Controllers\Operativo;
 
-use App\Http\Controllers\Controller;
-use App\Models\Zona;
 use App\Models\EvaluacionFit;
+use App\Models\User;
 use App\Models\VocacionTuristicaTerritorio;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Zona;
 
-class EvaluacionFitController extends Controller
+class EvaluacionFitController extends MatrizPonderadaController
 {
-    public function edit($zonaId)
+    protected function criterios(): array
     {
-        $zona      = Zona::findOrFail($zonaId);
-        $evaluacion = EvaluacionFit::firstOrNew(['zona_id' => $zonaId]);
-        return view('operativo.evaluacion_fit.form', compact('zona', 'evaluacion'));
+        return [
+            'rtt' => ['recursos_culturales', 'recursos_naturales'],
+            'at'  => ['atractivos_manifestaciones', 'atractivos_sitios'],
+            'pst' => ['prestadores_alojamiento', 'prestadores_restauracion', 'prestadores_guianza'],
+            'ptt' => ['productos_territoriales'],
+            'i'   => ['infraestructura_basica', 'infraestructura_apoyo'],
+            'ft'  => [
+                'facilidades_senaletica', 'facilidades_recepcion',
+                'facilidades_interpretacion', 'facilidades_senderos',
+                'facilidades_estacionamientos', 'facilidades_campamentos',
+                'facilidades_miradores', 'facilidades_sanitarios',
+            ],
+        ];
     }
 
-    public function update(Request $request, $zonaId)
+    protected function escala(): array
     {
-        $user            = Auth::user();
-        $evaluacionActual = EvaluacionFit::where('zona_id', $zonaId)->first();
+        return [0, 3];
+    }
 
-        if ($evaluacionActual && $evaluacionActual->estado === 'confirmado' && $user->esEquipo()) {
-            return back()->with('error', 'Evaluación cerrada. No puedes editar.');
+    /** Peso de cada bloque sobre el total. Suman 1.0. */
+    private const PESOS = [
+        'rtt' => 0.30, 'at' => 0.05, 'pst' => 0.20,
+        'ptt' => 0.05, 'i'  => 0.20, 'ft'  => 0.20,
+    ];
+
+    protected function calcular(array $valores): array
+    {
+        $resultado = [];
+        $total = 0.0;
+
+        foreach ($this->criterios() as $bloque => $campos) {
+            $media = array_sum(array_map(fn($c) => $valores[$c], $campos)) / count($campos);
+            $ponderado = $media * self::PESOS[$bloque];
+
+            $resultado["media_{$bloque}"] = $media;
+            $resultado["fit_{$bloque}"]   = $ponderado;
+
+            $total += $ponderado;
         }
 
-        // 1. Validación de inputs
-        $campos = [
-            'recursos_culturales', 'recursos_naturales',
-            'atractivos_manifestaciones', 'atractivos_sitios',
-            'prestadores_alojamiento', 'prestadores_restauracion', 'prestadores_guianza',
-            'productos_territoriales',
-            'infraestructura_basica', 'infraestructura_apoyo',
-            'facilidades_senaletica', 'facilidades_recepcion', 'facilidades_interpretacion',
-            'facilidades_senderos', 'facilidades_estacionamientos', 'facilidades_campamentos',
-            'facilidades_miradores', 'facilidades_sanitarios',
-        ];
-        $rules = ['accion_estado' => 'nullable|in:borrador,confirmado'];
-        foreach ($campos as $campo) {
-            $rules[$campo] = 'required|integer|min:0|max:3';
-        }
-        $validated = $request->validate($rules);
+        $resultado['fit'] = $total;
 
-        // No es una columna de la tabla; se usa solo para decidir el estado.
-        unset($validated['accion_estado']);
+        return $resultado;
+    }
 
-        // 2. Cálculos ponderados
-        $rtt       = [$validated['recursos_culturales'], $validated['recursos_naturales']];
-        $media_rtt = array_sum($rtt) / 2;
-        $fit_rtt   = $media_rtt * 0.30;
+    protected function modelo(): string
+    {
+        return EvaluacionFit::class;
+    }
 
-        $at       = [$validated['atractivos_manifestaciones'], $validated['atractivos_sitios']];
-        $media_at = array_sum($at) / 2;
-        $fit_at   = $media_at * 0.05;
+    protected function rutaResultados(): string
+    {
+        return 'operativo.evaluacion_fit.ponderacion';
+    }
 
-        $pst       = [$validated['prestadores_alojamiento'], $validated['prestadores_restauracion'], $validated['prestadores_guianza']];
-        $media_pst = array_sum($pst) / 3;
-        $fit_pst   = $media_pst * 0.20;
-
-        $media_ptt = $validated['productos_territoriales'];
-        $fit_ptt   = $media_ptt * 0.05;
-
-        $i       = [$validated['infraestructura_basica'], $validated['infraestructura_apoyo']];
-        $media_i = array_sum($i) / 2;
-        $fit_i   = $media_i * 0.20;
-
-        $ft = [
-            $validated['facilidades_senaletica'], $validated['facilidades_recepcion'],
-            $validated['facilidades_interpretacion'], $validated['facilidades_senderos'],
-            $validated['facilidades_estacionamientos'], $validated['facilidades_campamentos'],
-            $validated['facilidades_miradores'], $validated['facilidades_sanitarios'],
-        ];
-        $media_ft = array_sum($ft) / 8;
-        $fit_ft   = $media_ft * 0.20;
-
-        $fit = $fit_rtt + $fit_at + $fit_pst + $fit_ptt + $fit_i + $fit_ft;
-
-        $estado = ($user->esJefe())
-            ? $request->input('accion_estado', 'borrador')
-            : 'borrador';
-
-        $datosCalculados = [
-            'user_id'   => $user->id,
-            'estado'    => $estado,
-            'media_rtt' => $media_rtt, 'fit_rtt' => $fit_rtt,
-            'media_at'  => $media_at,  'fit_at'  => $fit_at,
-            'media_pst' => $media_pst, 'fit_pst' => $fit_pst,
-            'media_ptt' => $media_ptt, 'fit_ptt' => $fit_ptt,
-            'media_i'   => $media_i,   'fit_i'   => $fit_i,
-            'media_ft'  => $media_ft,  'fit_ft'  => $fit_ft,
-            'fit'       => $fit,
-        ];
-
-        EvaluacionFit::updateOrCreate(
-            ['zona_id' => $zonaId],
-            array_merge($validated, $datosCalculados)
-        );
-
-        // Si con esto quedan FIT y FET confirmadas, se guarda la instantánea
-        // del VTT. Antes se escribía al abrir la página de resultados.
-        VocacionTuristicaTerritorio::registrar($zonaId, $user->id);
-
-        $mensaje = ($estado === 'confirmado')
+    protected function mensajeExito(string $estado, array $datos): string
+    {
+        return $estado === 'confirmado'
             ? 'Evaluación FIT VALIDADA y CERRADA correctamente.'
-            : 'Borrador FIT guardado. Total: ' . number_format($fit, 2);
+            : 'Borrador FIT guardado. Total: ' . number_format($datos['fit'], 2);
+    }
 
-        // ✅ FIX: redirige a la vista de ponderación de la misma zona,
-        //         manteniendo el contexto en lugar de ir al dashboard general.
-        return redirect()
-            ->route('operativo.evaluacion_fit.ponderacion', $zonaId)
-            ->with('success', $mensaje);
+    protected function mensajeCerrada(): string
+    {
+        return 'Evaluación cerrada. No puedes editar.';
+    }
+
+    protected function despuesDeGuardar($zonaId, User $user): void
+    {
+        VocacionTuristicaTerritorio::registrar($zonaId, $user->id);
+    }
+
+    public function edit($zonaId)
+    {
+        $zona       = Zona::findOrFail($zonaId);
+        $evaluacion = EvaluacionFit::firstOrNew(['zona_id' => $zonaId]);
+
+        return view('operativo.evaluacion_fit.form', compact('zona', 'evaluacion'));
     }
 
     public function ponderacion($zonaId)
