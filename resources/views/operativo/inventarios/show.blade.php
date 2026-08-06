@@ -86,9 +86,9 @@
                             <div class="space-y-4">
                                 @foreach($inventario->imagenes as $img)
                                     <div class="relative group">
-                                        <img src="{{ asset('storage/' . $img->ruta_archivo) }}" class="w-full h-48 object-cover rounded-lg shadow-sm border" alt="Evidencia">
+                                        <x-foto :ruta="$img->ruta_archivo" alt="Evidencia" class="w-full h-48 object-cover rounded-lg shadow-sm border" />
                                         <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition duration-300 rounded-lg"></div>
-                                        <a href="{{ asset('storage/' . $img->ruta_archivo) }}" target="_blank" class="absolute bottom-2 right-2 bg-white text-xs px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition">
+                                        <a href="{{ Storage::url($img->ruta_archivo) }}" target="_blank" class="absolute bottom-2 right-2 bg-white text-xs px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition">
                                             Ver Original
                                         </a>
                                     </div>

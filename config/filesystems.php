@@ -53,9 +53,14 @@ return [
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
             'region' => env('AWS_DEFAULT_REGION'),
             'bucket' => env('AWS_BUCKET'),
+            // AWS_URL es el dominio público desde el que se sirven los archivos
+            // (el r2.dev de Cloudflare, un dominio propio, o el del bucket).
             'url' => env('AWS_URL'),
+            // AWS_ENDPOINT permite apuntar a cualquier proveedor compatible con
+            // S3 (Cloudflare R2, Backblaze B2, Supabase, MinIO) sin tocar código.
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'public',
             'throw' => false,
             'report' => false,
         ],

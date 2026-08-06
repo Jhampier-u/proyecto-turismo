@@ -66,8 +66,8 @@
                                     <div class="flex items-center gap-3">
                                         @php $img = $inv->imagenes->first(); @endphp
                                         @if($img)
-                                            <img src="{{ asset('storage/' . $img->ruta_archivo) }}"
-                                                 class="w-10 h-10 rounded object-cover border flex-shrink-0" alt="">
+                                            <x-foto :ruta="$img->ruta_archivo" alt=""
+                                                    class="w-10 h-10 rounded object-cover border flex-shrink-0" />
                                         @else
                                             <div class="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,8 +129,8 @@
                         {{-- Imagen o placeholder --}}
                         @if($img)
                             <div class="h-44 overflow-hidden">
-                                <img src="{{ asset('storage/' . $img->ruta_archivo) }}"
-                                     class="w-full h-full object-cover" alt="{{ $inv->nombre_recurso }}">
+                                <x-foto :ruta="$img->ruta_archivo" :alt="$inv->nombre_recurso"
+                                        class="w-full h-full object-cover" />
                             </div>
                         @else
                             <div class="h-44 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">

@@ -55,6 +55,9 @@ class InventarioController extends Controller
             'accesibilidad' => 'nullable|string',
             'equipamiento_servicios' => 'nullable|string',
             'estado_conservacion' => 'required|in:Bueno,Regular,Malo',
+            // El límite del array es tan necesario como el de cada archivo:
+            // sin él, una sola petición puede subir cientos de imágenes.
+            'fotos'   => 'nullable|array|max:15',
             'fotos.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ], [
             'categoria_id.required' => 'Debe seleccionar un subtipo de categoría.',
@@ -81,7 +84,7 @@ class InventarioController extends Controller
             // Subir y Guardar Fotos
             if ($request->hasFile('fotos')) {
                 foreach ($request->file('fotos') as $foto) {
-                    $path = $foto->store('inventarios', 'public');
+                    $path = $foto->store('inventarios');
 
                     // Guardar referencia en BD
                     InventarioImagen::create([
@@ -99,13 +102,17 @@ class InventarioController extends Controller
 
     public function destroy($zonaId, $inventarioId)
     {
-        $inventario = Inventario::findOrFail($inventarioId);
+        $inventario = Inventario::where('zona_id', $zonaId)->findOrFail($inventarioId);
 
-        foreach ($inventario->imagenes as $img) {
-            Storage::disk('public')->delete($img->ruta_archivo);
-        }
+        $rutas = $inventario->imagenes->pluck('ruta_archivo');
 
         $inventario->delete();
+
+        // Los archivos se borran después de confirmar el borrado en BD: si la
+        // transacción fallara, no queremos quedarnos sin las imágenes.
+        foreach ($rutas as $ruta) {
+            Storage::delete($ruta);
+        }
 
         return back()->with('success', 'Recurso eliminado.');
     }
@@ -115,6 +122,7 @@ class InventarioController extends Controller
         $zona = Zona::findOrFail($zonaId);
         // Inventario con sus fotos, categoría y propietario (galeria de fotos)
         $inventario = Inventario::with(['imagenes', 'categoria', 'categoria.padre', 'propietario'])
+            ->where('zona_id', $zonaId)
             ->findOrFail($inventarioId);
 
         return view('operativo.inventarios.show', compact('zona', 'inventario'));
@@ -123,7 +131,9 @@ class InventarioController extends Controller
     public function edit($zonaId, $inventarioId)
     {
         $zona = Zona::findOrFail($zonaId);
-        $inventario = Inventario::with('categoria')->findOrFail($inventarioId);
+        $inventario = Inventario::with('categoria')
+            ->where('zona_id', $zonaId)
+            ->findOrFail($inventarioId);
 
         $categoriasPadre = CategoriaRecurso::whereNull('parent_id')->get();
 
@@ -140,7 +150,7 @@ class InventarioController extends Controller
 
     public function update(Request $request, $zonaId, $inventarioId)
     {
-        $inventario = Inventario::findOrFail($inventarioId);
+        $inventario = Inventario::where('zona_id', $zonaId)->findOrFail($inventarioId);
 
         $request->validate([
             'nombre_recurso' => 'required|string|max:200',
@@ -155,6 +165,7 @@ class InventarioController extends Controller
             'accesibilidad' => 'nullable|string',
             'equipamiento_servicios' => 'nullable|string',
             'estado_conservacion' => 'required|in:Bueno,Regular,Malo',
+            'nuevas_fotos'   => 'nullable|array|max:15',
             'nuevas_fotos.*' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], [
             'categoria_id.required' => 'Debe seleccionar un subtipo de categoría.',
@@ -176,7 +187,7 @@ class InventarioController extends Controller
             // Subir nuevas fotos
             if ($request->hasFile('nuevas_fotos')) {
                 foreach ($request->file('nuevas_fotos') as $foto) {
-                    $path = $foto->store('inventarios', 'public');
+                    $path = $foto->store('inventarios');
                     InventarioImagen::create([
                         'inventario_id' => $inventario->id,
                         'ruta_archivo' => $path,

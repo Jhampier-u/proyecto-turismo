@@ -25,8 +25,8 @@
                     {{-- Imagen de zona --}}
                     @if($zona->imagen_path)
                         <div class="h-40 overflow-hidden rounded-t-lg">
-                            <img src="{{ asset('storage/' . $zona->imagen_path) }}"
-                                 class="w-full h-full object-cover" alt="{{ $zona->nombre }}">
+                            <x-foto :ruta="$zona->imagen_path" :alt="$zona->nombre"
+                                    class="w-full h-full object-cover" />
                         </div>
                     @else
                         <div class="h-40 bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center rounded-t-lg">

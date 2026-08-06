@@ -32,8 +32,8 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     @if($zona->imagen_path)
-                                        <img src="{{ asset('storage/' . $zona->imagen_path) }}"
-                                             class="w-10 h-10 rounded-full object-cover border shadow-sm" alt="">
+                                        <x-foto :ruta="$zona->imagen_path" alt=""
+                                                class="w-10 h-10 rounded-full object-cover border shadow-sm" />
                                     @else
                                         <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
                                             {{ strtoupper(substr($zona->nombre, 0, 2)) }}

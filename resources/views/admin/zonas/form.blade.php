@@ -51,8 +51,8 @@
 
                                 @if($zona->exists && $zona->imagen_path)
                                     <div class="mb-3">
-                                        <img src="{{ asset('storage/' . $zona->imagen_path) }}"
-                                             class="w-full h-48 object-cover rounded-lg border shadow-sm" alt="Imagen actual">
+                                        <x-foto :ruta="$zona->imagen_path" alt="Imagen actual"
+                                                class="w-full h-48 object-cover rounded-lg border shadow-sm" />
                                         <div class="mt-2 flex items-center gap-3">
                                             <label class="flex items-center gap-2 text-sm text-red-600 cursor-pointer">
                                                 <input type="checkbox" name="quitar_imagen" value="1"

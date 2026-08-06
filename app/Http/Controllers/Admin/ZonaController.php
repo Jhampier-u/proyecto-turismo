@@ -7,11 +7,36 @@ use App\Models\Lugar;
 use App\Models\User;
 use App\Models\EvaluacionPercepcion;
 use App\Models\EvaluacionPotencialidad;
+use App\Models\InventarioImagen;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class ZonaController extends Controller
 {
+    /**
+     * Reglas comunes de creación y edición.
+     *
+     * El jefe y el equipo se restringen por rol: antes bastaba con que el id
+     * existiera, así que se podía asignar como jefe a un estudiante y la zona
+     * quedaba bloqueada en borrador sin explicación (solo el rol jefe_zona
+     * puede confirmar evaluaciones).
+     */
+    private function reglas(): array
+    {
+        $idRol = fn(string $nombre) => Role::where('nombre', $nombre)->value('id');
+
+        return [
+            'nombre'       => 'required|string|max:150',
+            'descripcion'  => 'nullable|string',
+            'lugar_id'     => 'required|exists:lugares,id',
+            'jefe_user_id' => ['required', Rule::exists('users', 'id')->where('role_id', $idRol('jefe_zona'))],
+            'equipo'       => 'nullable|array',
+            'equipo.*'     => [Rule::exists('users', 'id')->where('role_id', $idRol('equipo'))],
+            'imagen'       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072',
+        ];
+    }
     public function index() {
         $zonas = Zona::with(['lugar', 'jefe'])->withCount('equipo')->paginate(10);
         return view('admin.zonas.index', compact('zonas'));
@@ -26,25 +51,19 @@ class ZonaController extends Controller
     }
 
     public function store(Request $request) {
-        $validated = $request->validate([
-            'nombre'        => 'required|string|max:150',
-            'descripcion'   => 'nullable|string',
-            'lugar_id'      => 'required|exists:lugares,id',
-            'jefe_user_id'  => 'required|exists:users,id',
-            'equipo'        => 'nullable|array',
-            'equipo.*'      => 'exists:users,id',
-            'imagen'        => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072',
-        ]);
+        $validated = $request->validate($this->reglas());
 
         $data = [
             'nombre'       => $validated['nombre'],
-            'descripcion'  => $validated['descripcion'],
+            // 'descripcion' es nullable: si no viene en el request, validate()
+            // no la incluye en el array devuelto.
+            'descripcion'  => $validated['descripcion'] ?? null,
             'lugar_id'     => $validated['lugar_id'],
             'jefe_user_id' => $validated['jefe_user_id'],
         ];
 
         if ($request->hasFile('imagen')) {
-            $data['imagen_path'] = $request->file('imagen')->store('zonas', 'public');
+            $data['imagen_path'] = $request->file('imagen')->store('zonas');
         }
 
         $zona = Zona::create($data);
@@ -67,34 +86,25 @@ class ZonaController extends Controller
     public function update(Request $request, $id) {
         $zona = Zona::findOrFail($id);
 
-        $validated = $request->validate([
-            'nombre'        => 'required|string|max:150',
-            'descripcion'   => 'nullable|string',
-            'lugar_id'      => 'required|exists:lugares,id',
-            'jefe_user_id'  => 'required|exists:users,id',
-            'equipo'        => 'nullable|array',
-            'equipo.*'      => 'exists:users,id',
-            'imagen'        => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072',
-        ]);
+        $validated = $request->validate($this->reglas());
 
         $data = [
             'nombre'       => $validated['nombre'],
-            'descripcion'  => $validated['descripcion'],
+            'descripcion'  => $validated['descripcion'] ?? null,
             'lugar_id'     => $validated['lugar_id'],
             'jefe_user_id' => $validated['jefe_user_id'],
         ];
 
+        // Subir una imagen nueva y marcar "quitar imagen" a la vez son órdenes
+        // contradictorias: antes se guardaba el archivo y luego se anulaba la
+        // referencia, dejándolo huérfano en disco. Gana la imagen nueva.
         if ($request->hasFile('imagen')) {
-            // Borrar imagen anterior
             if ($zona->imagen_path) {
-                Storage::disk('public')->delete($zona->imagen_path);
+                Storage::delete($zona->imagen_path);
             }
-            $data['imagen_path'] = $request->file('imagen')->store('zonas', 'public');
-        }
-
-        // Opción de quitar imagen
-        if ($request->input('quitar_imagen') == '1' && $zona->imagen_path) {
-            Storage::disk('public')->delete($zona->imagen_path);
+            $data['imagen_path'] = $request->file('imagen')->store('zonas');
+        } elseif ($request->input('quitar_imagen') == '1' && $zona->imagen_path) {
+            Storage::delete($zona->imagen_path);
             $data['imagen_path'] = null;
         }
 
@@ -106,10 +116,22 @@ class ZonaController extends Controller
 
     public function destroy($id) {
         $zona = Zona::findOrFail($id);
+
+        // La cascada de la base de datos borra inventarios e inventario_imagenes,
+        // pero no los archivos: hay que recogerlos antes de perder las filas.
+        $archivos = InventarioImagen::whereIn(
+            'inventario_id',
+            $zona->inventarios()->select('id')
+        )->pluck('ruta_archivo');
+
         if ($zona->imagen_path) {
-            Storage::disk('public')->delete($zona->imagen_path);
+            $archivos->push($zona->imagen_path);
         }
+
         $zona->delete();
+
+        Storage::delete($archivos->all());
+
         return redirect()->route('admin.zonas.index')->with('success', 'Zona eliminada correctamente.');
     }
 
