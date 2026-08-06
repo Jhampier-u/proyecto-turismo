@@ -9,9 +9,9 @@ perder contexto. Léelo entero antes de continuar.
 
 ## Resumen en una línea
 
-La **Matriz de Valoración Territorial** está implementada, funcionando y en `main`, con
-95 tests en verde. Quedan **tres correcciones pendientes** de la revisión final y **cinco
-matrices más** por implementar.
+La **Matriz de Valoración Territorial** está implementada, revisada y en `main`, con
+**98 tests en verde**. Los tres bloqueantes de la revisión final están corregidos.
+Quedan **cinco matrices más** por implementar.
 
 ---
 
@@ -86,11 +86,13 @@ dos hojas del Excel se desalinean.
 
 ---
 
-## PENDIENTE 1 — Tres correcciones de la revisión final
+## Revisión final — los tres bloqueantes, ya corregidos
 
-La revisión de toda la rama las marcó como bloqueantes. **Ninguna está hecha.**
+Se dejan documentados porque explican decisiones del código y conviene no deshacerlas.
 
-### B1 — La migración importa una clase generada (la más seria)
+**Commits:** `61727d1` (B1), `3d346ba` (B2), `d4c49c3` (B3), `be99ba7` (cobertura de pesos).
+
+### B1 — La migración importaba una clase generada (la más seria)
 
 `database/migrations/2026_08_06_000005_create_evaluaciones_valoracion_territorial_table.php`
 hace `use App\Matrices\ValoracionTerritorial;` y deriva sus columnas de
@@ -102,12 +104,13 @@ regenera y cambia el nombre de un criterio, esa migración crearía un esquema d
 una base nueva que en una ya migrada. Ningún test lo detectaría, porque `RefreshDatabase`
 siempre construye desde cero; el fallo aparecería en producción como columna inexistente.
 
-**Arreglo:** escribir los 21 nombres de columna literalmente en la migración y quitar el
-`use`. Una migración debe ser un registro histórico congelado.
+**Arreglado en `61727d1`:** los 21 nombres de columna están ahora escritos literalmente y
+el `use` desapareció. Una migración debe ser un registro histórico congelado; no la
+vuelvas a acoplar al archivo generado.
 
-### B2 — El camino del administrador quedó a medias
+### B2 — El camino del administrador quedaba a medias
 
-Tres cosas que juntas dejan al admin sin salida:
+Arreglado en `3d346ba`. Eran tres cosas que juntas dejaban al admin sin salida:
 
 1. `ZonaController::valoracionTerritorial()` usa `firstOrFail()`, así que una zona sin
    evaluación da un 404 crudo. `potencialidad()` usa `->first()` y muestra un aviso.
@@ -120,9 +123,9 @@ Tres cosas que juntas dejan al admin sin salida:
    versión actual, un admin ve el formulario editable de una evaluación confirmada,
    aunque al enviarlo reciba 403.
 
-### B3 — Falta cubrir la máquina de estados de la matriz nueva
+### B3 — Faltaba cubrir la máquina de estados de la matriz nueva
 
-`ValoracionTerritorialTest` no comprueba que el jefe pueda confirmar, ni que una
+Arreglado en `d4c49c3`. `ValoracionTerritorialTest` no comprobaba que el jefe pueda confirmar, ni que una
 evaluación confirmada quede cerrada al equipo con su mensaje. Las otras cuatro matrices
 sí lo tienen.
 
@@ -130,16 +133,15 @@ Relacionado: Valoración Territorial es **la única de las cinco que no sobreesc
 `mensajeCerrada()`**, así que hereda el texto genérico. No está claro si fue decisión o
 descuido. Conviene darle texto propio y fijarlo con test.
 
-### Mejora de cobertura recomendada
+### Cobertura de los pesos
 
-`ValoracionTerritorialCriteriosTest` solo comprueba que los pesos **suman** 1.0.
+Arreglado en `be99ba7`. `ValoracionTerritorialCriteriosTest` solo comprobaba que los pesos **suman** 1.0.
 Cualquiera de los 21 podría estar mal (0.1 → 0.05 compensado en otro) y la suite pasaría.
-Añadir una aserción del mapa completo campo → peso, **contrastando contra el Excel**, no
-copiando del archivo generado.
+Ahora afirma el mapa completo campo → peso, con los 21 valores explícitos.
 
 ---
 
-## PENDIENTE 2 — Recomendaciones para las cinco matrices que vienen
+## PENDIENTE 1 — Recomendaciones para las cinco matrices que vienen
 
 De la revisión final, ordenadas por valor:
 
@@ -168,7 +170,7 @@ De la revisión final, ordenadas por valor:
 
 ---
 
-## PENDIENTE 3 — Las cinco matrices restantes
+## PENDIENTE 2 — Las cinco matrices restantes
 
 Están en `C:\Users\sebastiantapia_advan\Downloads\fwdmatrices` (cópialas al repositorio,
 como se hizo con la de Valoración Territorial):
