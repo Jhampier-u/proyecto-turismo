@@ -6,6 +6,7 @@ use App\Models\EvaluacionFet;
 use App\Models\EvaluacionFit;
 use App\Http\Controllers\Operativo\EvaluacionPercepcionController;
 use App\Models\EvaluacionPercepcion;
+use App\Models\EvaluacionPotencialidad;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Zona;
@@ -249,6 +250,52 @@ class EvaluacionesTest extends TestCase
         )->assertSessionHas(
             'error',
             'Evaluación cerrada. No puedes editar.'
+        );
+    }
+
+    public function test_potencialidad_conserva_el_valor_previo_de_un_campo_que_se_desactiva(): void
+    {
+        // Esto es justamente lo que impide a Potencialidad usar la clase base
+        // MatrizPonderadaController como las otras matrices: al desactivar un
+        // campo, prepararDatos() no lo pone a 0, conserva el valor guardado.
+        // 1) 'rn_agua_lagos' se guarda activo con calificación 2.
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-potencialidad",
+            ['campos' => ['rn_agua_lagos', 'i_transporte'], 'rn_agua_lagos' => 2, 'i_transporte' => 1]
+        )->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            2,
+            (int) EvaluacionPotencialidad::where('zona_id', $this->zona->id)->value('rn_agua_lagos')
+        );
+
+        // 2) Se vuelve a guardar sin 'rn_agua_lagos' entre los campos activos
+        // (solo 'i_transporte', para que la petición siga siendo válida).
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-potencialidad",
+            ['campos' => ['i_transporte'], 'i_transporte' => 1]
+        )->assertSessionHasNoErrors();
+
+        // El valor original de 'rn_agua_lagos' sigue intacto, no se resetea a 0.
+        $this->assertSame(
+            2,
+            (int) EvaluacionPotencialidad::where('zona_id', $this->zona->id)->value('rn_agua_lagos')
+        );
+    }
+
+    public function test_potencialidad_pone_a_cero_un_campo_inactivo_sin_evaluacion_previa(): void
+    {
+        // Contraparte del test anterior: si no hay evaluación previa (zona
+        // nueva), un campo que no está entre los activos sí debe guardarse
+        // como 0, porque no hay `$actual` del que conservar un valor.
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-potencialidad",
+            ['campos' => ['i_transporte'], 'i_transporte' => 2]
+        )->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            0,
+            (int) EvaluacionPotencialidad::where('zona_id', $this->zona->id)->value('rn_agua_lagos')
         );
     }
 
