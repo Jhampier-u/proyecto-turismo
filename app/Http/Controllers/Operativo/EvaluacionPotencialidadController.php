@@ -1,15 +1,15 @@
 <?php
 namespace App\Http\Controllers\Operativo;
 
-use App\Http\Controllers\Controller;
 use App\Models\Zona;
 use App\Models\EvaluacionPotencialidad;
 use App\Models\PotencialidadCamposActivos;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
-class EvaluacionPotencialidadController extends Controller
+class EvaluacionPotencialidadController extends EvaluacionZonaController
 {
     // ── Estructura completa de secciones y sus campos ────────────────────────
     public static array $secciones = [
@@ -232,23 +232,39 @@ class EvaluacionPotencialidadController extends Controller
             compact('zona', 'evaluacion', 'camposActivos', 'user', 'secciones'));
     }
 
-    // ── Guarda selección + calificaciones en un solo POST ────────────────────
-    public function update(Request $request, $zonaId)
+    protected function modelo(): string
     {
-        $user            = Auth::user();
-        $evaluacionActual = EvaluacionPotencialidad::where('zona_id', $zonaId)->first();
+        return EvaluacionPotencialidad::class;
+    }
 
-        if ($evaluacionActual && $evaluacionActual->estado === 'confirmado' && $user->esEquipo()) {
-            return back()->with('error', 'Evaluación cerrada. No puedes editar.');
-        }
+    protected function rutaResultados(): string
+    {
+        return 'operativo.evaluacion_potencialidad.ponderacion';
+    }
+
+    protected function mensajeCerrada(): string
+    {
+        return 'Evaluación cerrada. No puedes editar.';
+    }
+
+    protected function mensajeExito(string $estado, array $datos): string
+    {
+        return $estado === 'confirmado'
+            ? 'Evaluación CONFIRMADA. FN: ' . number_format($datos['fn_total'], 2)
+              . ' | FX: ' . number_format($datos['fx_total'], 2)
+            : 'Borrador guardado correctamente.';
+    }
+
+    protected function prepararDatos(Request $request, $zonaId, ?Model $actual): array
+    {
+        $user = Auth::user();
 
         // La selección de campos se valida contra la lista blanca antes de nada:
         // sus valores se usan como claves de reglas de validación y se serializan
         // a la columna JSON, así que no puede entrar texto arbitrario.
         $request->validate([
-            'accion_estado' => 'nullable|in:borrador,confirmado',
-            'campos'        => 'nullable|array',
-            'campos.*'      => ['string', Rule::in($this->getAllCampos())],
+            'campos'   => 'nullable|array',
+            'campos.*' => ['string', Rule::in($this->getAllCampos())],
         ]);
 
         $esJefe = $user->esJefe();
@@ -262,11 +278,11 @@ class EvaluacionPotencialidadController extends Controller
         }
 
         // Validar solo los campos activos
-        $rules = [];
+        $reglas = [];
         foreach ($camposActivos as $campo) {
-            $rules[$campo] = 'integer|min:0|max:2';
+            $reglas[$campo] = 'integer|min:0|max:2';
         }
-        $request->validate($rules);
+        $request->validate($reglas);
 
         // Todo validado: recién ahora se persiste la configuración, para que un
         // error de validación no deje la selección de campos ya modificada.
@@ -278,39 +294,14 @@ class EvaluacionPotencialidadController extends Controller
         }
 
         // Construir el array de valores para todos los campos conocidos
-        $todosLosCampos = $this->getAllCampos();
         $valores = [];
-        foreach ($todosLosCampos as $campo) {
-            if (in_array($campo, $camposActivos)) {
-                $valores[$campo] = (int) $request->input($campo, 0);
-            } else {
-                // Preservar valor anterior o establecer 0
-                $valores[$campo] = $evaluacionActual ? ($evaluacionActual->$campo ?? 0) : 0;
-            }
+        foreach ($this->getAllCampos() as $campo) {
+            $valores[$campo] = in_array($campo, $camposActivos)
+                ? (int) $request->input($campo, 0)
+                : ($actual->$campo ?? 0);
         }
 
-        // Calcular puntajes usando solo los campos activos
-        $calc = $this->calcular($valores, $camposActivos);
-
-        $estado = ($user->esJefe())
-            ? $request->input('accion_estado', 'borrador')
-            : 'borrador';
-
-        EvaluacionPotencialidad::updateOrCreate(
-            ['zona_id' => $zonaId],
-            array_merge($valores, $calc, [
-                'user_id' => $user->id,
-                'estado'  => $estado,
-            ])
-        );
-
-        $mensaje = ($estado === 'confirmado')
-            ? 'Evaluación CONFIRMADA. FN: ' . number_format($calc['fn_total'], 2) . ' | FX: ' . number_format($calc['fx_total'], 2)
-            : 'Borrador guardado correctamente.';
-
-        return redirect()
-            ->route('operativo.evaluacion_potencialidad.edit', $zonaId)
-            ->with('success', $mensaje);
+        return $valores + $this->calcular($valores, $camposActivos);
     }
 
     // ── Reconfigurar: activa todos los campos (reset) ─────────────────────────
