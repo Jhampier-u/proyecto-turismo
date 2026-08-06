@@ -16,7 +16,7 @@ class isPersonal
     public function handle(Request $request, Closure $next): Response
     {
 
-        if (!auth()->check() || !in_array(auth()->user()->role_id, [1, 2, 3])) {
+        if (!auth()->check() || ! auth()->user()->tieneRolOperativo()) {
             abort(403, 'No tienes permisos operativos en esta zona.');
         }
 

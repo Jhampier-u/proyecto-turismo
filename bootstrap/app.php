@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\IsAdmin::class,
             'personal' => \App\Http\Middleware\isPersonal::class,
+            'zona' => \App\Http\Middleware\PerteneceAZona::class,
         ]);
 
         // Confiar en el proxy de Render / Cloudflare para detectar HTTPS

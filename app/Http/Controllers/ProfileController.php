@@ -48,9 +48,14 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        Auth::logout();
-
+        // El borrado va primero: si fallara, el usuario sigue con su sesión y su
+        // cuenta intactas en lugar de quedar deslogueado creyendo que se borró.
         $user->delete();
+
+        // No se usa Auth::logout() a propósito: cicla el "remember token"
+        // guardando el modelo, y sobre un usuario ya borrado ese save se
+        // convierte en un INSERT que lo resucita.
+        Auth::forgetUser();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

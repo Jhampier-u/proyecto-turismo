@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
@@ -34,7 +36,10 @@ class UserController extends Controller
             'telefono' => ['nullable', 'string', 'max:20'],
         ]);
 
-        User::create($validado);
+        $user = new User(Arr::except($validado, 'role_id'));
+        // Asignación explícita: role_id no es mass-assignable a propósito.
+        $user->role_id = $validado['role_id'];
+        $user->save();
 
         return redirect()->route('admin.users.index')->with('success', 'Usuario creado correctamente');
     }
@@ -61,7 +66,9 @@ class UserController extends Controller
             unset($validado['password']);
         }
 
-        $user->update($validado);
+        $user->fill(Arr::except($validado, 'role_id'));
+        $user->role_id = $validado['role_id'];
+        $user->save();
 
         return redirect()->route('admin.users.index')->with('success', 'Usuario actualizado correctamente');
     }
@@ -72,7 +79,11 @@ class UserController extends Controller
             return back()->with('error', 'No puedes eliminar tu propia cuenta.');
         }
 
-        $user->delete();
+        try {
+            $user->delete();
+        } catch (QueryException $e) {
+            return back()->with('error', 'No se pudo eliminar el usuario porque tiene registros asociados.');
+        }
 
         return redirect()->route('admin.users.index')
             ->with('success', 'Usuario eliminado correctamente.');

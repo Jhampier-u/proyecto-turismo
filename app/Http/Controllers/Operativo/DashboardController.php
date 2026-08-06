@@ -15,15 +15,15 @@ class DashboardController extends Controller
         $user = Auth::user();
 
         // El admin no usa este dashboard — tiene el suyo propio
-        if ($user->role_id === 1) {
+        if ($user->esAdmin()) {
             return redirect()->route('admin.dashboard');
         }
 
         $zonas = collect();
 
-        if ($user->role_id === 2) {
+        if ($user->esJefe()) {
             $zonas = $user->zonasComoJefe()->with('lugar')->get();
-        } elseif ($user->role_id === 3) {
+        } elseif ($user->esEquipo()) {
             $zonas = $user->zonasComoEquipo()->with('lugar')->get();
         }
 

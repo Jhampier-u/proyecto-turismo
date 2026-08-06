@@ -51,11 +51,11 @@
                                         <div class="text-sm text-gray-500">{{ $user->email }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        @if($user->role_id == 1)
+                                        @if($user->esAdmin())
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Admin</span>
-                                        @elseif($user->role_id == 2)
+                                        @elseif($user->esJefe())
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">Jefe Zona</span>
-                                        @elseif($user->role_id == 3)
+                                        @elseif($user->esEquipo())
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Equipo</span>
                                         @else
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Sin Rol</span>
@@ -72,7 +72,8 @@
                                                 Editar
                                             </a>
 
-                                            <form action="{{ route('admin.users.destroy', $user) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar a {{ $user->name }}? Esta acción no se puede deshacer.');">
+                                            <form action="{{ route('admin.users.destroy', $user) }}" method="POST"
+                                                  class="js-eliminar-usuario" data-nombre="{{ $user->name }}">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="bg-red-100 text-red-700 hover:bg-red-200 py-1 px-3 rounded text-xs font-bold transition">
@@ -96,4 +97,17 @@
             </div>
         </div>
     </div>
+
+    {{-- El nombre viaja en un data-* y se lee vía dataset, nunca interpolado
+         dentro de JavaScript: así un nombre con comillas no puede ejecutar código. --}}
+    <script>
+        document.querySelectorAll('form.js-eliminar-usuario').forEach(function (form) {
+            form.addEventListener('submit', function (e) {
+                var nombre = form.dataset.nombre || 'este usuario';
+                if (! confirm('¿Estás seguro de que deseas eliminar a ' + nombre + '? Esta acción no se puede deshacer.')) {
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
 </x-app-layout>
