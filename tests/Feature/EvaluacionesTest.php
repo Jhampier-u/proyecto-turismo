@@ -59,6 +59,9 @@ class EvaluacionesTest extends TestCase
         'imagen_apertura', 'imagen_seguridad', 'imagen_percibida', 'imagen_marketing',
     ];
 
+    /** Subconjunto pequeño y legible de los campos reales de Potencialidad. */
+    private const CAMPOS_POTENCIALIDAD = ['rn_agua_lagos', 'rn_agua_rios', 'i_transporte'];
+
     /** Rellena todos los campos con el mismo valor. */
     private function todos(array $campos, int $valor): array
     {
@@ -204,6 +207,45 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($equipo)->post(
             "/operativo/zona/{$this->zona->id}/evaluacion-fit",
             $this->todos(self::CAMPOS_FIT, 0)
+        )->assertSessionHas(
+            'error',
+            'Evaluación cerrada. No puedes editar.'
+        );
+    }
+
+    public function test_potencialidad_redirige_al_formulario_y_no_a_resultados(): void
+    {
+        // A diferencia de FIT, FET y Percepción, el formulario de Potencialidad
+        // incluye la selección de campos activos: tras guardar debe volver a él
+        // (.edit) y no a la página de resultados (.ponderacion), para poder
+        // seguir ajustando esa configuración. Ver EvaluacionPotencialidadController::rutaResultados().
+        $datos = ['campos' => self::CAMPOS_POTENCIALIDAD] + $this->todos(self::CAMPOS_POTENCIALIDAD, 2);
+
+        $this->actingAs($this->jefe)
+            ->post("/operativo/zona/{$this->zona->id}/evaluacion-potencialidad", $datos)
+            ->assertRedirect(route('operativo.evaluacion_potencialidad.edit', $this->zona->id));
+    }
+
+    public function test_el_mensaje_de_evaluacion_potencialidad_cerrada_es_el_especifico_de_potencialidad(): void
+    {
+        // Mismo caso que FIT/FET/Percepción: fija el texto propio de
+        // Potencialidad para que un refactor futuro no lo sustituya en
+        // silencio por el genérico de la clase base.
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $datos = ['campos' => self::CAMPOS_POTENCIALIDAD] + $this->todos(self::CAMPOS_POTENCIALIDAD, 2);
+
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-potencialidad",
+            $datos + ['accion_estado' => 'confirmado']
+        );
+
+        $this->actingAs($equipo)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-potencialidad",
+            $datos
         )->assertSessionHas(
             'error',
             'Evaluación cerrada. No puedes editar.'

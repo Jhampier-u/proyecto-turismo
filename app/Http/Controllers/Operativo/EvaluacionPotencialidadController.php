@@ -239,7 +239,12 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
 
     protected function rutaResultados(): string
     {
-        return 'operativo.evaluacion_potencialidad.ponderacion';
+        // A diferencia de las otras tres matrices, el formulario de Potencialidad
+        // incluye también la selección de campos activos (ver edit()), así que
+        // tras guardar se vuelve a él en lugar de ir a los resultados: permite
+        // seguir ajustando la configuración sin un paso extra. No es una
+        // inconsistencia a "corregir".
+        return 'operativo.evaluacion_potencialidad.edit';
     }
 
     protected function mensajeCerrada(): string
