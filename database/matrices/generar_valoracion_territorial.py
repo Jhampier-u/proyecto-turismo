@@ -35,9 +35,11 @@ def limpiar(t):
 
 # Umbral de coincidencia usado por `mismo_criterio` (ver ese docstring para el
 # porqué del valor). Con las 21 filas del instrumento, el par correcto peor
-# alineado (AP) da 0.875 y el peor cruce entre criterios distintos (SC/SS,
-# que comparten el prefijo "Disponibilidad de Servicios de") da 0.75: 0.8
-# queda a medio camino, con margen a los dos lados.
+# alineado es CR y da 0.875 -no por diferencia terminológica, sino por una
+# errata del instrumento ("reursos" en vez de "recursos", columna A fila 12
+# de la hoja 'Valoración CT')-, y el peor cruce entre criterios distintos
+# (SC/SS, que comparten el prefijo "Disponibilidad de Servicios de") da 0.75:
+# 0.8 queda a medio camino, con margen a los dos lados.
 UMBRAL_COINCIDENCIA = 0.8
 
 
@@ -54,22 +56,35 @@ def mismo_criterio(nombre_ref, nombre_val):
     pesos, con la sigla al final entre paréntesis) el mismo criterio?
 
     No se compara por igualdad exacta porque el texto no es idéntico entre
-    hojas: para AP, la hoja de pesos dice "...Agua Potable, Alcantarillado y
-    Tratamiento de Aguas" y la de descripciones dice "...Agua Potable y
-    Alcantarillado". Es una discrepancia real del instrumento (no un error de
-    transcripción), así que una igualdad estricta rompería el generador con
-    el instrumento actual, que está bien alineado.
+    hojas: por ejemplo, para AP la hoja de pesos dice "...Agua Potable,
+    Alcantarillado y Tratamiento de Aguas" y la de descripciones dice
+    "...Agua Potable y Alcantarillado". Una igualdad estricta rompería el
+    generador con el instrumento actual, que está bien alineado.
 
-    En su lugar se calcula el coeficiente de solapamiento de palabras:
-    |palabras en común| / tamaño del conjunto más chico. Es más robusto que
-    comparar las cadenas completas (con `difflib.SequenceMatcher.ratio`, por
-    ejemplo) porque varios nombres comparten un prefijo largo tipo
-    "Disponibilidad de Servicios de ..." y ese prefijo por sí solo ya empuja
-    la similitud de cadena completa por encima del caso AP, borrando el
-    margen entre pares correctos e incorrectos. Comparando conjuntos de
-    palabras, ese prefijo compartido pesa lo mismo entre un par correcto y uno
-    cruzado, y lo que decide es si la palabra distintiva (Comunicación, Salud,
-    Alcantarillado...) también aparece en ambos lados.
+    Para eso se calcula el coeficiente de solapamiento de palabras:
+    |palabras en común| / tamaño del conjunto más chico. Al dividir por el
+    conjunto más chico, el lado con texto más largo no penaliza mientras sus
+    palabras de más sean añadidos y no reemplazos: en AP, las 7 palabras de
+    la hoja de descripciones están todas contenidas en las 9 de la hoja de
+    pesos ("tratamiento" y "aguas" son las únicas que sobran), así que ese
+    par da 1.0 pese a la diferencia de longitud entre hojas.
+
+    El par correcto peor alineado del instrumento es CR, con 0.875 (7 de 8
+    palabras coinciden). No es una discrepancia terminológica entre hojas:
+    es una errata de tipeo en el instrumento. La hoja 'Valoración CT',
+    columna A fila 12, dice "reursos" en vez de "recursos", así que esa
+    palabra no coincide con la de la hoja de descripciones y queda fuera de
+    la intersección.
+
+    Se usa el coeficiente de solapamiento de palabras en vez de comparar las
+    cadenas completas (con `difflib.SequenceMatcher.ratio`, por ejemplo)
+    porque varios nombres comparten un prefijo largo tipo "Disponibilidad de
+    Servicios de ..." y ese prefijo por sí solo ya empuja la similitud de
+    cadena completa por encima del caso CR, borrando el margen entre pares
+    correctos e incorrectos. Comparando conjuntos de palabras, ese prefijo
+    compartido pesa lo mismo entre un par correcto y uno cruzado, y lo que
+    decide es si la palabra distintiva (Comunicación, Salud, Alcantarillado...)
+    también aparece en ambos lados.
     """
     sin_sigla = re.sub(r"\s*\([A-ZÁÉÍÓÚÑ]+\)\s*$", "", nombre_val).strip()
     palabras_ref, palabras_val = _palabras_clave(nombre_ref), _palabras_clave(sin_sigla)
