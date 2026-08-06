@@ -63,6 +63,10 @@
                                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">
                                         🧭 Percepción
                                     </a>
+                                    <a href="{{ route('admin.zonas.valoracion_territorial', $zona->id) }}"
+                                       class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">
+                                        🗺️ Valoración Territorial
+                                    </a>
                                     <a href="{{ route('admin.zonas.edit', $zona->id) }}"
                                        class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded text-xs font-bold">Editar</a>
                                     <form action="{{ route('admin.zonas.destroy', $zona->id) }}" method="POST" onsubmit="return confirm('¿Eliminar esta zona?');">

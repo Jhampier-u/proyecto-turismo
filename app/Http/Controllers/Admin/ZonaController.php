@@ -2,11 +2,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Matrices\ValoracionTerritorial;
 use App\Models\Zona;
 use App\Models\Lugar;
 use App\Models\User;
 use App\Models\EvaluacionPercepcion;
 use App\Models\EvaluacionPotencialidad;
+use App\Models\EvaluacionValoracionTerritorial;
 use App\Models\InventarioImagen;
 use App\Models\Role;
 use Illuminate\Http\Request;
@@ -150,5 +152,18 @@ class ZonaController extends Controller
         $readonly = true;
         return view('operativo.evaluacion_percepcion.ponderacion',
             compact('zona', 'evaluacion', 'categorias', 'readonly'));
+    }
+
+    // Vista admin de resultados de valoración territorial
+    public function valoracionTerritorial($id) {
+        $zona = Zona::findOrFail($id);
+        $evaluacion = EvaluacionValoracionTerritorial::where('zona_id', $id)->firstOrFail();
+
+        return view('operativo.evaluacion_valoracion_territorial.ponderacion', [
+            'zona'       => $zona,
+            'evaluacion' => $evaluacion,
+            'ct'         => ValoracionTerritorial::CT,
+            'uc'         => ValoracionTerritorial::UC,
+        ]);
     }
 }

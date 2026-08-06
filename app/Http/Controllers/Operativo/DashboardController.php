@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Operativo;
 use App\Http\Controllers\Controller;
 use App\Models\EvaluacionPercepcion;
 use App\Models\EvaluacionPotencialidad;
+use App\Models\EvaluacionValoracionTerritorial;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -34,6 +35,10 @@ class DashboardController extends Controller
         $percepciones = EvaluacionPercepcion::whereIn('zona_id', $zonas->pluck('id'))
             ->get()->keyBy('zona_id');
 
-        return view('operativo.dashboard', compact('zonas', 'evaluaciones', 'percepciones'));
+        // Cargar estado de evaluación de valoración territorial por zona
+        $valoraciones = EvaluacionValoracionTerritorial::whereIn('zona_id', $zonas->pluck('id'))
+            ->get()->keyBy('zona_id');
+
+        return view('operativo.dashboard', compact('zonas', 'evaluaciones', 'percepciones', 'valoraciones'));
     }
 }

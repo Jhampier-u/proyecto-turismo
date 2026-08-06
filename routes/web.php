@@ -47,6 +47,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Admin: ver Matriz de Percepción de una zona
     Route::get('/zona/{zona}/percepcion', [ZonaController::class, 'percepcion'])
         ->name('zonas.percepcion');
+
+    // Admin: ver Matriz de Valoración Territorial de una zona
+    Route::get('/zona/{zona}/valoracion-territorial', [ZonaController::class, 'valoracionTerritorial'])
+        ->name('zonas.valoracion_territorial');
 });
 
 // ── OPERATIVO ─────────────────────────────────────────────────────────────────

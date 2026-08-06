@@ -116,6 +116,21 @@
                                     🧭
                                     {{ $percepConfirmada ? 'Percepción' : ($percep ? 'En progreso' : 'Sin evaluar') }}
                                 </a>
+
+                                {{-- Botón Matriz de Valoración Territorial --}}
+                                @php
+                                    $valoracion = $valoraciones[$zona->id] ?? null;
+                                    $valoracionConfirmada = $valoracion && $valoracion->estado === 'confirmado';
+                                @endphp
+                                <a href="{{ $valoracion
+                                    ? route('operativo.evaluacion_valoracion_territorial.ponderacion', $zona->id)
+                                    : route('operativo.evaluacion_valoracion_territorial.edit', $zona->id) }}"
+                                   class="inline-flex items-center gap-1 px-2 py-1.5 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest transition
+                                       {{ $valoracionConfirmada ? 'bg-teal-600 hover:bg-teal-700' : ($valoracion ? 'bg-teal-400 hover:bg-teal-500' : 'bg-gray-400 hover:bg-gray-500') }}"
+                                   title="{{ $valoracionConfirmada ? 'Ver resultados de Valoración Territorial' : ($valoracion ? 'Valoración en borrador — continuar' : 'Valoración no realizada — comenzar') }}">
+                                    🗺️
+                                    {{ $valoracionConfirmada ? 'Valoración Territorial' : ($valoracion ? 'En progreso' : 'Sin evaluar') }}
+                                </a>
                             </div>
                         </div>
                     </div>

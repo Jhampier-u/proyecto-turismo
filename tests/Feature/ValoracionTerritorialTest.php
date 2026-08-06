@@ -122,6 +122,41 @@ class ValoracionTerritorialTest extends TestCase
         $this->actingAs($ajeno)->get($this->url())->assertForbidden();
     }
 
+    public function test_el_admin_consulta_los_resultados(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(2));
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)
+            ->get("/admin/zona/{$this->zona->id}/valoracion-territorial")
+            ->assertOk();
+    }
+
+    /**
+     * La matriz puede estar completa en el backend (criterios, cálculo,
+     * formulario, resultados) y aun así ser inalcanzable si no hay un enlace
+     * real desde la pantalla que el jefe de zona usa a diario. Esta prueba
+     * cubre justamente eso: que la tarjeta exista en el dashboard operativo
+     * y enlace al formulario de la matriz.
+     */
+    public function test_la_tarjeta_aparece_en_el_dashboard_con_enlace_al_formulario(): void
+    {
+        $respuesta = $this->actingAs($this->jefe)->get('/mis-zonas');
+
+        $respuesta->assertOk();
+        // Sin evaluación todavía, el rótulo visible es "Sin evaluar" (igual que
+        // las otras matrices); el emoji 🗺️ es exclusivo de esta tarjeta y basta
+        // para confirmar que aparece en el dashboard.
+        $respuesta->assertSee('🗺️');
+        $respuesta->assertSee(
+            route('operativo.evaluacion_valoracion_territorial.edit', $this->zona->id),
+            false
+        );
+    }
+
     public static function cuadrantes(): array
     {
         return [
