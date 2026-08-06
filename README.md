@@ -1,134 +1,130 @@
-# Guía para Ejecutar el Proyecto Gestión-Turistica
+# UDAExplore — Gestión Turística
 
-## Prerrequisitos
-- XAMPP (Apache y MySQL)
-- Composer
-- Node.js y npm
-- Git
-- Opcional: Laravel Herd
----
+Sistema de gestión de inventarios y evaluación de potencial turístico territorial.
+Implementa cinco matrices de valoración (Inventarios, FIT, FET, Potencialidad
+Turística y Percepción de la Localidad) sobre zonas asignadas a equipos de campo.
 
-### 1. Clonar el repositorio
-git clone git@github.com/<user>/Gestion-Turistica.git
-cd Gestion-Turistica
+**Stack:** Laravel 12 · PHP 8.2 · PostgreSQL (producción) / SQLite (desarrollo y
+tests) · Tailwind CSS 3 + Vite · Docker.
 
 ---
 
-### 2. Crear el archivo .env
+## Roles
+
+| Rol | Puede |
+|---|---|
+| **Admin** | Gestionar usuarios, lugares y zonas. Consultar resultados de cualquier zona (solo lectura). |
+| **Jefe de Zona** | Completar y **validar** las evaluaciones de las zonas que dirige. |
+| **Equipo** | Registrar inventarios y completar borradores en las zonas donde está asignado. |
+
+Un usuario solo accede a las zonas donde es jefe o miembro del equipo. El
+registro público está deshabilitado: las cuentas las crea el administrador.
+
+---
+
+## Puesta en marcha (desarrollo local)
+
+Requisitos: PHP 8.2+, Composer, Node.js 20+.
+
+```bash
+git clone <url-del-repositorio> && cd proyecto-turismo
 cp .env.example .env
+composer install
+npm install
+php artisan key:generate
+touch database/database.sqlite       # o configura DB_* para MySQL/PostgreSQL
+php artisan migrate --seed
+npm run build
+php artisan serve
+```
 
-Luego editar .env manualmente y configurar:
+`.env.example` viene con `DB_CONNECTION=sqlite`, que no requiere instalar ningún
+motor de base de datos.
 
-### Base de datos:
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=gestion_turistica
-DB_USERNAME=tu_usuario_mysql
-DB_PASSWORD=tu_password_mysql
+En entorno `local`, `migrate --seed` crea usuarios de prueba (contraseña
+`password` en los tres):
 
-### URL de la aplicación:
-#### Con Herd:
-APP_URL=http://gestion-turistica.test
-#### Sin Herd:
-APP_URL=http://127.0.0.1:8000
+| Correo | Rol |
+|---|---|
+| `admin@local.test` | Admin |
+| `jefe@local.test` | Jefe de Zona |
+| `equipo@local.test` | Equipo |
 
----
+Para trabajar con recarga en caliente de assets, en otra terminal:
 
-### 3. Instalar dependencias de PHP
-`composer install`
-
----
-
-### 4. Instalar dependencias de Node
-`npm install`
-
----
-
-### 5. Construir los assets
-`npm run build`
+```bash
+npm run dev
+```
 
 ---
 
-### 6. Generar la clave de la aplicación
-`php artisan key:generate`
+## Tests
+
+```bash
+php artisan test
+```
+
+Cubren las reglas de acceso por zona, las fórmulas ponderadas de las matrices, el
+flujo borrador → confirmado, las restricciones de integridad y el comportamiento
+de los seeders.
 
 ---
 
-### 7. Migrar y seedear la base de datos
-`php artisan migrate --seed`
+## Despliegue (Render)
+
+El despliegue usa el `Dockerfile` de la raíz y el blueprint `render.yaml`, que
+provisiona el servicio web y una base PostgreSQL. El `docker/entrypoint.sh`
+ejecuta migraciones en cada arranque y siembra los catálogos si la base está
+vacía.
+
+Variables que hay que rellenar a mano en el dashboard de Render (están marcadas
+como `sync: false` en el blueprint):
+
+- `APP_KEY` — genera con `php artisan key:generate --show`
+- `APP_URL` — la URL que asigne Render
+- `ADMIN_EMAIL`, `ADMIN_PASSWORD` — cuenta de administrador inicial. **Sin ellas
+  no se crea ningún administrador.** Se usan una sola vez, cuando la base está
+  vacía; cambiar la contraseña después desde la aplicación no se revierte.
+- `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`
+  — sin SMTP, la recuperación de contraseña no envía nada.
+
+### Almacenamiento de imágenes
+
+La aplicación lee y escribe las imágenes a través del **disco por defecto**
+(`FILESYSTEM_DISK`), nunca contra una ruta fija. Cambiar de almacenamiento es
+por tanto solo cuestión de variables de entorno.
+
+Con `FILESYSTEM_DISK=public` los archivos van dentro del contenedor, que en el
+plan gratuito de Render es efímero: **las fotos se pierden en cada redespliegue
+o reinicio por inactividad**. Es el valor actual del blueprint.
+
+Para conservarlas, usa cualquier proveedor compatible con S3 (Cloudflare R2,
+Backblaze B2, Supabase Storage, MinIO):
+
+1. Crea un bucket y permite **lectura pública** de sus objetos.
+2. Genera un par de credenciales de acceso.
+3. En Render define:
+
+   | Variable | Valor |
+   |---|---|
+   | `FILESYSTEM_DISK` | `s3` |
+   | `AWS_ACCESS_KEY_ID` | tu clave de acceso |
+   | `AWS_SECRET_ACCESS_KEY` | tu clave secreta |
+   | `AWS_BUCKET` | nombre del bucket |
+   | `AWS_DEFAULT_REGION` | `auto` en R2; su región en otros |
+   | `AWS_ENDPOINT` | endpoint S3 del proveedor |
+   | `AWS_URL` | dominio público desde el que se sirven los archivos |
+   | `AWS_USE_PATH_STYLE_ENDPOINT` | `true` |
+
+No hace falta migrar datos: las rutas guardadas en la base de datos
+(`inventarios/…`, `zonas/…`) son relativas y no cambian. Las imágenes anteriores
+que ya se hayan perdido se muestran con un marcador de «Imagen no disponible» en
+lugar del icono de imagen rota.
 
 ---
 
-## EJECUCIÓN DEL PROYECTO
+## Documentación
 
-### Opción A: Usando Laravel Herd
-Abrir en el navegador: http://gestion-turistica.test
-`npm run dev`
-
----
-
-# Opción B: Usando php artisan serve
-`php artisan serve`
-# Abrir en el navegador: http://127.0.0.1:8000
-`npm run dev`
-
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
-
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- [AUDITORIA.md](AUDITORIA.md) — auditoría técnica: hallazgos, correcciones aplicadas y trabajo pendiente.
+- `Documentación/` — matrices de origen y documentos de la pasantía.
+- `entregables/` — informe técnico y presentación.
