@@ -171,4 +171,61 @@ class ValoracionTerritorialTest extends TestCase
             'Las vías de acceso al territorio cuentan con un mantenimiento adecuado y son de primer orden'
         );
     }
+
+    public function test_la_pagina_de_resultados_se_renderiza(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(2));
+
+        $this->actingAs($this->jefe)
+            ->get($this->url('/resultados'))
+            ->assertOk()
+            ->assertSee('Territorio a Priorizar para el Turismo IV');
+    }
+
+    /**
+     * La tabla de desglose es la que explica por qué la zona cayó en su
+     * cuadrante; no basta con ver el nombre del cuadrante. Vialidad pesa
+     * 0.15 en UC, así que con calificación 2 su aporte es 2 * 0.15 = 0.300.
+     */
+    public function test_la_pagina_de_resultados_muestra_el_aporte_de_un_criterio(): void
+    {
+        $datos = $this->todosEn(0);
+        $datos['uc_vialidad'] = 2;
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos);
+
+        $this->actingAs($this->jefe)
+            ->get($this->url('/resultados'))
+            ->assertOk()
+            ->assertSee('Vialidad')
+            ->assertSee('0.300');
+    }
+
+    /**
+     * El mapa de estilos por cuadrante tiene cuatro entradas; el test de
+     * renderizado solo cubre la de máxima puntuación. Sin verificar otro
+     * cuadrante, tres de las cuatro entradas del mapa podrían tener la clave
+     * o el texto mal y ningún test lo notaría.
+     *
+     * No basta con `assertSee('Territorio con Limitación II')`: ese texto
+     * aparece siempre en la leyenda estática de los cuatro cuadrantes,
+     * independientemente del resultado. En cambio la lectura ("Bien
+     * conectado...") solo se imprime una vez, en la tarjeta que usa la
+     * entrada del mapa seleccionada según `$evaluacion->cuadrante`.
+     */
+    public function test_la_pagina_de_resultados_refleja_un_cuadrante_distinto(): void
+    {
+        // CT bajo (todos en 0) y UC alto (todos en 2): Territorio con Limitación II.
+        $datos = $this->todosEn(0);
+        foreach (array_keys(ValoracionTerritorial::UC) as $campo) {
+            $datos[$campo] = 2;
+        }
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos);
+
+        $this->actingAs($this->jefe)
+            ->get($this->url('/resultados'))
+            ->assertOk()
+            ->assertSee('Bien conectado, pero sin base territorial suficiente.');
+    }
 }
