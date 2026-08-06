@@ -338,10 +338,29 @@
     </div>
 
     {{-- Gráfico de cuadrantes con Chart.js --}}
+    @php
+        $datosRecursos = [
+            $eval->val_rn_litoral, $eval->val_rn_montana,
+            $eval->val_rn_anp, $eval->val_rn_agua,
+            $eval->val_rc_am, $eval->val_rc_np, $eval->val_rc_ec,
+        ];
+        $datosPlanta = [
+            $eval->val_pt_alojamiento, $eval->val_pt_restauracion,
+            $eval->val_pt_intermediacion, $eval->val_pt_transportacion,
+            $eval->val_pt_interpretacion,
+        ];
+        $datosEndogenos = [
+            $eval->val_recursos_turisticos, $eval->val_planta_turistica,
+            $eval->val_tipologias, $eval->val_infraestructura,
+        ];
+        $datosExogenos = [
+            $eval->val_afluencia, $eval->val_marketing, $eval->val_superestructura,
+        ];
+    @endphp
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <script>
-        const fn = {{ $eval->fn_total }};
-        const fx = {{ $eval->fx_total }};
+        const fn = @json($eval->fn_total);
+        const fx = @json($eval->fx_total);
 
         const ctx = document.getElementById('cuadranteChart').getContext('2d');
         new Chart(ctx, {
@@ -349,7 +368,7 @@
             data: {
                 datasets: [
                     {
-                        label: '{{ $zona->nombre }}',
+                        label: @json($zona->nombre),
                         data: [{ x: fn, y: fx }],
                         backgroundColor: 'rgba(79, 70, 229, 0.9)',
                         pointRadius: 12,
@@ -462,11 +481,7 @@
                 ],
                 datasets: [{
                     label: 'Valor (0-2)',
-                    data: [
-                        {{ $eval->val_rn_litoral }}, {{ $eval->val_rn_montana }},
-                        {{ $eval->val_rn_anp }}, {{ $eval->val_rn_agua }},
-                        {{ $eval->val_rc_am }}, {{ $eval->val_rc_np }}, {{ $eval->val_rc_ec }}
-                    ],
+                    data: @json($datosRecursos),
                     backgroundColor: 'rgba(22, 163, 74, 0.15)',
                     borderColor: 'rgba(22, 163, 74, 0.85)',
                     borderWidth: 2,
@@ -484,11 +499,7 @@
                 labels: ['Alojamiento', 'Restauración', 'Intermediación', 'Transportación', 'Guianza'],
                 datasets: [{
                     label: 'Valor (0-2)',
-                    data: [
-                        {{ $eval->val_pt_alojamiento }}, {{ $eval->val_pt_restauracion }},
-                        {{ $eval->val_pt_intermediacion }}, {{ $eval->val_pt_transportacion }},
-                        {{ $eval->val_pt_interpretacion }}
-                    ],
+                    data: @json($datosPlanta),
                     backgroundColor: 'rgba(37, 99, 235, 0.15)',
                     borderColor: 'rgba(37, 99, 235, 0.85)',
                     borderWidth: 2,
@@ -511,12 +522,7 @@
                 ],
                 datasets: [{
                     label: 'Valor (0-2)',
-                    data: [
-                        {{ $eval->val_recursos_turisticos }},
-                        {{ $eval->val_planta_turistica }},
-                        {{ $eval->val_tipologias }},
-                        {{ $eval->val_infraestructura }}
-                    ],
+                    data: @json($datosEndogenos),
                     backgroundColor: 'rgba(79, 70, 229, 0.15)',
                     borderColor: 'rgba(79, 70, 229, 0.85)',
                     borderWidth: 2,
@@ -534,11 +540,7 @@
                 labels: ['Afluencia Turística', 'Marketing Turístico', 'Superestructura'],
                 datasets: [{
                     label: 'Valor (0-2)',
-                    data: [
-                        {{ $eval->val_afluencia }},
-                        {{ $eval->val_marketing }},
-                        {{ $eval->val_superestructura }}
-                    ],
+                    data: @json($datosExogenos),
                     backgroundColor: 'rgba(13, 148, 136, 0.15)',
                     borderColor: 'rgba(13, 148, 136, 0.8)',
                     borderWidth: 2,

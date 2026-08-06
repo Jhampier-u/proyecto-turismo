@@ -37,6 +37,15 @@ services:
       - key: APP_URL
         sync: false           # lo pones manualmente con la URL que asigne Render
 
+      # Administrador inicial. Se usa una sola vez, cuando la base de datos
+      # está vacía. Sin estas variables no se crea ninguna cuenta de admin.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NOMBRE
+        sync: false
+
       - key: LOG_CHANNEL
         value: stderr
       - key: LOG_LEVEL
@@ -55,11 +64,58 @@ services:
       - key: DB_PASSWORD
         fromDatabase: { name: turismo-db, property: password }
 
+      # Correo: sin estas variables MAIL_MAILER cae al default 'log' y el flujo
+      # de recuperación de contraseña dice "enlace enviado" sin enviar nada.
+      # Cualquier SMTP sirve (Brevo, Resend, Mailgun tienen plan gratuito).
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        sync: false
+      - key: MAIL_PORT
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_SCHEME
+        value: tls
+      - key: MAIL_FROM_ADDRESS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: "Gestión Turística"
+
       - key: SESSION_DRIVER
         value: database
+      # La app va por HTTPS detrás del proxy de Render: la cookie de sesión
+      # debe llevar el flag Secure.
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
       - key: CACHE_STORE
         value: database
       - key: QUEUE_CONNECTION
         value: database
+      # ── Almacenamiento de imágenes ──────────────────────────────────────
+      # 'public' guarda dentro del contenedor, que es efímero: las fotos se
+      # pierden en cada redespliegue o reinicio por inactividad.
+      #
+      # Para conservarlas, cambia este valor a 's3' y define las variables
+      # AWS_* de abajo. Sirve cualquier proveedor compatible con S3
+      # (Cloudflare R2, Backblaze B2, Supabase, MinIO); el bucket debe permitir
+      # lectura pública y AWS_URL ser el dominio desde el que se sirven.
       - key: FILESYSTEM_DISK
         value: public
+
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_BUCKET
+        sync: false
+      - key: AWS_DEFAULT_REGION
+        value: auto            # 'auto' en Cloudflare R2; en otros, su región
+      - key: AWS_ENDPOINT
+        sync: false            # ej. https://<cuenta>.r2.cloudflarestorage.com
+      - key: AWS_URL
+        sync: false            # dominio público de lectura del bucket
+      - key: AWS_USE_PATH_STYLE_ENDPOINT
+        value: "true"

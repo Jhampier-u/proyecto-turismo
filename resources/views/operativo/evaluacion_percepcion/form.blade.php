@@ -23,7 +23,7 @@
                 @csrf
 
                 @php
-                    $esJefe         = auth()->user()->role_id == 2;
+                    $esJefe         = auth()->user()->esJefe();
                     $estaConfirmado = $evaluacion->estado === 'confirmado';
                     $bloqueado      = $estaConfirmado && !$esJefe;
 

@@ -17,32 +17,23 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
                     !-->
-                    @if(Auth::user()->role_id === 1)
-                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    @if(Auth::user()->esAdmin())
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                             {{ __('Panel Admin') }}
                         </x-nav-link>
-                    </div>
-
-                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                         <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
                             {{ __('Usuarios') }}
                         </x-nav-link>
-                    </div>
-                    @endif
-                    @if(Auth::user()->role_id === 1)
-                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                         <x-nav-link :href="route('admin.lugares.index')" :active="request()->routeIs('admin.lugares.*')">
                             {{ __('Lugares') }}
                         </x-nav-link>
-                    </div>
-                    @endif
-                    @if(Auth::user()->role_id === 1)
-                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                         <x-nav-link :href="route('admin.zonas.index')" :active="request()->routeIs('admin.zonas.*')">
                             {{ __('Zonas') }}
                         </x-nav-link>
-                    </div>
+                    @else
+                        <x-nav-link :href="route('operativo.dashboard')" :active="request()->routeIs('operativo.dashboard')">
+                            {{ __('Mis Zonas') }}
+                        </x-nav-link>
                     @endif
                 </div>
             </div>
@@ -95,10 +86,27 @@
 
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
+        {{-- Mismos destinos que el menú de escritorio: antes este bloque solo
+             tenía el enlace a 'dashboard' y la app era inservible en móvil. --}}
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
-            </x-responsive-nav-link>
+            @if(Auth::user()->esAdmin())
+                <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
+                    {{ __('Panel Admin') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                    {{ __('Usuarios') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.lugares.index')" :active="request()->routeIs('admin.lugares.*')">
+                    {{ __('Lugares') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.zonas.index')" :active="request()->routeIs('admin.zonas.*')">
+                    {{ __('Zonas') }}
+                </x-responsive-nav-link>
+            @else
+                <x-responsive-nav-link :href="route('operativo.dashboard')" :active="request()->routeIs('operativo.dashboard')">
+                    {{ __('Mis Zonas') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

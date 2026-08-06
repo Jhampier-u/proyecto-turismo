@@ -73,6 +73,16 @@
                     elseif ($fn >= 1 && $fx < 1)   { $cuadrante = 'Potencial Endógeno — Demanda Limitada'; $color = 'yellow'; $emoji = '🟡'; }
                     elseif ($fn < 1 && $fx >= 1)   { $cuadrante = 'Potencial Exógeno — Oferta Limitada';   $color = 'blue';   $emoji = '🔵'; }
                     else                            { $cuadrante = 'Bajo Potencial Turístico';              $color = 'red';    $emoji = '🔴'; }
+
+                    // Tailwind busca nombres de clase literales en el código: una clase
+                    // compuesta como "bg-{$color}-50" nunca aparece como texto y se purga
+                    // del CSS. Por eso el mapa contiene las clases completas.
+                    $clasesCuadrante = [
+                        'green'  => ['caja' => 'bg-green-50 border-green-200',   'icono' => 'text-green-700',  'texto' => 'text-green-800'],
+                        'yellow' => ['caja' => 'bg-yellow-50 border-yellow-200', 'icono' => 'text-yellow-700', 'texto' => 'text-yellow-800'],
+                        'blue'   => ['caja' => 'bg-blue-50 border-blue-200',     'icono' => 'text-blue-700',   'texto' => 'text-blue-800'],
+                        'red'    => ['caja' => 'bg-red-50 border-red-200',       'icono' => 'text-red-700',    'texto' => 'text-red-800'],
+                    ][$color];
                 @endphp
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -86,10 +96,10 @@
                         <p class="text-4xl font-bold text-indigo-700">{{ number_format($fx, 2) }}</p>
                         <p class="text-xs text-gray-400 mt-1">Escala 0 – 2</p>
                     </div>
-                    <div class="bg-{{ $color }}-50 border border-{{ $color }}-200 p-5 rounded-lg shadow text-center">
+                    <div class="{{ $clasesCuadrante['caja'] }} border p-5 rounded-lg shadow text-center">
                         <p class="text-xs text-gray-400 uppercase font-semibold mb-1">Cuadrante</p>
-                        <p class="text-2xl font-bold text-{{ $color }}-700">{{ $emoji }}</p>
-                        <p class="text-sm font-semibold text-{{ $color }}-800 mt-1">{{ $cuadrante }}</p>
+                        <p class="text-2xl font-bold {{ $clasesCuadrante['icono'] }}">{{ $emoji }}</p>
+                        <p class="text-sm font-semibold {{ $clasesCuadrante['texto'] }} mt-1">{{ $cuadrante }}</p>
                     </div>
                 </div>
 

@@ -1,7 +1,16 @@
 .git
 .github
-node_modules
+.claude
+# En .dockerignore los patrones se anclan a la raíz del contexto: "node_modules"
+# no cubre entregables/node_modules.
+**/node_modules
 vendor
+
+# Documentación y entregables de la pasantía: ~19 MB de PDF, xlsx, docx y pptx
+# que no tienen ninguna función en tiempo de ejecución.
+Documentación
+entregables
+AUDITORIA.md
 storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*

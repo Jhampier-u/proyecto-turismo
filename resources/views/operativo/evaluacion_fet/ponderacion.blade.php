@@ -158,6 +158,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    @php $mediasFet = [$fet->media_demanda, $fet->media_super, $fet->media_imagen]; @endphp
     <script>
         new Chart(document.getElementById('radarFET').getContext('2d'), {
             type: 'radar',
@@ -169,11 +170,7 @@
                 ],
                 datasets: [{
                     label: 'Calificación Media (0-3)',
-                    data: [
-                        {{ $fet->media_demanda }},
-                        {{ $fet->media_super }},
-                        {{ $fet->media_imagen }}
-                    ],
+                    data: @json($mediasFet),
                     backgroundColor: 'rgba(13, 148, 136, 0.15)',
                     borderColor: 'rgba(13, 148, 136, 0.8)',
                     borderWidth: 2,

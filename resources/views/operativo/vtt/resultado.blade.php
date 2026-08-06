@@ -199,7 +199,7 @@
 
                 <div class="mt-6 text-center">
                     @php $user = Auth::user(); @endphp
-                    @if($user->role_id === 1)
+                    @if($user->esAdmin())
                         <a href="{{ route('admin.zonas.index') }}" class="inline-block px-5 py-2 bg-red-600 text-white font-bold text-lg rounded-lg hover:bg-red-700 shadow-md">
                             Volver a Gestión de Zonas
                         </a>

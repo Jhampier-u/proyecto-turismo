@@ -193,6 +193,13 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    @php
+        $mediasFit = [
+            $fit->media_rtt, $fit->media_at,
+            $fit->media_pst, $fit->media_ptt,
+            $fit->media_i, $fit->media_ft,
+        ];
+    @endphp
     <script>
         new Chart(document.getElementById('radarFIT').getContext('2d'), {
             type: 'radar',
@@ -207,11 +214,7 @@
                 ],
                 datasets: [{
                     label: 'Calificación Media (0-3)',
-                    data: [
-                        {{ $fit->media_rtt }}, {{ $fit->media_at }},
-                        {{ $fit->media_pst }}, {{ $fit->media_ptt }},
-                        {{ $fit->media_i }}, {{ $fit->media_ft }}
-                    ],
+                    data: @json($mediasFit),
                     backgroundColor: 'rgba(37, 99, 235, 0.15)',
                     borderColor: 'rgba(37, 99, 235, 0.8)',
                     borderWidth: 2,

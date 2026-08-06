@@ -1,16 +1,33 @@
 # =========================================================
-#  Etapa 1: build de assets con Node (Vite + Tailwind)
+#  Etapa 1: vistas de paginación de Laravel
+# =========================================================
+# tailwind.config.js escanea las vistas de paginación que viven en vendor/.
+# Si no están presentes durante el build de assets, Tailwind purga todas sus
+# clases y la paginación se renderiza sin estilos (solo en producción, porque
+# en local vendor/ sí existe).
+FROM composer:2 AS vendor
+
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --no-interaction --no-progress
+
+
+# =========================================================
+#  Etapa 2: build de assets con Node (Vite + Tailwind)
 # =========================================================
 FROM node:20-alpine AS assets
 
 WORKDIR /app
 COPY package*.json vite.config.js postcss.config.js tailwind.config.js ./
 COPY resources ./resources
+COPY --from=vendor \
+    /app/vendor/laravel/framework/src/Illuminate/Pagination/resources/views \
+    ./vendor/laravel/framework/src/Illuminate/Pagination/resources/views
 RUN npm ci && npm run build
 
 
 # =========================================================
-#  Etapa 2: runtime PHP 8.2 + Apache
+#  Etapa 3: runtime PHP 8.2 + Apache
 # =========================================================
 FROM php:8.2-apache
 

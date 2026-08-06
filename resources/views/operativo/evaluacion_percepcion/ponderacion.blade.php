@@ -22,7 +22,7 @@
                     <p>Esta zona aún no cuenta con una Matriz de Percepción registrada. El Jefe de Zona o el Equipo operativo deben completarla primero.</p>
                 </div>
                 <div class="mt-6 text-center">
-                    <a href="{{ auth()->user()->role_id === 1 ? route('admin.zonas.index') : route('operativo.dashboard') }}"
+                    <a href="{{ auth()->user()->esAdmin() ? route('admin.zonas.index') : route('operativo.dashboard') }}"
                        class="inline-block px-5 py-2 bg-gray-200 text-black font-bold rounded-lg hover:bg-gray-400 shadow">
                         Volver
                     </a>
@@ -185,12 +185,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
         const categoriasLabels = @json(array_values(array_map(fn($c) => $c['nombre'], $categorias)));
-        const mediasData = [
-            {{ $evaluacion->media_ds }},
-            {{ $evaluacion->media_pl }},
-            {{ $evaluacion->media_pe }},
-            {{ $evaluacion->media_no }}
-        ];
+        {{-- @json() separa su argumento por comas (acepta flags y depth), así que
+             un array literal se trunca: hay que pasarle siempre una variable. --}}
+        @php $mediasPercepcion = [$evaluacion->media_ds, $evaluacion->media_pl, $evaluacion->media_pe, $evaluacion->media_no]; @endphp
+        const mediasData = @json($mediasPercepcion);
 
         new Chart(document.getElementById('radarPercepcion').getContext('2d'), {
             type: 'radar',
@@ -214,20 +212,18 @@
             }
         });
 
-        const itemLabels = [
-            @foreach($categorias as $codigo => $cat)
-                @foreach(array_keys($cat['items']) as $idx => $campo)
-                    '{{ $codigo }}{{ $idx + 1 }}',
-                @endforeach
-            @endforeach
-        ];
-        const itemValues = [
-            @foreach($categorias as $codigo => $cat)
-                @foreach(array_keys($cat['items']) as $campo)
-                    {{ (int) $evaluacion->$campo }},
-                @endforeach
-            @endforeach
-        ];
+        @php
+            $itemLabels = [];
+            $itemValues = [];
+            foreach ($categorias as $codigo => $cat) {
+                foreach (array_keys($cat['items']) as $idx => $campo) {
+                    $itemLabels[] = $codigo . ($idx + 1);
+                    $itemValues[] = (int) $evaluacion->$campo;
+                }
+            }
+        @endphp
+        const itemLabels = @json($itemLabels);
+        const itemValues = @json($itemValues);
 
         new Chart(document.getElementById('lineaPercepcion').getContext('2d'), {
             type: 'line',

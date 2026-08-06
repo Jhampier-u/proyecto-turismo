@@ -12,7 +12,8 @@
 /.vscode
 /.zed
 /auth.json
-/node_modules
+# Anclado a la raíz no cubre subdirectorios: entregables/ tiene el suyo propio.
+**/node_modules
 /public/build
 /public/hot
 /public/storage
@@ -22,3 +23,5 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+/.claude/settings.local.json
+/storage/app/public/*

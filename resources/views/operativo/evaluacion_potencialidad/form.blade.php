@@ -6,7 +6,7 @@
                 <p class="text-sm text-gray-500 mt-0.5">{{ $zona->nombre }}</p>
             </div>
             <div class="flex gap-2 items-center flex-wrap">
-                @if($user->role_id == 2)
+                @if($user->esJefe())
                 <form method="POST"
                       action="{{ route('operativo.evaluacion_potencialidad.reconfigurar', $zona->id) }}"
                       onsubmit="return confirm('¿Activar todos los campos? Se restaurará la selección completa.');">
@@ -24,8 +24,8 @@
 
     @php
         $isConfirmado    = $evaluacion->exists && $evaluacion->estado === 'confirmado';
-        $soloLectura     = ($user->role_id == 1) || ($isConfirmado && $user->role_id == 3);
-        $puedeConfigurar = ($user->role_id == 2) && !$soloLectura;
+        $soloLectura     = ($user->esAdmin()) || ($isConfirmado && $user->esEquipo());
+        $puedeConfigurar = ($user->esJefe()) && !$soloLectura;
         $puedeCalificar  = !$soloLectura;
 
         $areaConfig = [
@@ -156,7 +156,7 @@
                 <span style="font-size:22px;">✅</span>
                 <div>
                     <div style="font-weight:700;color:#15803d;font-size:.93rem;">Evaluación confirmada y validada</div>
-                    @if($user->role_id == 3)
+                    @if($user->esEquipo())
                     <div style="font-size:.8rem;color:#166534;margin-top:2px;">Esta evaluación fue cerrada por el Jefe de Zona. Solo puedes consultar los valores.</div>
                     @endif
                 </div>
@@ -172,7 +172,7 @@
         </div>
         @endif
 
-        @if($user->role_id == 3 && !$isConfirmado)
+        @if($user->esEquipo() && !$isConfirmado)
         <div style="background:#eff6ff;border:1.5px solid #bfdbfe;color:#1e40af;padding:11px 16px;border-radius:11px;margin-bottom:14px;font-size:.82rem;display:flex;align-items:center;gap:8px;">
             🔒 Solo el <strong>Jefe de Zona</strong> puede activar o desactivar campos. Tú puedes calificar los campos activos.
         </div>
@@ -380,7 +380,7 @@
                     </svg>
                     Guardar borrador
                   </button>
-                  @if($user->role_id == 2)
+                  @if($user->esJefe())
                   <button type="submit" name="accion_estado" value="confirmado" class="pt-btn-confirm"
                           onclick="return confirm('¿Confirmar la evaluación? Esta acción bloqueará la edición para el equipo.')">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
