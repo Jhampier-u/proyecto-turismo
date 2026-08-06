@@ -85,7 +85,7 @@ FET colgando temporalmente de una jerarquía que el diseño no le asigna.
   hooks `despuesDeGuardar($zonaId, User): void` y
   `mensajeExito(string $estado, array $datos): string`; y el `update()` concreto.
 - Produce: `MatrizPonderadaController extends EvaluacionZonaController` con los métodos
-  abstractos `criterios(): array` (dimensión → [campo => peso]), `escala(): array`
+  abstractos `criterios(): array` (dimensión → lista de campos), `escala(): array`
   ([min, max]) y `calcular(array $valores): array`; implementa `prepararDatos()` y
   ofrece `campos(): array`.
 
@@ -210,9 +210,14 @@ use Illuminate\Http\Request;
 abstract class MatrizPonderadaController extends EvaluacionZonaController
 {
     /**
-     * Criterios agrupados por dimensión.
+     * Campos agrupados por dimensión o bloque de cálculo.
      *
-     * @return array<string, array<string, float>> dimensión => [campo => peso]
+     * Solo los nombres: los pesos viven donde se usan, en calcular(), porque
+     * no todas las matrices ponderan criterio a criterio. FIT y FET promedian
+     * por bloque y ponderan el bloque, así que un peso por criterio sería un
+     * dato decorativo que nadie lee.
+     *
+     * @return array<string, list<string>> dimensión => [campo, ...]
      */
     abstract protected function criterios(): array;
 
@@ -230,7 +235,7 @@ abstract class MatrizPonderadaController extends EvaluacionZonaController
     /** Todos los campos, aplanados en el orden de declaración. */
     protected function campos(): array
     {
-        return array_merge(...array_map('array_keys', array_values($this->criterios())));
+        return array_merge(...array_values($this->criterios()));
     }
 
     protected function prepararDatos(Request $request, $zonaId, ?Model $actual): array
@@ -265,26 +270,12 @@ use App\Models\Zona;
 
 class EvaluacionFetController extends MatrizPonderadaController
 {
-    /**
-     * El peso por criterio es el del bloque repartido entre sus criterios, que
-     * es aritméticamente idéntico a media × peso_bloque. Se declara así para
-     * que la validación se derive sola.
-     */
     protected function criterios(): array
     {
         return [
-            'demanda' => ['demanda_flujos' => 0.10, 'demanda_estadia' => 0.10],
-            'super'   => [
-                'super_institucionalidad' => 0.1333,
-                'super_organizacion'      => 0.1333,
-                'super_planificacion'     => 0.1334,
-            ],
-            'imagen'  => [
-                'imagen_apertura'  => 0.10,
-                'imagen_seguridad' => 0.10,
-                'imagen_percibida' => 0.10,
-                'imagen_marketing' => 0.10,
-            ],
+            'demanda' => ['demanda_flujos', 'demanda_estadia'],
+            'super'   => ['super_institucionalidad', 'super_organizacion', 'super_planificacion'],
+            'imagen'  => ['imagen_apertura', 'imagen_seguridad', 'imagen_percibida', 'imagen_marketing'],
         ];
     }
 
@@ -302,8 +293,7 @@ class EvaluacionFetController extends MatrizPonderadaController
         $total = 0.0;
 
         foreach ($this->criterios() as $bloque => $campos) {
-            $nombres = array_keys($campos);
-            $media = array_sum(array_map(fn($c) => $valores[$c], $nombres)) / count($nombres);
+            $media = array_sum(array_map(fn($c) => $valores[$c], $campos)) / count($campos);
             $ponderado = $media * self::PESOS[$bloque];
 
             $resultado["media_{$bloque}"] = $media;
@@ -403,24 +393,16 @@ class EvaluacionFitController extends MatrizPonderadaController
     protected function criterios(): array
     {
         return [
-            'rtt' => ['recursos_culturales' => 0.15, 'recursos_naturales' => 0.15],
-            'at'  => ['atractivos_manifestaciones' => 0.025, 'atractivos_sitios' => 0.025],
-            'pst' => [
-                'prestadores_alojamiento'  => 0.0667,
-                'prestadores_restauracion' => 0.0667,
-                'prestadores_guianza'      => 0.0666,
-            ],
-            'ptt' => ['productos_territoriales' => 0.05],
-            'i'   => ['infraestructura_basica' => 0.10, 'infraestructura_apoyo' => 0.10],
+            'rtt' => ['recursos_culturales', 'recursos_naturales'],
+            'at'  => ['atractivos_manifestaciones', 'atractivos_sitios'],
+            'pst' => ['prestadores_alojamiento', 'prestadores_restauracion', 'prestadores_guianza'],
+            'ptt' => ['productos_territoriales'],
+            'i'   => ['infraestructura_basica', 'infraestructura_apoyo'],
             'ft'  => [
-                'facilidades_senaletica'       => 0.025,
-                'facilidades_recepcion'        => 0.025,
-                'facilidades_interpretacion'   => 0.025,
-                'facilidades_senderos'         => 0.025,
-                'facilidades_estacionamientos' => 0.025,
-                'facilidades_campamentos'      => 0.025,
-                'facilidades_miradores'        => 0.025,
-                'facilidades_sanitarios'       => 0.025,
+                'facilidades_senaletica', 'facilidades_recepcion',
+                'facilidades_interpretacion', 'facilidades_senderos',
+                'facilidades_estacionamientos', 'facilidades_campamentos',
+                'facilidades_miradores', 'facilidades_sanitarios',
             ],
         ];
     }
@@ -442,8 +424,7 @@ class EvaluacionFitController extends MatrizPonderadaController
         $total = 0.0;
 
         foreach ($this->criterios() as $bloque => $campos) {
-            $nombres = array_keys($campos);
-            $media = array_sum(array_map(fn($c) => $valores[$c], $nombres)) / count($nombres);
+            $media = array_sum(array_map(fn($c) => $valores[$c], $campos)) / count($campos);
             $ponderado = $media * self::PESOS[$bloque];
 
             $resultado["media_{$bloque}"] = $media;
@@ -552,10 +533,7 @@ En `EvaluacionPercepcionController`, cambiar la declaración de clase a
     {
         $criterios = [];
         foreach (self::$categorias as $codigo => $cat) {
-            $criterios[strtolower($codigo)] = array_fill_keys(
-                array_keys($cat['items']),
-                $cat['peso'] / count($cat['items'])
-            );
+            $criterios[strtolower($codigo)] = array_keys($cat['items']);
         }
 
         return $criterios;
@@ -1283,21 +1261,26 @@ class EvaluacionValoracionTerritorialController extends MatrizPonderadaControlle
     protected function criterios(): array
     {
         return [
-            'ct' => array_map(fn($c) => $c['peso'], ValoracionTerritorial::CT),
-            'uc' => array_map(fn($c) => $c['peso'], ValoracionTerritorial::UC),
+            'ct' => array_keys(ValoracionTerritorial::CT),
+            'uc' => array_keys(ValoracionTerritorial::UC),
         ];
     }
 
-    /** Suma ponderada por dimensión. Como los pesos suman 1, cada total va de 0 a 2. */
+    /**
+     * Suma ponderada por dimensión, con los pesos del instrumento original.
+     * Como cada dimensión suma 1 y la escala es 0-2, cada total va de 0 a 2.
+     */
     protected function calcular(array $valores): array
     {
+        $dimensiones = ['ct' => ValoracionTerritorial::CT, 'uc' => ValoracionTerritorial::UC];
+
         $totales = [];
 
-        foreach ($this->criterios() as $dimension => $pesos) {
+        foreach ($dimensiones as $dimension => $criterios) {
             $totales["{$dimension}_total"] = array_sum(array_map(
-                fn($campo, $peso) => $valores[$campo] * $peso,
-                array_keys($pesos),
-                $pesos
+                fn($campo, $criterio) => $valores[$campo] * $criterio['peso'],
+                array_keys($criterios),
+                $criterios
             ));
         }
 
