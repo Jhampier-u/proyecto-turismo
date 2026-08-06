@@ -8,9 +8,14 @@
 
 ---
 
-> **Estado:** corregido **todo el informe**: los cuatro críticos (C1–C4), los ocho
-> altos (A1–A8), los 16 medios (M1–M16) y los 9 bajos (B1–B9). Además se
-> actualizaron las dependencias, que acumulaban 31 avisos de seguridad.
+> **Estado:** corregidos los cuatro críticos (C1–C4), los altos A2–A8, los 16
+> medios (M1–M16) y los 9 bajos (B1–B9). Además se actualizaron las dependencias,
+> que acumulaban 31 avisos de seguridad.
+>
+> **A1 sigue pendiente.** El refactor de código está hecho y verificado, pero el
+> despliegue mantiene `FILESYSTEM_DISK=public`: mientras no se dé de alta un
+> bucket y se rellenen las variables `AWS_*`, **las fotos se siguen perdiendo en
+> cada redespliegue**. Ver el procedimiento en el README.
 >
 > **Suite verificada en verde: 67 tests, 169 aserciones** (PHP 8.2, PHPUnit 11.5).
 > Las migraciones nuevas se probaron además contra **PostgreSQL 16 real**, no solo
@@ -27,13 +32,13 @@
 > Tailwind (M14), el seeder puede ejecutarse dos veces sin duplicar catálogos (M4)
 > y ni `Documentación/` ni `entregables/` entran ya en la imagen (B1).
 >
-> El almacenamiento de imágenes (A1) se probó de extremo a extremo contra un
+> La ruta de almacenamiento externo se probó de extremo a extremo contra un
 > servidor S3 real (MinIO): el mismo código produce `/storage/…` con el disco
-> local y la URL del bucket con `FILESYSTEM_DISK=s3`, sin cambios en el código.
+> local y la URL del bucket con `FILESYSTEM_DISK=s3`. Queda solo configurarlo.
 >
-> **Pendiente, todo fuera del código:** rotar la contraseña del administrador en
-> la instancia desplegada, rellenar las credenciales SMTP y —si se quiere
-> conservar las fotos— dar de alta un bucket S3 y definir las variables `AWS_*`.
+> **Pendiente:** A1 (dar de alta el bucket y definir las variables `AWS_*`),
+> rotar la contraseña del administrador en la instancia desplegada y rellenar
+> las credenciales SMTP.
 >
 > Falta **rotar manualmente la contraseña del administrador en la instancia ya
 > desplegada**: el arreglo del seeder protege despliegues futuros, no el actual.
