@@ -6,7 +6,12 @@
     </x-slot>
 
     @php
-        $readonly = $readonly ?? false;
+        // Se deriva del rol, no de una variable que pase el controlador: la versión
+        // anterior dependía de que cada controlador acordara pasar readonly=true, y
+        // al desaparecer los métodos del admin se quedó en falso para siempre sin
+        // que nada lo detectara. El rol es la única fuente de verdad que no se
+        // puede desincronizar.
+        $readonly = auth()->user()->esAdmin();
     @endphp
 
     @if(! $evaluacion)

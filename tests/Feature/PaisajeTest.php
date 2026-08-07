@@ -243,6 +243,42 @@ class PaisajeTest extends TestCase
             ->assertSee('Perfil por categoría');
     }
 
+    /**
+     * Navega de verdad a la página de resultados como admin, en vez de solo
+     * comprobar que el panel enlaza a ella. Antes de este test, un $readonly
+     * que nadie ponía se quedaba en false para siempre y nada lo detectaba:
+     * el admin veía el pie de página de jefe/equipo con el formulario abierto.
+     */
+    public function test_el_admin_ve_los_resultados_de_paisaje_en_modo_lectura(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(5));
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)->get($this->url('/resultados'))
+            ->assertOk()
+            ->assertSee('Eficiente')
+            ->assertSee('Volver a Zonas')
+            ->assertSee(route('admin.zonas.index'), false)
+            ->assertDontSee(route('operativo.evaluacion_paisaje.edit', $this->zona->id), false);
+    }
+
+    /**
+     * Complementa el test anterior: sin este, un arreglo que ocultara el
+     * enlace al formulario para todo el mundo (no solo para el admin) pasaría
+     * igual el test de arriba.
+     */
+    public function test_el_jefe_ve_el_enlace_al_formulario_en_los_resultados_de_paisaje(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(5));
+
+        $this->actingAs($this->jefe)->get($this->url('/resultados'))
+            ->assertOk()
+            ->assertSee(route('operativo.evaluacion_paisaje.edit', $this->zona->id), false);
+    }
+
     public function test_el_admin_consulta_la_zona_en_modo_lectura(): void
     {
         $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(5));

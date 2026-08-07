@@ -6,7 +6,12 @@
     </x-slot>
 
     @php
-        $readonly      = $readonly ?? false;
+        // Se deriva del rol, no de una variable que pase el controlador: la versión
+        // anterior dependía de que cada controlador acordara pasar readonly=true, y
+        // al desaparecer los métodos del admin se quedó en falso para siempre sin
+        // que nada lo detectara. El rol es la única fuente de verdad que no se
+        // puede desincronizar.
+        $readonly      = auth()->user()->esAdmin();
         $sinDatos      = !$evaluacion;
         $etiquetaValor = fn($v) => match((int)$v) { 1 => 'Negativo', 2 => 'Neutral', 3 => 'Positivo', default => '—' };
         $colorValor    = fn($v) => match((int)$v) { 1 => 'bg-red-100 text-red-800', 2 => 'bg-yellow-100 text-yellow-800', 3 => 'bg-green-100 text-green-800', default => 'bg-gray-100 text-gray-600' };

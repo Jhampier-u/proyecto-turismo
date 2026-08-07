@@ -6,7 +6,12 @@
     </x-slot>
 
     @php
-        $readonly = $readonly ?? false;
+        // Se deriva del rol, no de una variable que pase el controlador: la versión
+        // anterior dependía de que cada controlador acordara pasar readonly=true, y
+        // al desaparecer los métodos del admin se quedó en falso para siempre sin
+        // que nada lo detectara. El rol es la única fuente de verdad que no se
+        // puede desincronizar.
+        $readonly = auth()->user()->esAdmin();
         $sinDatos = !$evaluacion;
     @endphp
 
@@ -24,17 +29,27 @@
                             </p>
                             @if($readonly)
                                 <p class="text-yellow-600 text-sm mt-2">
-                                    Como administrador puedes consultar el formulario, pero <strong>no puedes validar los datos</strong>.
-                                    La validación es exclusiva del Jefe de Zona.
+                                    Como administrador puedes consultar la zona, pero <strong>completar y validar esta
+                                    matriz es responsabilidad del Jefe de Zona y su equipo</strong>.
                                 </p>
                             @endif
                         </div>
                     </div>
                     <div class="mt-4">
-                        <a href="{{ route('operativo.evaluacion_valoracion_territorial.edit', $zona->id) }}"
-                           class="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-5 rounded shadow transition">
-                            Ver Formulario de Evaluación
-                        </a>
+                        {{-- El admin nunca ve un enlace al formulario de edición, ni siquiera
+                             cuando la evaluación todavía no existe: el formulario no se bloquea
+                             solo, y si lo enviara reventaría con un 403 crudo. --}}
+                        @if($readonly)
+                            <a href="{{ route('admin.zonas.index') }}"
+                               class="inline-block bg-gray-200 hover:bg-gray-400 text-black font-bold py-2 px-5 rounded shadow transition">
+                                Volver a Zonas
+                            </a>
+                        @else
+                            <a href="{{ route('operativo.evaluacion_valoracion_territorial.edit', $zona->id) }}"
+                               class="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-5 rounded shadow transition">
+                                Ver Formulario de Evaluación
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
