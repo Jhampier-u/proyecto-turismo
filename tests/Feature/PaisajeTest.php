@@ -270,14 +270,21 @@ class PaisajeTest extends TestCase
             ->assertSee('Matriz de Paisaje no disponible');
     }
 
-    public function test_la_tarjeta_aparece_en_el_dashboard(): void
+    public function test_la_zona_aparece_en_el_dashboard_con_su_progreso(): void
     {
-        $respuesta = $this->actingAs($this->jefe)->get('/mis-zonas')->assertOk();
+        $this->actingAs($this->jefe)->get('/mis-zonas')
+            ->assertOk()
+            ->assertSee($this->zona->nombre)
+            ->assertSee(route('operativo.zona.panel', $this->zona->id), false)
+            ->assertSee('0 / 6');
+    }
 
-        $respuesta->assertSee('🏞️');
-        $respuesta->assertSee(
-            route('operativo.evaluacion_paisaje.edit', $this->zona->id),
-            false
-        );
+    public function test_paisaje_es_alcanzable_desde_la_pagina_de_zona(): void
+    {
+        $this->actingAs($this->jefe)
+            ->get(route('operativo.zona.panel', $this->zona->id))
+            ->assertOk()
+            ->assertSee('Paisaje')
+            ->assertSee(route('operativo.evaluacion_paisaje.edit', $this->zona->id), false);
     }
 }

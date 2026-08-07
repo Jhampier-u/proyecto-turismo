@@ -171,26 +171,22 @@ class ValoracionTerritorialTest extends TestCase
             ->assertOk();
     }
 
-    /**
-     * La matriz puede estar completa en el backend (criterios, cálculo,
-     * formulario, resultados) y aun así ser inalcanzable si no hay un enlace
-     * real desde la pantalla que el jefe de zona usa a diario. Esta prueba
-     * cubre justamente eso: que la tarjeta exista en el dashboard operativo
-     * y enlace al formulario de la matriz.
-     */
-    public function test_la_tarjeta_aparece_en_el_dashboard_con_enlace_al_formulario(): void
+    public function test_la_zona_aparece_en_el_dashboard_con_su_progreso(): void
     {
-        $respuesta = $this->actingAs($this->jefe)->get('/mis-zonas');
+        $this->actingAs($this->jefe)->get('/mis-zonas')
+            ->assertOk()
+            ->assertSee($this->zona->nombre)
+            ->assertSee(route('operativo.zona.panel', $this->zona->id), false)
+            ->assertSee('0 / 6');
+    }
 
-        $respuesta->assertOk();
-        // Sin evaluación todavía, el rótulo visible es "Sin evaluar" (igual que
-        // las otras matrices); el emoji 🗺️ es exclusivo de esta tarjeta y basta
-        // para confirmar que aparece en el dashboard.
-        $respuesta->assertSee('🗺️');
-        $respuesta->assertSee(
-            route('operativo.evaluacion_valoracion_territorial.edit', $this->zona->id),
-            false
-        );
+    public function test_valoracion_territorial_es_alcanzable_desde_la_pagina_de_zona(): void
+    {
+        $this->actingAs($this->jefe)
+            ->get(route('operativo.zona.panel', $this->zona->id))
+            ->assertOk()
+            ->assertSee('Valoración territorial')
+            ->assertSee(route('operativo.evaluacion_valoracion_territorial.edit', $this->zona->id), false);
     }
 
     public static function cuadrantes(): array
