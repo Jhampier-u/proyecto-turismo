@@ -419,6 +419,14 @@ return new class extends Migration
     /**
      * Un criterio empieza por un prefijo de categoría y NO es una columna
      * calculada: los promedios y totales conservan su tipo decimal.
+     *
+     * El dígito opcional no es adorno. Paisaje y Valoración Territorial
+     * nombran sus criterios `ep_cambios_tiempo`, `ct_accesibilidad`; pero
+     * Percepción los numera dentro del prefijo —`ds1_posicion_turistica`,
+     * `pl3_conoc_motivo_visita`, `no4_conflictos_sociales`—. Con un
+     * str_starts_with('ds_') esta función devuelve false para las 16 columnas
+     * de Percepción, la migración se las salta y esa matriz se queda sin poder
+     * guardarse a medias, sin que ningún test lo detecte.
      */
     private function esCriterio(string $columna, array $prefijos): bool
     {
@@ -427,7 +435,7 @@ return new class extends Migration
         }
 
         foreach ($prefijos as $prefijo) {
-            if (str_starts_with($columna, $prefijo . '_')) {
+            if (preg_match('/^' . preg_quote($prefijo, '/') . '\d*_/', $columna) === 1) {
                 return true;
             }
         }
@@ -464,6 +472,11 @@ Esperado: `evaluaciones_percepcion: 16`, `evaluaciones_paisaje: 34`,
 
 Si algún número no cuadra, **no sigas**: ajusta `esCriterio()` hasta que
 coincida. Una columna calculada convertida a `tinyInteger` perdería decimales.
+
+Comprueba además que ninguna columna capturada sea ya `decimal` o `float`. Ese
+es el fallo caro de esta tarea: se aplica sin error, los tests siguen verdes
+porque ninguno mira la precisión, y los cálculos empiezan a truncar meses
+después.
 
 - [ ] **Step 3: Escribir la migración de Potencialidad**
 
