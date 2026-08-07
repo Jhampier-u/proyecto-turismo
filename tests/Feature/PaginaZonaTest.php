@@ -56,6 +56,36 @@ class PaginaZonaTest extends TestCase
         }
     }
 
+    /**
+     * Simétrico al test anterior pero para el admin: comprueba que la página
+     * pinta la ruta 'ver' de cada entrada del registro que la declare, con
+     * las seis matrices ya confirmadas. Es el punto ciego que dejó la Matriz
+     * de Paisaje inalcanzable durante meses, trasladado un nivel más arriba
+     * — recorre Registro::ENTRADAS para que falle solo cuando alguien añada
+     * una séptima matriz y olvide probarla para el admin.
+     */
+    public function test_la_pagina_muestra_la_ruta_ver_de_cada_entrada_para_el_admin(): void
+    {
+        foreach (Registro::matrices() as $entrada) {
+            $modelo = $entrada['modelo'];
+            $modelo::create(['zona_id' => $this->zona->id, 'estado' => 'confirmado']);
+        }
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $respuesta = $this->actingAs($admin)->get($this->url())->assertOk();
+
+        foreach (Registro::ENTRADAS as $clave => $entrada) {
+            if (! isset($entrada['rutas']['ver'])) {
+                continue;
+            }
+
+            $respuesta->assertSee(route($entrada['rutas']['ver'], $this->zona->id), false);
+        }
+    }
+
     public function test_muestra_los_titulos_de_los_grupos_con_matrices(): void
     {
         $this->actingAs($this->jefe)->get($this->url())
