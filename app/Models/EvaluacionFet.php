@@ -53,4 +53,9 @@ class EvaluacionFet extends Model
     {
         return $this->belongsTo(Zona::class);
     }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }
