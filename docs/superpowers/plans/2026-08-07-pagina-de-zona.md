@@ -156,6 +156,31 @@ class RegistroMatricesTest extends TestCase
             array_keys(Registro::GRUPOS)
         );
     }
+
+    /**
+     * El número de criterios alimenta el «21 de 34 respondidos». Un número mal
+     * copiado no rompe nada visible, así que se comprueba solo donde se puede:
+     * Paisaje y Valoración Territorial exponen todos() y son verificables.
+     *
+     * FIT, FET, Percepción y Potencialidad declaran sus criterios en métodos
+     * protegidos de sus controladores, sin superficie pública que consultar;
+     * los suyos se verifican a mano en el Step 5 de esta tarea.
+     */
+    public function test_los_criterios_declarados_coinciden_con_el_instrumento(): void
+    {
+        $verificables = [
+            'paisaje'                => \App\Matrices\Paisaje::class,
+            'valoracion_territorial' => \App\Matrices\ValoracionTerritorial::class,
+        ];
+
+        foreach ($verificables as $clave => $matriz) {
+            $this->assertSame(
+                count($matriz::todos()),
+                Registro::ENTRADAS[$clave]['criterios'],
+                "{$clave}: el registro declara un número de criterios que no cuadra con {$matriz}."
+            );
+        }
+    }
 }
 ```
 
@@ -350,7 +375,7 @@ final class Registro
 php artisan test --filter=RegistroMatricesTest
 ```
 
-Esperado: PASS, 6 tests.
+Esperado: PASS, 7 tests.
 
 Si `test_solo_las_matrices_validables_cuentan_para_el_progreso` falla por el
 recuento, **no cambies el número esperado**: comprueba que no falte o sobre una
