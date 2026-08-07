@@ -377,6 +377,7 @@ class ValoracionTerritorialTest extends TestCase
 
         $this->actingAs($this->jefe)
             ->get($this->url('/resultados'))
+            ->assertOk()
             ->assertSee(route('operativo.evaluacion_valoracion_territorial.edit', $this->zona->id), false);
     }
 

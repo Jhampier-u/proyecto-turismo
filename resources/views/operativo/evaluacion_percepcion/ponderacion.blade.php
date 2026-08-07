@@ -27,7 +27,7 @@
                     <p>Esta zona aún no cuenta con una Matriz de Percepción registrada. El Jefe de Zona o el Equipo operativo deben completarla primero.</p>
                 </div>
                 <div class="mt-6 text-center">
-                    <a href="{{ auth()->user()->esAdmin() ? route('admin.zonas.index') : route('operativo.dashboard') }}"
+                    <a href="{{ $readonly ? route('admin.zonas.index') : route('operativo.dashboard') }}"
                        class="inline-block px-5 py-2 bg-gray-200 text-black font-bold rounded-lg hover:bg-gray-400 shadow">
                         Volver
                     </a>
