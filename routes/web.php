@@ -37,10 +37,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::resource('users',   UserController::class);
     Route::resource('lugares', LugarController::class);
     Route::resource('zonas',   ZonaController::class);
-
-    // Admin: ver resultados VTT de una zona
-    Route::get('/zona/{zona}/resultado-vtt', [VttController::class, 'resultadoFinal'])
-        ->name('vtt.final.admin');
 });
 
 // ── OPERATIVO ─────────────────────────────────────────────────────────────────
