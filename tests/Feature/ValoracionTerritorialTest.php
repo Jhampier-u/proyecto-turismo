@@ -227,6 +227,86 @@ class ValoracionTerritorialTest extends TestCase
     }
 
     /**
+     * Una evaluación nueva no debe traer nada marcado. Antes se preseleccionaba
+     * 0 en los 21 criterios, así que el formulario podía enviarse sin leer uno
+     * solo y quedaba como una valoración válida de puros ceros.
+     */
+    /**
+     * Extrae el estado inicial de Alpine del HTML.
+     *
+     * La selección no viaja en el atributo `checked` —la lleva x-model—, así
+     * que hay que leer el `x-data`. Blade lo emite como JSON.parse('...') con
+     * las comillas escapadas a ", porque Js::from() codifica dos veces.
+     *
+     * @return array<string, int|null> campo => calificación
+     */
+    private function estadoInicial(string $html): array
+    {
+        preg_match_all("/JSON\.parse\('(.+?)'\)/", $html, $coincidencias);
+
+        $valores = [];
+
+        foreach ($coincidencias[1] as $escapado) {
+            // Js::from() codifica dos veces, así que el contenido de JSON.parse
+            // es el cuerpo de una cadena JSON. Decodificarlo como tal deshace el
+            // escapado sin tener que manipular las secuencias a mano.
+            $json = json_decode('"' . $escapado . '"');
+
+            $valores += json_decode((string) $json, true) ?? [];
+        }
+
+        return $valores;
+    }
+
+    public function test_una_evaluacion_nueva_no_trae_ningun_nivel_preseleccionado(): void
+    {
+        $this->assertDatabaseCount('evaluaciones_valoracion_territorial', 0);
+
+        $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+
+        $estado = $this->estadoInicial($html);
+
+        $this->assertCount(21, $estado, 'deben venir los 21 criterios en el estado');
+        $this->assertSame(
+            array_keys(ValoracionTerritorial::todos()),
+            array_keys($estado)
+        );
+
+        foreach ($estado as $campo => $valor) {
+            $this->assertNull($valor, "{$campo} no debería venir preseleccionado");
+        }
+    }
+
+    /** Al editar una guardada sí se recuperan las calificaciones registradas. */
+    public function test_una_evaluacion_guardada_recupera_sus_calificaciones(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(2))
+            ->assertSessionHasNoErrors();
+
+        $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+
+        $estado = $this->estadoInicial($html);
+
+        $this->assertCount(21, $estado);
+
+        foreach ($estado as $campo => $valor) {
+            $this->assertSame(2, $valor, "{$campo} debería recuperar su calificación");
+        }
+    }
+
+    /** Dejar un criterio sin responder no puede guardarse. */
+    public function test_no_se_guarda_con_criterios_sin_responder(): void
+    {
+        $datos = $this->todosEn(1);
+        unset($datos['uc_senalizacion']);
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos)
+            ->assertSessionHasErrors('uc_senalizacion');
+
+        $this->assertDatabaseCount('evaluaciones_valoracion_territorial', 0);
+    }
+
+    /**
      * El test anterior solo comprueba que existan los 21 `name="..."`, lo que
      * pasaría igual con un <select> de etiquetas genéricas (0/1/2). La
      * decisión de diseño de este formulario es que la descripción completa de

@@ -43,24 +43,48 @@
             <form method="POST" action="{{ route('operativo.evaluacion_valoracion_territorial.update', $zona->id) }}">
                 @csrf
 
+                <x-leyenda-escala />
+
                 @php
-                    // Estado inicial de Alpine: campo => calificación guardada.
-                    $inicialCt = collect($ct)->mapWithKeys(fn($c, $campo) => [$campo => (int) ($evaluacion->$campo ?? 0)]);
-                    $pesosCt   = collect($ct)->map(fn($c) => $c['peso']);
+                    // En una evaluación nueva no se pre-selecciona nada: con todo
+                    // en 0 se podía enviar el formulario sin leer un solo criterio
+                    // y quedaba como una valoración válida de puros ceros. Al
+                    // dejarlos vacíos, la regla `required` obliga a responder.
+                    $esNueva = ! $evaluacion->exists;
+
+                    $inicial = fn($grupo) => collect($grupo)->mapWithKeys(
+                        fn($c, $campo) => [$campo => $esNueva ? null : (int) $evaluacion->$campo]
+                    );
+                    $pesos = fn($grupo) => collect($grupo)->map(fn($c) => $c['peso']);
                 @endphp
 
                 <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
-                         x-data="{ valores: @js($inicialCt), pesos: @js($pesosCt) }">
-                    <div class="flex justify-between items-baseline mb-1">
-                        <h3 class="text-lg font-bold text-gray-800">Contenido Territorial (CT)</h3>
-                        <span class="text-sm font-bold text-indigo-700">
-                            Subtotal:
-                            <span x-text="Object.entries(valores)
-                                .reduce((t, [k, v]) => t + v * pesos[k], 0).toFixed(3)"></span>
-                            / 2.000
-                        </span>
+                         x-data="{
+                            valores: @js($inicial($ct)),
+                            pesos: @js($pesos($ct)),
+                            get subtotal() {
+                                return Object.entries(this.valores)
+                                    .reduce((t, [k, v]) => t + (v ?? 0) * this.pesos[k], 0);
+                            },
+                            get respondidos() {
+                                return Object.values(this.valores).filter(v => v !== null).length;
+                            },
+                         }">
+                    <div class="flex flex-wrap justify-between items-baseline gap-3 mb-2">
+                        <h3 class="text-xl font-bold text-gray-900">Contenido Territorial (CT)</h3>
+                        <div class="flex items-baseline gap-4">
+                            <span class="text-sm text-gray-500">
+                                <span x-text="respondidos" class="font-semibold text-gray-700"></span>
+                                de {{ count($ct) }} respondidos
+                            </span>
+                            <span class="text-base font-bold text-indigo-700">
+                                Subtotal
+                                <span x-text="subtotal.toFixed(3)"></span>
+                                <span class="text-gray-400 font-normal">/ 2.000</span>
+                            </span>
+                        </div>
                     </div>
-                    <p class="text-xs text-gray-500 mb-4">
+                    <p class="text-sm text-gray-500 mb-5 leading-relaxed">
                         Fuente sugerida: PDOT, PDT, fuentes secundarias y fuentes oficiales
                         públicas. Para elementos culturales y espacios naturales, visitas in
                         situ y documentos públicos.
@@ -71,23 +95,33 @@
                     @endforeach
                 </section>
 
-                @php
-                    $inicialUc = collect($uc)->mapWithKeys(fn($c, $campo) => [$campo => (int) ($evaluacion->$campo ?? 0)]);
-                    $pesosUc   = collect($uc)->map(fn($c) => $c['peso']);
-                @endphp
-
                 <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
-                         x-data="{ valores: @js($inicialUc), pesos: @js($pesosUc) }">
-                    <div class="flex justify-between items-baseline mb-1">
-                        <h3 class="text-lg font-bold text-gray-800">Ubicación y Conectividad (UC)</h3>
-                        <span class="text-sm font-bold text-indigo-700">
-                            Subtotal:
-                            <span x-text="Object.entries(valores)
-                                .reduce((t, [k, v]) => t + v * pesos[k], 0).toFixed(3)"></span>
-                            / 2.000
-                        </span>
+                         x-data="{
+                            valores: @js($inicial($uc)),
+                            pesos: @js($pesos($uc)),
+                            get subtotal() {
+                                return Object.entries(this.valores)
+                                    .reduce((t, [k, v]) => t + (v ?? 0) * this.pesos[k], 0);
+                            },
+                            get respondidos() {
+                                return Object.values(this.valores).filter(v => v !== null).length;
+                            },
+                         }">
+                    <div class="flex flex-wrap justify-between items-baseline gap-3 mb-2">
+                        <h3 class="text-xl font-bold text-gray-900">Ubicación y Conectividad (UC)</h3>
+                        <div class="flex items-baseline gap-4">
+                            <span class="text-sm text-gray-500">
+                                <span x-text="respondidos" class="font-semibold text-gray-700"></span>
+                                de {{ count($uc) }} respondidos
+                            </span>
+                            <span class="text-base font-bold text-indigo-700">
+                                Subtotal
+                                <span x-text="subtotal.toFixed(3)"></span>
+                                <span class="text-gray-400 font-normal">/ 2.000</span>
+                            </span>
+                        </div>
                     </div>
-                    <p class="text-xs text-gray-500 mb-4">
+                    <p class="text-sm text-gray-500 mb-5 leading-relaxed">
                         Fuente sugerida: PDOT, fuentes de información primaria y secundaria,
                         visitas in situ y documentos oficiales.
                     </p>
