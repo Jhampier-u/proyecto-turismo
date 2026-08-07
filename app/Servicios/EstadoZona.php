@@ -6,6 +6,7 @@ use App\Matrices\Registro;
 use App\Models\User;
 use App\Models\Zona;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 /**
  * Traduce una zona y quien la mira a las filas de su página.
@@ -50,6 +51,43 @@ final class EstadoZona
             $this->evaluaciones,
             fn(?Model $e) => $e !== null && $e->estado === 'confirmado'
         ));
+    }
+
+    /**
+     * Progreso de varias zonas con un número fijo de consultas.
+     *
+     * El dashboard solo necesita el recuento, no las filas resueltas. Instanciar
+     * un EstadoZona por zona costaba seis consultas por zona; esto son seis en
+     * total, haya una zona o cincuenta.
+     *
+     * @param  \Illuminate\Support\Collection<int, \App\Models\Zona>  $zonas
+     * @return array<int, array{hechas: int, total: int}>  indexado por zona_id
+     */
+    public static function progresoDe(Collection $zonas): array
+    {
+        $ids   = $zonas->pluck('id');
+        $total = count(Registro::matrices());
+
+        // Arranca en 0 para que toda zona pedida aparezca en el resultado,
+        // incluidas las que no tengan ninguna evaluación todavía.
+        $hechasPorZona = $ids->mapWithKeys(fn(int $id) => [$id => 0])->all();
+
+        foreach (Registro::matrices() as $entrada) {
+            $modelo = $entrada['modelo'];
+
+            $confirmadas = $modelo::whereIn('zona_id', $ids)
+                ->where('estado', 'confirmado')
+                ->pluck('zona_id');
+
+            foreach ($confirmadas as $zonaId) {
+                $hechasPorZona[$zonaId]++;
+            }
+        }
+
+        return $ids->mapWithKeys(fn(int $id) => [$id => [
+            'hechas' => $hechasPorZona[$id],
+            'total'  => $total,
+        ]])->all();
     }
 
     /** @return array<string, array{titulo: string, filas: list<FilaMatriz>}> */
