@@ -45,7 +45,7 @@ class DashboardTest extends TestCase
      * Este test compara el conteo de consultas de /mis-zonas con 1 zona
      * contra el mismo listado con 5 zonas. Si alguien reintroduce el
      * new EstadoZona(...) dentro de un bucle, las 5 zonas dispararán ~4
-     * veces más consultas que 1 zona (20 de más, 6 por cada zona extra) y
+     * veces más consultas que 1 zona (24 de más, 6 por cada zona extra) y
      * este test lo detecta.
      */
     public function test_el_numero_de_consultas_no_crece_con_el_numero_de_zonas(): void

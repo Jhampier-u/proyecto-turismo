@@ -154,7 +154,7 @@ class AutorizacionZonaTest extends TestCase
     {
         $jefe = $this->usuarioCon('jefe_zona');
         $zona = $this->crearZona($jefe);
-        $this->crearInventario($zona, $jefe);
+        $inventario = $this->crearInventario($zona, $jefe);
 
         $admin = $this->usuarioCon('admin');
 
@@ -163,6 +163,13 @@ class AutorizacionZonaTest extends TestCase
         $respuestaAdmin->assertDontSee('Agregar Recurso');
         $respuestaAdmin->assertDontSee('Editar');
         $respuestaAdmin->assertDontSee('Eliminar');
+        // Sin esta aserción, ocultar la columna entera de acciones para el
+        // admin pasaría el test igual: hace falta comprobar que "Ver" sigue
+        // presente, no solo que "Editar"/"Eliminar" no lo están.
+        $respuestaAdmin->assertSee(
+            route('operativo.inventarios.show', ['zona' => $zona->id, 'inventario' => $inventario->id]),
+            false
+        );
 
         $respuestaJefe = $this->actingAs($jefe)->get("/operativo/zona/{$zona->id}/inventarios");
         $respuestaJefe->assertSee('Agregar Recurso');

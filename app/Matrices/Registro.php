@@ -24,16 +24,20 @@ final class Registro
     /**
      * Fases del estudio, en el orden en que se recorren.
      *
+     * El orden de recorrido lo da el orden de declaración de este array —lo
+     * consume EstadoZona::grupos()—, no una clave 'orden': tenerla aquí habría
+     * sido una segunda fuente de verdad que nadie leía.
+     *
      * Los grupos 'social' y 'presion' ya están declarados aunque les falten
      * matrices: sus entradas llegan cuando se implementen Involucrados,
      * Irritación, Concentración y Frecuentación.
      */
     public const GRUPOS = [
-        'base'       => ['titulo' => 'Base territorial',        'orden' => 1],
-        'vocacion'   => ['titulo' => 'Vocación turística',      'orden' => 2],
-        'valoracion' => ['titulo' => 'Valoración del territorio','orden' => 3],
-        'social'     => ['titulo' => 'Dimensión social',        'orden' => 4],
-        'presion'    => ['titulo' => 'Presión y uso',           'orden' => 5],
+        'base'       => ['titulo' => 'Base territorial'],
+        'vocacion'   => ['titulo' => 'Vocación turística'],
+        'valoracion' => ['titulo' => 'Valoración del territorio'],
+        'social'     => ['titulo' => 'Dimensión social'],
+        'presion'    => ['titulo' => 'Presión y uso'],
     ];
 
     /**

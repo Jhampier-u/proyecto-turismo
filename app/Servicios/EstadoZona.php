@@ -226,7 +226,9 @@ final class EstadoZona
                 ? route($entrada['rutas']['ver'], $this->zona->id)
                 : route($entrada['rutas']['editar'], $this->zona->id),
             accion:  $esAdmin ? 'Ver' : 'Continuar',
-            puedeValidar:    ! $esAdmin && $this->usuario->esJefe(),
+            // esJefe() ya excluye al admin por construcción (son roles
+            // distintos): ! $esAdmin era una condición redundante.
+            puedeValidar:    $this->usuario->esJefe(),
             avisoValidacion: $this->usuario->esEquipo()
                 ? 'Lista para validar — avísale a ' . ($this->zona->jefe?->name ?? 'tu Jefe de Zona')
                 : null,
