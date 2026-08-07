@@ -29,6 +29,14 @@
         @if($fila->avisoValidacion)
             <p class="text-sm text-amber-700 mt-1">{{ $fila->avisoValidacion }}</p>
         @endif
+
+        {{-- La máquina de estados vive en el formulario de la matriz
+             (accion_estado=confirmado): no hay ruta para validar desde aquí,
+             así que al jefe se le da la pista, no un botón que no lleva a
+             ningún sitio. Mismo tratamiento visual que avisoValidacion. --}}
+        @if($fila->puedeValidar)
+            <p class="text-sm text-amber-700 mt-1">Lista para validar</p>
+        @endif
     </div>
 
     @if($fila->url && $fila->accion)

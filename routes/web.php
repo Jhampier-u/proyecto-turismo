@@ -11,6 +11,7 @@ use App\Http\Controllers\Operativo\EvaluacionPotencialidadController;
 use App\Http\Controllers\Operativo\EvaluacionValoracionTerritorialController;
 use App\Http\Controllers\Operativo\InventarioController;
 use App\Http\Controllers\Operativo\VttController;
+use App\Http\Controllers\Operativo\ZonaPanelController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -66,6 +67,8 @@ Route::middleware(['auth', 'personal'])->group(function () {
     Route::get('/api/categorias/{id}/hijos', [InventarioController::class, 'subcategorias']);
 
     Route::prefix('operativo/zona/{zona}')->middleware('zona')->name('operativo.')->group(function () {
+
+        Route::get('/', [ZonaPanelController::class, 'show'])->name('zona.panel');
 
         Route::resource('inventarios', InventarioController::class);
 
