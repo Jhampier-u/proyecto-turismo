@@ -138,6 +138,56 @@ class PotencialidadCalculoTest extends TestCase
         $this->assertEqualsWithDelta(2.0, $eval->val_infraestructura, 0.0001);
     }
 
+    /**
+     * Con solo Infraestructura activa (excluyendo secciones enteras, no solo
+     * poniéndolas a cero), su peso 0.20 se renormaliza a 1.0: el resultado
+     * pasa de 0.40 (test_los_pesos_de_fn_son_40_20_20_20, arriba) a 2.0.
+     *
+     * $fn_pesos (líneas ~409-422 de calcular()) es más arriesgado que
+     * $fx_pesos porque anida la redistribución de RT entre Recursos
+     * Naturales y Culturales; este test es el equivalente de
+     * test_desactivar_grupos_renormaliza_los_pesos_de_fx pero para FN.
+     */
+    public function test_desactivar_grupos_renormaliza_los_pesos_de_fn(): void
+    {
+        $activos = $this->camposDe('Infraestructura');
+        $valores = array_fill_keys($activos, 2);
+
+        $eval = $this->guardar($valores, $activos);
+
+        $this->assertEqualsWithDelta(2.0, $eval->fn_total, 0.0001);
+    }
+
+    /**
+     * La renormalización de FN debe repartir proporcionalmente a los pesos
+     * originales, no dividir a partes iguales entre los grupos que queden
+     * activos. Aquí quedan activos RT (peso original 0.40) e Infraestructura
+     * (peso original 0.20) — pesos desiguales a propósito—, así que una
+     * implementación que repartiera 50/50 entre los dos grupos activos
+     * daría un resultado distinto y este test lo detectaría.
+     *
+     * Derivación:
+     * - Único subgrupo de RN activo: Cuerpos de Agua, al máximo (2) →
+     *   val_recursos_naturales = 2; sin RC activo → val_recursos_turisticos
+     *   = val_recursos_naturales = 2 (rama `elseif ($hasRN)` en calcular()).
+     * - val_infraestructura = 0 (activa pero enviada a 0).
+     * - $fn_pesos = ['rt' => 0.40, 'i' => 0.20], $fn_sum_pesos = 0.60.
+     * - fn_total = 2 * (0.40/0.60) + 0 * (0.20/0.60) = 4/3.
+     */
+    public function test_renormalizacion_de_fn_respeta_proporciones_desiguales(): void
+    {
+        $activos = array_merge(
+            $this->camposDe('RN — Cuerpos de Agua'),
+            $this->camposDe('Infraestructura')
+        );
+        $valores = array_fill_keys($this->camposDe('RN — Cuerpos de Agua'), 2);
+
+        $eval = $this->guardar($valores, $activos);
+
+        $this->assertEqualsWithDelta(4 / 3, $eval->fn_total, 0.0001);
+        $this->assertEqualsWithDelta(0.0, $eval->val_recursos_culturales, 0.0001);
+    }
+
     /** RT es la media de Recursos Naturales y Culturales al 50 % cada uno. */
     public function test_recursos_turisticos_promedia_naturales_y_culturales(): void
     {
@@ -160,6 +210,21 @@ class PotencialidadCalculoTest extends TestCase
         $eval = $this->guardar($valores, $activos);
 
         $this->assertEqualsWithDelta(2.0, $eval->val_recursos_turisticos, 0.0001);
+    }
+
+    /**
+     * Ni RN ni RC tienen campos activos (solo Infraestructura) → val_rt cae
+     * en la rama `else` de calcular() (línea ~386) y vale 0 explícitamente,
+     * no por casualidad de promediar con ceros.
+     */
+    public function test_val_recursos_turisticos_es_cero_sin_recursos_naturales_ni_culturales_activos(): void
+    {
+        $activos = $this->camposDe('Infraestructura');
+        $valores = array_fill_keys($activos, 2);
+
+        $eval = $this->guardar($valores, $activos);
+
+        $this->assertEqualsWithDelta(0.0, $eval->val_recursos_turisticos, 0.0001);
     }
 
     /**
@@ -213,5 +278,22 @@ class PotencialidadCalculoTest extends TestCase
         $config = PotencialidadCamposActivos::where('zona_id', $this->zona->id)->firstOrFail();
 
         $this->assertSame($activos, $config->campos_activos);
+    }
+
+    /**
+     * Cero campos activos en absoluto: todos los `$fn_pesos`/`$fx_pesos`
+     * quedan vacíos, así que `array_sum($fn_pesos) ?: 1` (línea ~417) y su
+     * equivalente de FX (línea ~439) caen al `1` del fallback — evita la
+     * división entre cero, pero como ningún `isset($fn_pesos[...])` es
+     * cierto, ningún término se suma nunca a `$fn_total`/`$fx_total`, así
+     * que el resultado es 0 de todas formas. No debe reventar.
+     */
+    public function test_cero_campos_activos_no_revienta_y_todo_da_cero(): void
+    {
+        $eval = $this->guardar([], []);
+
+        $this->assertEqualsWithDelta(0.0, $eval->fn_total, 0.0001);
+        $this->assertEqualsWithDelta(0.0, $eval->fx_total, 0.0001);
+        $this->assertEqualsWithDelta(0.0, $eval->val_recursos_turisticos, 0.0001);
     }
 }
