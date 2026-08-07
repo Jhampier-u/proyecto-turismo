@@ -99,9 +99,9 @@ class EvaluacionPercepcionController extends MatrizPonderadaController
     }
 
     /** Añade el campo de texto libre, que no es un criterio puntuable. */
-    protected function prepararDatos(Request $request, $zonaId, ?Model $actual): array
+    protected function prepararDatos(Request $request, $zonaId, ?Model $actual, string $estado): array
     {
-        $datos = parent::prepararDatos($request, $zonaId, $actual);
+        $datos = parent::prepararDatos($request, $zonaId, $actual, $estado);
 
         $extra = $request->validate(['acciones_mejora' => 'nullable|string|max:5000']);
 

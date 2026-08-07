@@ -27,9 +27,9 @@ class EvaluacionPaisajeController extends MatrizPonderadaController
      * El instrumento admite 0, 3 y 5, no cualquier valor entre 0 y 5: con la
      * regla de rango por defecto se colarían el 1, el 2 y el 4.
      */
-    protected function reglaCriterio(): string
+    protected function reglaValor(): string
     {
-        return 'required|integer|in:' . implode(',', Paisaje::VALORES);
+        return 'integer|in:' . implode(',', Paisaje::VALORES);
     }
 
     protected function criterios(): array

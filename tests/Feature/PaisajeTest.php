@@ -160,9 +160,9 @@ class PaisajeTest extends TestCase
         $this->assertDatabaseCount('evaluaciones_paisaje', 0);
     }
 
-    public function test_no_se_guarda_con_criterios_sin_responder(): void
+    public function test_no_se_confirma_con_criterios_sin_responder(): void
     {
-        $datos = $this->todosEn(3);
+        $datos = $this->todosEn(3) + ['accion_estado' => 'confirmado'];
         unset($datos['cp_conurbaciones']);
 
         $this->actingAs($this->jefe)->post($this->url(), $datos)

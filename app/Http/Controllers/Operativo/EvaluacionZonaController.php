@@ -30,9 +30,23 @@ abstract class EvaluacionZonaController extends Controller
      * Valida la petición y devuelve las columnas a persistir, sin user_id ni
      * estado, de los que se encarga esta clase.
      *
+     * Recibe el estado destino porque de él depende la obligatoriedad: en
+     * borrador se admiten huecos, al confirmar no.
+     *
      * @return array<string, mixed>
      */
-    abstract protected function prepararDatos(Request $request, $zonaId, ?Model $actual): array;
+    abstract protected function prepararDatos(Request $request, $zonaId, ?Model $actual, string $estado): array;
+
+    /** ¿Están todos los criterios respondidos? Las matrices lo afinan. */
+    protected function estaCompleta(array $datos): bool
+    {
+        return true;
+    }
+
+    protected function mensajeIncompleto(array $datos): string
+    {
+        return 'Borrador guardado. Faltan criterios por responder.';
+    }
 
     /** Se ejecuta tras guardar. FIT y FET lo usan para la instantánea del VTT. */
     protected function despuesDeGuardar($zonaId, User $user): void
@@ -65,12 +79,14 @@ abstract class EvaluacionZonaController extends Controller
 
         $request->validate(['accion_estado' => 'nullable|in:borrador,confirmado']);
 
-        $datos = $this->prepararDatos($request, $zonaId, $actual);
-
-        // Solo el Jefe de Zona puede confirmar; el equipo siempre guarda borrador.
+        // El estado se decide ANTES de validar los criterios: es lo que
+        // determina si se exigen todos o se admite un borrador a medias.
+        // Solo el Jefe de Zona puede confirmar; el equipo siempre borrador.
         $estado = $user->esJefe()
             ? $request->input('accion_estado', 'borrador')
             : 'borrador';
+
+        $datos = $this->prepararDatos($request, $zonaId, $actual, $estado);
 
         $modelo::updateOrCreate(
             ['zona_id' => $zonaId],
@@ -78,6 +94,12 @@ abstract class EvaluacionZonaController extends Controller
         );
 
         $this->despuesDeGuardar($zonaId, $user);
+
+        // Una matriz incompleta no tiene resultados que enseñar: se vuelve al
+        // formulario, que es donde el usuario sigue trabajando.
+        if (! $this->estaCompleta($datos)) {
+            return back()->with('success', $this->mensajeIncompleto($datos));
+        }
 
         return redirect()
             ->route($this->rutaResultados(), $zonaId)

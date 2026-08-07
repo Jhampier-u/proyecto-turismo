@@ -260,7 +260,7 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
             : 'Borrador guardado correctamente.';
     }
 
-    protected function prepararDatos(Request $request, $zonaId, ?Model $actual): array
+    protected function prepararDatos(Request $request, $zonaId, ?Model $actual, string $estado): array
     {
         $user = Auth::user();
 

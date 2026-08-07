@@ -331,10 +331,10 @@ class ValoracionTerritorialTest extends TestCase
         }
     }
 
-    /** Dejar un criterio sin responder no puede guardarse. */
-    public function test_no_se_guarda_con_criterios_sin_responder(): void
+    /** Dejar un criterio sin responder no puede confirmarse. */
+    public function test_no_se_confirma_con_criterios_sin_responder(): void
     {
-        $datos = $this->todosEn(1);
+        $datos = $this->todosEn(1) + ['accion_estado' => 'confirmado'];
         unset($datos['uc_senalizacion']);
 
         $this->actingAs($this->jefe)->post($this->url(), $datos)
