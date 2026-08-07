@@ -91,6 +91,11 @@ final class EstadoZona
     {
         $cuantos = $this->zona->inventarios()->count();
 
+        // El admin conserva la URL (necesita consultar los recursos) pero no
+        // la acción de escritura: el middleware ya le corta cualquier POST,
+        // así que ofrecerle 'Abrir' invita a un botón que termina en 403.
+        $esAdmin = $this->usuario->esAdmin();
+
         return new FilaMatriz(
             clave:   $clave,
             nombre:  $entrada['nombre'],
@@ -98,7 +103,7 @@ final class EstadoZona
             estado:  'sin_estado',
             detalle: $cuantos === 1 ? '1 recurso registrado' : "{$cuantos} recursos registrados",
             url:     route($entrada['rutas']['editar'], $this->zona->id),
-            accion:  'Abrir',
+            accion:  $esAdmin ? 'Ver' : 'Abrir',
         );
     }
 

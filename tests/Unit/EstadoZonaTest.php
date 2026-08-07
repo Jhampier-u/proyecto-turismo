@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\EvaluacionFet;
 use App\Models\EvaluacionFit;
+use App\Models\Inventario;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Zona;
@@ -160,6 +161,72 @@ class EstadoZonaTest extends TestCase
         $filas = $this->filas($admin);
         $this->assertNull($filas['paisaje']->accion);
         $this->assertFalse($filas['paisaje']->puedeValidar);
+    }
+
+    private function crearInventario(): Inventario
+    {
+        return Inventario::factory()->create([
+            'zona_id'            => $this->zona->id,
+            'categoria_id'       => DB::table('categorias_recurso')->whereNotNull('parent_id')->value('id'),
+            'creado_por_user_id' => $this->jefe->id,
+        ]);
+    }
+
+    /**
+     * El inventario es un CRUD sin flujo de validación: no tiene sentido
+     * pintarlo como 'sin_empezar' o 'borrador'.
+     */
+    public function test_la_fila_de_inventario_no_tiene_estado_de_progreso(): void
+    {
+        $this->assertSame('sin_estado', $this->filas()['inventario']->estado);
+    }
+
+    public function test_el_detalle_de_inventario_pluraliza_segun_cuantos_recursos_hay(): void
+    {
+        $this->assertSame('0 recursos registrados', $this->filas()['inventario']->detalle);
+
+        $this->crearInventario();
+        $this->assertSame('1 recurso registrado', $this->filas()['inventario']->detalle);
+
+        $this->crearInventario();
+        $this->assertSame('2 recursos registrados', $this->filas()['inventario']->detalle);
+    }
+
+    /**
+     * El admin conserva el acceso al inventario (necesita consultar los
+     * recursos) pero en solo lectura: el middleware PerteneceAZona ya le
+     * corta cualquier POST, así que ofrecerle 'Abrir' sería mentirle.
+     */
+    public function test_el_admin_recibe_ver_en_el_inventario_mientras_jefe_y_equipo_reciben_abrir(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+
+        $this->assertSame('Abrir', $this->filas($this->jefe)['inventario']->accion);
+        $this->assertSame('Abrir', $this->filas($equipo)['inventario']->accion);
+        $this->assertSame('Ver', $this->filas($admin)['inventario']->accion);
+    }
+
+    /**
+     * firma() nunca se ejercitaba con user_id puesto: es la ruta por la que
+     * se añadieron las relaciones user() a EvaluacionFit/EvaluacionFet.
+     */
+    public function test_la_firma_muestra_el_nombre_de_quien_evaluo(): void
+    {
+        EvaluacionFit::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'confirmado',
+        ]);
+
+        $detalle = $this->filas()['fit']->detalle;
+
+        $this->assertStringContainsString($this->jefe->name, $detalle);
+        $this->assertStringContainsString('Validada', $detalle);
     }
 
     public function test_no_se_devuelven_grupos_sin_filas(): void

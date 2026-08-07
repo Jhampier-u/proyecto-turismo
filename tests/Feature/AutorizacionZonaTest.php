@@ -144,6 +144,32 @@ class AutorizacionZonaTest extends TestCase
             ->assertNotFound();
     }
 
+    /**
+     * EstadoZona ya le manda 'Ver' en vez de 'Abrir', pero la vista pintaba
+     * los tres botones de escritura sin mirar el rol: el admin llegaba aquí
+     * y los pulsaba para toparse con un 403 del middleware. Los botones
+     * tienen que desaparecer, no solo fallar al pulsarlos.
+     */
+    public function test_el_admin_no_ve_botones_de_escritura_en_el_inventario(): void
+    {
+        $jefe = $this->usuarioCon('jefe_zona');
+        $zona = $this->crearZona($jefe);
+        $this->crearInventario($zona, $jefe);
+
+        $admin = $this->usuarioCon('admin');
+
+        $respuestaAdmin = $this->actingAs($admin)->get("/operativo/zona/{$zona->id}/inventarios");
+        $respuestaAdmin->assertSuccessful();
+        $respuestaAdmin->assertDontSee('Agregar Recurso');
+        $respuestaAdmin->assertDontSee('Editar');
+        $respuestaAdmin->assertDontSee('Eliminar');
+
+        $respuestaJefe = $this->actingAs($jefe)->get("/operativo/zona/{$zona->id}/inventarios");
+        $respuestaJefe->assertSee('Agregar Recurso');
+        $respuestaJefe->assertSee('Editar');
+        $respuestaJefe->assertSee('Eliminar');
+    }
+
     public function test_un_usuario_sin_rol_no_entra_al_modulo_operativo(): void
     {
         $sinRol = User::factory()->create(['role_id' => null]);
