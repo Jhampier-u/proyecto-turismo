@@ -19,7 +19,10 @@
                 @php
                 $esJefe = auth()->user()->esJefe();
                 $estaConfirmado = $evaluacion->estado === 'confirmado';
-                $bloqueado = $estaConfirmado && !$esJefe;
+                // El admin nunca edita evaluaciones, aunque estén en borrador:
+                // sin este predicado, $bloqueado solo miraba la confirmación y
+                // el admin veía el formulario abierto de par en par.
+                $bloqueado = ! auth()->user()->puedeEditarEvaluaciones() || ($estaConfirmado && !$esJefe);
                 @endphp
 
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 mb-6">

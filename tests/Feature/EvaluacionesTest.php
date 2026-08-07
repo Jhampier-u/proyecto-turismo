@@ -191,6 +191,173 @@ class EvaluacionesTest extends TestCase
         );
     }
 
+    /**
+     * Camino real que llevaba al 403: panel de zona como admin → FIT en
+     * borrador → «Ver» → resultados → «Ver el Formulario» → edit. Ahí
+     * $bloqueado solo miraba si estaba confirmado, así que el admin veía los
+     * 18 selects habilitados y el botón "Guardar Borrador", que terminaba en
+     * un 403 crudo del middleware al enviarlo.
+     */
+    public function test_el_admin_recibe_el_formulario_fit_bloqueado_aunque_este_en_borrador(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fit",
+            $this->todos(self::CAMPOS_FIT, 2)
+        )->assertSessionHasNoErrors();
+
+        $this->assertSame('borrador', EvaluacionFit::where('zona_id', $this->zona->id)->value('estado'));
+
+        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+
+        $respuesta = $this->actingAs($admin)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit")
+            ->assertOk();
+
+        $respuesta->assertDontSee('Guardar Borrador');
+        // Los 18 <select> del formulario llevan `disabled` al final de la
+        // etiqueta cuando $bloqueado es true; en las clases CSS aparece
+        // "disabled:" (con dos puntos), nunca el atributo suelto.
+        $respuesta->assertSee('disabled>', false);
+    }
+
+    /** Mismo caso que FIT, aplicado a FET. */
+    public function test_el_admin_recibe_el_formulario_fet_bloqueado_aunque_este_en_borrador(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fet",
+            $this->todos(self::CAMPOS_FET, 2)
+        )->assertSessionHasNoErrors();
+
+        $this->assertSame('borrador', EvaluacionFet::where('zona_id', $this->zona->id)->value('estado'));
+
+        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+
+        $respuesta = $this->actingAs($admin)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-fet")
+            ->assertOk();
+
+        $respuesta->assertDontSee('Guardar Borrador');
+        $respuesta->assertSee('disabled>', false);
+    }
+
+    /** Mismo caso, para Percepción: usa el mismo componente select-percepcion. */
+    public function test_el_admin_recibe_el_formulario_percepcion_bloqueado_aunque_este_en_borrador(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-percepcion",
+            $this->todos($this->itemsPercepcion(), 2)
+        )->assertSessionHasNoErrors();
+
+        $this->assertSame('borrador', EvaluacionPercepcion::where('zona_id', $this->zona->id)->value('estado'));
+
+        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+
+        $respuesta = $this->actingAs($admin)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-percepcion")
+            ->assertOk();
+
+        $respuesta->assertDontSee('Guardar Borrador');
+        $respuesta->assertSee('disabled>', false);
+    }
+
+    /**
+     * Potencialidad ya contemplaba al admin en su fórmula ($soloLectura),
+     * sin depender de si la matriz estaba confirmada: este test no arranca en
+     * rojo, es la red de seguridad para que la unificación del predicado
+     * (paso 3 del hallazgo 2) no lo rompa por accidente.
+     */
+    public function test_el_admin_recibe_el_formulario_potencialidad_bloqueado_aunque_este_en_borrador(): void
+    {
+        $datos = ['campos' => self::CAMPOS_POTENCIALIDAD] + $this->todos(self::CAMPOS_POTENCIALIDAD, 1);
+
+        $this->actingAs($this->jefe)
+            ->post("/operativo/zona/{$this->zona->id}/evaluacion-potencialidad", $datos)
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('borrador', EvaluacionPotencialidad::where('zona_id', $this->zona->id)->value('estado'));
+
+        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+
+        $respuesta = $this->actingAs($admin)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-potencialidad")
+            ->assertOk();
+
+        // Potencialidad no tiene un botón "Guardar Borrador" con B mayúscula:
+        // el suyo es "Guardar borrador" (con b minúscula), y en modo lectura
+        // muestra badges en vez de <select>, no selects deshabilitados.
+        $respuesta->assertDontSee('Guardar borrador');
+        $respuesta->assertDontSee('name="rn_agua_lagos"', false);
+    }
+
+    /**
+     * Navega de verdad a la página de resultados de FIT como admin, en vez de
+     * solo comprobar que el panel enlaza a ella. El enlace «Ver el
+     * Formulario» de esta vista no miraba el rol: era la tercera fuga del
+     * mismo bug ya arreglado en Paisaje, Percepción y Valoración Territorial.
+     */
+    public function test_el_admin_ve_los_resultados_de_fit_en_modo_lectura(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fit",
+            $this->todos(self::CAMPOS_FIT, 3) + ['accion_estado' => 'confirmado']
+        )->assertSessionHasNoErrors();
+
+        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+
+        $this->actingAs($admin)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit/ponderacion")
+            ->assertOk()
+            ->assertSee('Volver a Zonas')
+            ->assertSee(route('admin.zonas.index'), false)
+            ->assertDontSee(route('operativo.evaluacion_fit.edit', $this->zona->id), false);
+    }
+
+    /** Complementa el test anterior: el jefe debe seguir viendo el enlace. */
+    public function test_el_jefe_ve_el_enlace_al_formulario_en_los_resultados_de_fit(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fit",
+            $this->todos(self::CAMPOS_FIT, 3) + ['accion_estado' => 'confirmado']
+        )->assertSessionHasNoErrors();
+
+        $this->actingAs($this->jefe)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit/ponderacion")
+            ->assertOk()
+            ->assertSee(route('operativo.evaluacion_fit.edit', $this->zona->id), false);
+    }
+
+    /** Mismo caso que FIT, para FET. */
+    public function test_el_admin_ve_los_resultados_de_fet_en_modo_lectura(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fet",
+            $this->todos(self::CAMPOS_FET, 3) + ['accion_estado' => 'confirmado']
+        )->assertSessionHasNoErrors();
+
+        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+
+        $this->actingAs($admin)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-fet/ponderacion")
+            ->assertOk()
+            ->assertSee('Volver a Zonas')
+            ->assertSee(route('admin.zonas.index'), false)
+            ->assertDontSee(route('operativo.evaluacion_fet.edit', $this->zona->id), false);
+    }
+
+    /** Complementa el test anterior: el jefe debe seguir viendo el enlace. */
+    public function test_el_jefe_ve_el_enlace_al_formulario_en_los_resultados_de_fet(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fet",
+            $this->todos(self::CAMPOS_FET, 3) + ['accion_estado' => 'confirmado']
+        )->assertSessionHasNoErrors();
+
+        $this->actingAs($this->jefe)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-fet/ponderacion")
+            ->assertOk()
+            ->assertSee(route('operativo.evaluacion_fet.edit', $this->zona->id), false);
+    }
+
     public function test_el_mensaje_de_evaluacion_fit_cerrada_es_el_especifico_de_fit(): void
     {
         // Mismo caso que FET: fija el texto propio de FIT para que un
@@ -378,10 +545,14 @@ class EvaluacionesTest extends TestCase
         $this->assertDatabaseHas('vocacion_turistica_territorio', ['zona_id' => $zonaId]);
 
         // Y el admin puede consultarla sin haberla generado nadie por él.
+        // La ruta operativo.vtt.final sirve a los tres roles y su vista ya
+        // distingue al admin; la antigua admin.vtt.final.admin (bajo
+        // ['auth','admin'], sin el middleware zona) se eliminó por ser una
+        // tercera vía sin comprobar hacia el formulario editable de FIT.
         $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
 
         $this->actingAs($admin)
-            ->get("/admin/zona/{$zonaId}/resultado-vtt")
+            ->get(route('operativo.vtt.final', $zonaId))
             ->assertOk();
     }
 

@@ -5,6 +5,15 @@
         </h2>
     </x-slot>
 
+    @php
+        // Se deriva del rol, no de una variable que pase el controlador: la versión
+        // anterior dependía de que cada controlador acordara pasar readonly=true, y
+        // al desaparecer los métodos del admin se quedó en falso para siempre sin
+        // que nada lo detectara. El rol es la única fuente de verdad que no se
+        // puede desincronizar.
+        $readonly = ! auth()->user()->puedeEditarEvaluaciones();
+    @endphp
+
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
@@ -140,11 +149,22 @@
                 </div>
 
                 <div class="mt-8 text-center">
+                    {{-- El admin nunca ve un enlace al formulario de edición: en
+                         borrador no se bloquea solo, y enviarlo terminaba en un
+                         403 crudo del middleware. --}}
+                    @if(!$readonly)
                     <a href="{{ route('operativo.evaluacion_fet.edit', $zona->id) }}"
                         class="inline-block px-5 py-2 bg-blue-600 text-white font-bold text-lg rounded-lg
           hover:bg-blue-700 hover:scale-105 transition-transform duration-200 shadow-md">
                         Ver el Formulario
                     </a>
+                    @else
+                    <a href="{{ route('admin.zonas.index') }}"
+                        class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg
+          hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
+                        Volver a Zonas
+                    </a>
+                    @endif
 
                     <a href="{{ route('operativo.vtt.final', $zona->id) }}"
                         class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg

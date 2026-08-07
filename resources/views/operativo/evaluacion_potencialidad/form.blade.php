@@ -24,7 +24,11 @@
 
     @php
         $isConfirmado    = $evaluacion->exists && $evaluacion->estado === 'confirmado';
-        $soloLectura     = ($user->esAdmin()) || ($isConfirmado && $user->esEquipo());
+        // Antes decía esAdmin() literal: una de tres fórmulas distintas para
+        // "solo lectura" repartidas por el sistema. El predicado con nombre
+        // es equivalente para el admin (nunca cambia con el estado de la
+        // matriz) pero deja una sola fuente de verdad para las seis.
+        $soloLectura     = (! $user->puedeEditarEvaluaciones()) || ($isConfirmado && $user->esEquipo());
         $puedeConfigurar = ($user->esJefe()) && !$soloLectura;
         $puedeCalificar  = !$soloLectura;
 

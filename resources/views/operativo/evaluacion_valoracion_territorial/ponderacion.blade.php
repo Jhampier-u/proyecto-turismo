@@ -11,7 +11,7 @@
         // al desaparecer los métodos del admin se quedó en falso para siempre sin
         // que nada lo detectara. El rol es la única fuente de verdad que no se
         // puede desincronizar.
-        $readonly = auth()->user()->esAdmin();
+        $readonly = ! auth()->user()->puedeEditarEvaluaciones();
         $sinDatos = !$evaluacion;
     @endphp
 

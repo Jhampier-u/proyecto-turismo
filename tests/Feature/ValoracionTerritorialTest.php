@@ -186,6 +186,32 @@ class ValoracionTerritorialTest extends TestCase
         $this->assertDatabaseCount('evaluaciones_valoracion_territorial', 0);
     }
 
+    /**
+     * El middleware deja pasar al admin en cualquier GET, confirmada o no la
+     * matriz: $bloqueado solo miraba el estado de confirmación, así que en
+     * borrador el admin veía las 21 tarjetas habilitadas y "Guardar
+     * Borrador", que terminaba en un 403 crudo al enviarlo.
+     */
+    public function test_el_admin_recibe_el_formulario_bloqueado_aunque_este_en_borrador(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(1))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('borrador', EvaluacionValoracionTerritorial::value('estado'));
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $respuesta = $this->actingAs($admin)->get($this->url())->assertOk();
+
+        $respuesta->assertDontSee('Guardar Borrador');
+        // <x-criterio-escala> deshabilita cada radio con @disabled($bloqueado),
+        // que solo emite el atributo "disabled" cuando es verdadero: en esta
+        // página no aparece en ningún otro sitio.
+        $respuesta->assertSee('disabled', false);
+    }
+
     public function test_la_zona_aparece_en_el_dashboard_con_su_progreso(): void
     {
         $this->actingAs($this->jefe)->get('/mis-zonas')
