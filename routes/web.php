@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ZonaController;
 use App\Http\Controllers\Operativo\DashboardController;
 use App\Http\Controllers\Operativo\EvaluacionFetController;
 use App\Http\Controllers\Operativo\EvaluacionFitController;
+use App\Http\Controllers\Operativo\EvaluacionPaisajeController;
 use App\Http\Controllers\Operativo\EvaluacionPercepcionController;
 use App\Http\Controllers\Operativo\EvaluacionPotencialidadController;
 use App\Http\Controllers\Operativo\EvaluacionValoracionTerritorialController;
@@ -48,6 +49,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/zona/{zona}/percepcion', [ZonaController::class, 'percepcion'])
         ->name('zonas.percepcion');
 
+    // Admin: ver Matriz de Análisis y Valoración del Paisaje de una zona
+    Route::get('/zona/{zona}/paisaje', [ZonaController::class, 'paisaje'])
+        ->name('zonas.paisaje');
+
     // Admin: ver Matriz de Valoración Territorial de una zona
     Route::get('/zona/{zona}/valoracion-territorial', [ZonaController::class, 'valoracionTerritorial'])
         ->name('zonas.valoracion_territorial');
@@ -84,6 +89,11 @@ Route::middleware(['auth', 'personal'])->group(function () {
         Route::get('/evaluacion-percepcion',             [EvaluacionPercepcionController::class, 'edit'])->name('evaluacion_percepcion.edit');
         Route::post('/evaluacion-percepcion',            [EvaluacionPercepcionController::class, 'update'])->name('evaluacion_percepcion.update');
         Route::get('/evaluacion-percepcion/resultados',  [EvaluacionPercepcionController::class, 'ponderacion'])->name('evaluacion_percepcion.ponderacion');
+
+        // Matriz de Análisis y Valoración del Paisaje
+        Route::get('/paisaje',            [EvaluacionPaisajeController::class, 'edit'])->name('evaluacion_paisaje.edit');
+        Route::post('/paisaje',           [EvaluacionPaisajeController::class, 'update'])->name('evaluacion_paisaje.update');
+        Route::get('/paisaje/resultados', [EvaluacionPaisajeController::class, 'ponderacion'])->name('evaluacion_paisaje.ponderacion');
 
         // Matriz de Valoración Territorial
         Route::get('/valoracion-territorial',            [EvaluacionValoracionTerritorialController::class, 'edit'])->name('evaluacion_valoracion_territorial.edit');

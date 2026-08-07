@@ -29,6 +29,20 @@ abstract class MatrizPonderadaController extends EvaluacionZonaController
     abstract protected function escala(): array;
 
     /**
+     * Regla de validación de una calificación.
+     *
+     * Por defecto es el rango continuo que declara escala(). Una matriz cuya
+     * escala no sea contigua —Paisaje admite 0, 3 y 5, nada más— la
+     * sobreescribe: con min/max se colarían el 1, el 2 y el 4.
+     */
+    protected function reglaCriterio(): string
+    {
+        [$min, $max] = $this->escala();
+
+        return "required|integer|min:{$min}|max:{$max}";
+    }
+
+    /**
      * Columnas calculadas a partir de las calificaciones validadas.
      *
      * @param array<string, int> $valores
@@ -44,11 +58,11 @@ abstract class MatrizPonderadaController extends EvaluacionZonaController
 
     protected function prepararDatos(Request $request, $zonaId, ?Model $actual): array
     {
-        [$min, $max] = $this->escala();
+        $regla = $this->reglaCriterio();
 
         $reglas = [];
         foreach ($this->campos() as $campo) {
-            $reglas[$campo] = "required|integer|min:{$min}|max:{$max}";
+            $reglas[$campo] = $regla;
         }
 
         $valores = $request->validate($reglas);

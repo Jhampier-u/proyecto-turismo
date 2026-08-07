@@ -1,0 +1,283 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Matrices\Paisaje;
+use App\Models\EvaluacionPaisaje;
+use App\Models\Role;
+use App\Models\User;
+use App\Models\Zona;
+use Database\Seeders\SystemSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
+
+class PaisajeTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private User $jefe;
+    private Zona $zona;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed(SystemSeeder::class);
+
+        $this->jefe = User::factory()->create([
+            'role_id' => Role::where('nombre', 'jefe_zona')->value('id'),
+        ]);
+
+        $this->zona = Zona::create([
+            'lugar_id'     => DB::table('lugares')->value('id'),
+            'jefe_user_id' => $this->jefe->id,
+            'nombre'       => 'Zona de prueba',
+        ]);
+    }
+
+    /** Rellena los 34 criterios con el mismo valor. */
+    private function todosEn(int $valor): array
+    {
+        return array_fill_keys(array_keys(Paisaje::todos()), $valor);
+    }
+
+    private function url(string $sufijo = ''): string
+    {
+        return "/operativo/zona/{$this->zona->id}/paisaje{$sufijo}";
+    }
+
+    public function test_los_pesos_de_las_categorias_suman_uno(): void
+    {
+        $this->assertEqualsWithDelta(
+            1.0,
+            array_sum(array_column(Paisaje::CATEGORIAS, 'peso')),
+            0.0001
+        );
+    }
+
+    public function test_el_instrumento_declara_34_criterios_en_5_categorias(): void
+    {
+        $this->assertCount(5, Paisaje::CATEGORIAS);
+        $this->assertCount(34, Paisaje::todos());
+
+        $esperado = ['ep' => 6, 'pn' => 9, 'pc' => 5, 'iv' => 7, 'cp' => 7];
+
+        foreach ($esperado as $clave => $cuantos) {
+            $this->assertCount($cuantos, Paisaje::CATEGORIAS[$clave]['criterios'], $clave);
+        }
+    }
+
+    public function test_cada_criterio_declara_sus_tres_niveles(): void
+    {
+        foreach (Paisaje::todos() as $campo => $criterio) {
+            $this->assertNotEmpty($criterio['nombre'], $campo);
+            $this->assertSame([0, 3, 5], array_keys($criterio['niveles']), $campo);
+
+            foreach ($criterio['niveles'] as $nivel => $etiqueta) {
+                $this->assertNotEmpty($etiqueta, "{$campo} nivel {$nivel}");
+            }
+        }
+    }
+
+    /**
+     * Conflictos Paisajísticos es la única categoría que mide un problema en
+     * vez de un activo, así que su 5 es «Controlado» y su 0 «Afectado». Si el
+     * generador invirtiera el orden, el color del formulario mentiría.
+     */
+    public function test_conflictos_paisajisticos_puntua_lo_controlado_como_lo_mejor(): void
+    {
+        foreach (Paisaje::CATEGORIAS['cp']['criterios'] as $campo => $criterio) {
+            $this->assertSame('Controlado', $criterio['niveles'][5], $campo);
+            $this->assertSame('Afectado', $criterio['niveles'][0], $campo);
+        }
+    }
+
+    public function test_todo_al_maximo_da_el_tope_de_la_escala(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(5))
+            ->assertSessionHasNoErrors();
+
+        $eval = EvaluacionPaisaje::firstOrFail();
+
+        $this->assertEqualsWithDelta(5.0, $eval->paisaje_total, 0.0001);
+        $this->assertSame('Eficiente', $eval->escenario['nombre']);
+
+        foreach (array_keys(Paisaje::CATEGORIAS) as $clave) {
+            $this->assertEqualsWithDelta(5.0, $eval->{"{$clave}_promedio"}, 0.0001, $clave);
+            $this->assertSame('Alto', $eval->lecturaDe($clave), $clave);
+        }
+    }
+
+    public function test_todo_al_minimo_da_cero_y_escenario_inexistente(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(0))
+            ->assertSessionHasNoErrors();
+
+        $eval = EvaluacionPaisaje::firstOrFail();
+
+        $this->assertEqualsWithDelta(0.0, $eval->paisaje_total, 0.0001);
+        $this->assertSame('Inexistente', $eval->escenario['nombre']);
+        $this->assertSame('Bajo', $eval->lecturaDe('ep'));
+    }
+
+    /**
+     * Una sola categoría al máximo debe aportar exactamente su peso × 5.
+     * Es el único caso que detecta un peso individual mal asignado: con todos
+     * los criterios iguales, cualquier reparto de pesos que sume 1 da lo mismo.
+     */
+    public function test_cada_categoria_aporta_segun_su_peso(): void
+    {
+        $datos = $this->todosEn(0);
+
+        foreach (array_keys(Paisaje::CATEGORIAS['pn']['criterios']) as $campo) {
+            $datos[$campo] = 5;
+        }
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos)
+            ->assertSessionHasNoErrors();
+
+        $eval = EvaluacionPaisaje::firstOrFail();
+
+        // Pn pesa 0.25 y su promedio es 5, así que aporta 1.25 y nada más.
+        $this->assertEqualsWithDelta(5.0, $eval->pn_promedio, 0.0001);
+        $this->assertEqualsWithDelta(0.0, $eval->ep_promedio, 0.0001);
+        $this->assertEqualsWithDelta(1.25, $eval->paisaje_total, 0.0001);
+        $this->assertSame('Reactivo', $eval->escenario['nombre']);
+    }
+
+    /** La escala admite 0, 3 y 5; nada más. */
+    public function test_un_valor_intermedio_fuera_de_la_escala_se_rechaza(): void
+    {
+        foreach ([1, 2, 4, 6] as $invalido) {
+            $datos = $this->todosEn(3);
+            $datos['pn_geologia'] = $invalido;
+
+            $this->actingAs($this->jefe)->post($this->url(), $datos)
+                ->assertSessionHasErrors('pn_geologia');
+        }
+
+        $this->assertDatabaseCount('evaluaciones_paisaje', 0);
+    }
+
+    public function test_no_se_guarda_con_criterios_sin_responder(): void
+    {
+        $datos = $this->todosEn(3);
+        unset($datos['cp_conurbaciones']);
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos)
+            ->assertSessionHasErrors('cp_conurbaciones');
+
+        $this->assertDatabaseCount('evaluaciones_paisaje', 0);
+    }
+
+    public function test_el_equipo_solo_guarda_borrador(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($equipo)->post(
+            $this->url(),
+            $this->todosEn(5) + ['accion_estado' => 'confirmado']
+        )->assertSessionHasNoErrors();
+
+        $this->assertSame('borrador', EvaluacionPaisaje::value('estado'));
+    }
+
+    public function test_el_jefe_confirma_y_queda_cerrada_para_el_equipo(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($this->jefe)->post(
+            $this->url(),
+            $this->todosEn(5) + ['accion_estado' => 'confirmado']
+        )->assertSessionHasNoErrors();
+
+        $this->assertSame('confirmado', EvaluacionPaisaje::value('estado'));
+
+        $this->actingAs($equipo)->post($this->url(), $this->todosEn(0))
+            ->assertSessionHas(
+                'error',
+                'Esta Matriz de Paisaje ya fue validada por el Jefe de Zona. No puedes editarla.'
+            );
+
+        $this->assertEqualsWithDelta(5.0, (float) EvaluacionPaisaje::value('paisaje_total'), 0.0001);
+    }
+
+    public function test_no_se_accede_desde_una_zona_ajena(): void
+    {
+        $ajeno = User::factory()->create([
+            'role_id' => Role::where('nombre', 'jefe_zona')->value('id'),
+        ]);
+
+        $this->actingAs($ajeno)->get($this->url())->assertForbidden();
+    }
+
+    public function test_el_formulario_muestra_los_34_criterios_con_sus_etiquetas(): void
+    {
+        $respuesta = $this->actingAs($this->jefe)->get($this->url())->assertOk();
+
+        foreach (Paisaje::todos() as $campo => $criterio) {
+            $respuesta->assertSee('name="' . $campo . '"', false);
+        }
+
+        // Las etiquetas varían por criterio: si el formulario mostrara una
+        // escala genérica, este texto concreto no aparecería.
+        $respuesta->assertSee('Conurbaciones');
+        $respuesta->assertSee('Controlado');
+        $respuesta->assertSee('Identitario');
+    }
+
+    public function test_la_pagina_de_resultados_se_renderiza(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(3));
+
+        $this->actingAs($this->jefe)->get($this->url('/resultados'))
+            ->assertOk()
+            ->assertSee('Neutro')
+            ->assertSee('Perfil por categoría');
+    }
+
+    public function test_el_admin_consulta_los_resultados(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(5));
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)
+            ->get("/admin/zona/{$this->zona->id}/paisaje")
+            ->assertOk()
+            ->assertSee('Eficiente');
+    }
+
+    /** Una zona sin la matriz completada no puede reventar la vista del admin. */
+    public function test_el_admin_ve_un_aviso_si_la_zona_no_tiene_la_matriz(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)
+            ->get("/admin/zona/{$this->zona->id}/paisaje")
+            ->assertOk()
+            ->assertSee('Matriz de Paisaje no disponible');
+    }
+
+    public function test_la_tarjeta_aparece_en_el_dashboard(): void
+    {
+        $respuesta = $this->actingAs($this->jefe)->get('/mis-zonas')->assertOk();
+
+        $respuesta->assertSee('🏞️');
+        $respuesta->assertSee(
+            route('operativo.evaluacion_paisaje.edit', $this->zona->id),
+            false
+        );
+    }
+}

@@ -119,6 +119,20 @@
 
                                 {{-- Botón Matriz de Valoración Territorial --}}
                                 @php
+                                    $paisaje = $paisajes[$zona->id] ?? null;
+                                    $paisajeConfirmado = $paisaje && $paisaje->estado === 'confirmado';
+                                @endphp
+                                <a href="{{ $paisaje
+                                    ? route('operativo.evaluacion_paisaje.ponderacion', $zona->id)
+                                    : route('operativo.evaluacion_paisaje.edit', $zona->id) }}"
+                                   class="inline-flex items-center gap-1 px-2 py-1.5 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest transition
+                                       {{ $paisajeConfirmado ? 'bg-lime-600 hover:bg-lime-700' : ($paisaje ? 'bg-lime-400 hover:bg-lime-500' : 'bg-gray-400 hover:bg-gray-500') }}"
+                                   title="{{ $paisajeConfirmado ? 'Ver resultados de la Matriz de Paisaje' : ($paisaje ? 'Paisaje en borrador — continuar' : 'Paisaje no evaluado — comenzar') }}">
+                                    🏞️
+                                    {{ $paisajeConfirmado ? 'Paisaje' : ($paisaje ? 'En progreso' : 'Sin evaluar') }}
+                                </a>
+
+                                @php
                                     $valoracion = $valoraciones[$zona->id] ?? null;
                                     $valoracionConfirmada = $valoracion && $valoracion->estado === 'confirmado';
                                 @endphp

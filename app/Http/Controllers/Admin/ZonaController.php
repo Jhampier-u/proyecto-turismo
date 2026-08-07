@@ -2,11 +2,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Matrices\Paisaje;
 use App\Matrices\ValoracionTerritorial;
 use App\Models\Zona;
 use App\Models\Lugar;
 use App\Models\User;
 use App\Models\EvaluacionPercepcion;
+use App\Models\EvaluacionPaisaje;
 use App\Models\EvaluacionPotencialidad;
 use App\Models\EvaluacionValoracionTerritorial;
 use App\Models\InventarioImagen;
@@ -152,6 +154,18 @@ class ZonaController extends Controller
         $readonly = true;
         return view('operativo.evaluacion_percepcion.ponderacion',
             compact('zona', 'evaluacion', 'categorias', 'readonly'));
+    }
+
+    // Vista admin de resultados de la Matriz de Paisaje
+    public function paisaje($id) {
+        $zona = Zona::findOrFail($id);
+
+        return view('operativo.evaluacion_paisaje.ponderacion', [
+            'zona'       => $zona,
+            'evaluacion' => EvaluacionPaisaje::where('zona_id', $id)->first(),
+            'categorias' => Paisaje::CATEGORIAS,
+            'readonly'   => true,
+        ]);
     }
 
     // Vista admin de resultados de valoración territorial

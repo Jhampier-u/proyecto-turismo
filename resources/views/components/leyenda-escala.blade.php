@@ -13,11 +13,11 @@
 --}}
 
 @php
-    $colores = [
-        0 => 'bg-red-500',
-        1 => 'bg-amber-500',
-        2 => 'bg-green-500',
-    ];
+    // Indexados por POSICIÓN en la escala, no por el valor del nivel: Valoración
+    // Territorial usa 0/1/2 y Paisaje usa 0/3/5, y ambas deben pintar igual.
+    $colores = ['bg-red-500', 'bg-amber-500', 'bg-green-500'];
+
+    ksort($niveles);
 @endphp
 
 <div class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
@@ -26,7 +26,7 @@
 
         @foreach($niveles as $nivel => $etiqueta)
             <span class="flex items-center gap-2 text-sm text-gray-700">
-                <span class="w-6 h-1.5 rounded-full {{ $colores[$nivel] }}"></span>
+                <span class="w-6 h-1.5 rounded-full {{ $colores[$loop->index] }}"></span>
                 <span class="font-bold">{{ $nivel }}</span>
                 <span>{{ $etiqueta }}</span>
             </span>

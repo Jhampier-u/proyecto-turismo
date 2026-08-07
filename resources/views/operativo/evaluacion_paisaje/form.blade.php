@@ -1,0 +1,142 @@
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            Análisis y Valoración del Paisaje: {{ $zona->nombre }}
+        </h2>
+    </x-slot>
+
+    <div class="py-12">
+        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+
+            <a href="{{ route('operativo.dashboard') }}"
+               class="inline-flex items-center px-4 py-2 mb-4 bg-blue-300 hover:bg-blue-500 text-black font-bold rounded-lg shadow-sm">
+                Regresar
+            </a>
+
+            @php
+                $esJefe         = auth()->user()->esJefe();
+                $estaConfirmado = $evaluacion->estado === 'confirmado';
+                $bloqueado      = $estaConfirmado && !$esJefe;
+                $esNueva        = ! $evaluacion->exists;
+
+                // Cabecera del instrumento, derivada de la propia zona.
+                $lugar     = $zona->lugar;
+                $provincia = $lugar?->provincia;
+                $region    = $provincia?->region;
+            @endphp
+
+            @if($estaConfirmado)
+                <div class="mb-6 bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <strong class="font-bold text-lg">✓ Matriz de Paisaje Validada</strong>
+                            <p>Esta evaluación ha sido confirmada por el Jefe de Zona.</p>
+                        </div>
+                        <a href="{{ route('operativo.evaluacion_paisaje.ponderacion', $zona->id) }}"
+                           class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700">
+                            Ver Resultados
+                        </a>
+                    </div>
+                </div>
+            @else
+                <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded">
+                    <strong class="font-bold">Modo Borrador</strong>
+                    <p>Los datos ingresados son preliminares.</p>
+                </div>
+            @endif
+
+            <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
+                <dl class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                        <dt class="text-gray-500">Región geográfica</dt>
+                        <dd class="font-semibold text-gray-900">{{ $region?->nombre ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Provincia</dt>
+                        <dd class="font-semibold text-gray-900">{{ $provincia?->nombre ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Lugar</dt>
+                        <dd class="font-semibold text-gray-900">{{ $lugar?->nombre ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Sitio / Territorio</dt>
+                        <dd class="font-semibold text-gray-900">{{ $zona->nombre }}</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <x-leyenda-escala :niveles="[0 => 'Desfavorable', 3 => 'Intermedio', 5 => 'Favorable']" />
+
+            <form method="POST" action="{{ route('operativo.evaluacion_paisaje.update', $zona->id) }}">
+                @csrf
+
+                @foreach($categorias as $clave => $categoria)
+                    @php
+                        // Sin preseleccionar en una evaluación nueva: si llegara
+                        // con todo en 0, el formulario podría enviarse sin leer
+                        // nada y quedaría como una valoración válida.
+                        $inicial = collect($categoria['criterios'])->mapWithKeys(
+                            fn($c, $campo) => [$campo => $esNueva ? null : (int) $evaluacion->$campo]
+                        );
+                    @endphp
+
+                    <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
+                             x-data="{
+                                valores: @js($inicial),
+                                get promedio() {
+                                    const v = Object.values(this.valores).filter(x => x !== null);
+                                    return v.length ? v.reduce((t, x) => t + x, 0) / Object.keys(this.valores).length : 0;
+                                },
+                                get respondidos() {
+                                    return Object.values(this.valores).filter(v => v !== null).length;
+                                },
+                             }">
+                        <div class="flex flex-wrap justify-between items-baseline gap-3 mb-2">
+                            <h3 class="text-xl font-bold text-gray-900">
+                                {{ $categoria['nombre'] }}
+                                <span class="text-base font-normal text-gray-400">({{ strtoupper($clave) }})</span>
+                            </h3>
+                            <div class="flex items-baseline gap-4">
+                                <span class="text-sm text-gray-500">
+                                    <span x-text="respondidos" class="font-semibold text-gray-700"></span>
+                                    de {{ count($categoria['criterios']) }} respondidos
+                                </span>
+                                <span class="text-base font-bold text-indigo-700">
+                                    Promedio
+                                    <span x-text="promedio.toFixed(2)"></span>
+                                    <span class="text-gray-400 font-normal">/ 5.00</span>
+                                </span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mb-5">
+                            Pesa un {{ rtrim(rtrim(number_format($categoria['peso'] * 100, 1), '0'), '.') }}% del resultado final.
+                        </p>
+
+                        @foreach($categoria['criterios'] as $campo => $criterio)
+                            <x-criterio-pildoras :campo="$campo" :criterio="$criterio" :bloqueado="$bloqueado" />
+                        @endforeach
+                    </section>
+                @endforeach
+
+                @unless($bloqueado)
+                    <div class="flex justify-end gap-3">
+                        <button type="submit"
+                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">
+                            Guardar Borrador
+                        </button>
+
+                        @if($esJefe)
+                            <button type="submit" name="accion_estado" value="confirmado"
+                                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow"
+                                    onclick="return confirm('Al validar, la evaluación queda cerrada para el equipo. ¿Continuar?');">
+                                Validar y Finalizar
+                            </button>
+                        @endif
+                    </div>
+                @endunless
+            </form>
+
+        </div>
+    </div>
+</x-app-layout>

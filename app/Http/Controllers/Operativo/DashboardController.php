@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Operativo;
 
 use App\Http\Controllers\Controller;
+use App\Models\EvaluacionPaisaje;
 use App\Models\EvaluacionPercepcion;
 use App\Models\EvaluacionPotencialidad;
 use App\Models\EvaluacionValoracionTerritorial;
@@ -36,9 +37,12 @@ class DashboardController extends Controller
             ->get()->keyBy('zona_id');
 
         // Cargar estado de evaluación de valoración territorial por zona
+        $paisajes = EvaluacionPaisaje::whereIn('zona_id', $zonas->pluck('id'))
+            ->get()->keyBy('zona_id');
+
         $valoraciones = EvaluacionValoracionTerritorial::whereIn('zona_id', $zonas->pluck('id'))
             ->get()->keyBy('zona_id');
 
-        return view('operativo.dashboard', compact('zonas', 'evaluaciones', 'percepciones', 'valoraciones'));
+        return view('operativo.dashboard', compact('zonas', 'evaluaciones', 'percepciones', 'paisajes', 'valoraciones'));
     }
 }
