@@ -243,7 +243,7 @@ class PaisajeTest extends TestCase
             ->assertSee('Perfil por categoría');
     }
 
-    public function test_el_admin_consulta_los_resultados(): void
+    public function test_el_admin_consulta_la_zona_en_modo_lectura(): void
     {
         $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(5));
 
@@ -252,22 +252,23 @@ class PaisajeTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->get("/admin/zona/{$this->zona->id}/paisaje")
+            ->get(route('operativo.zona.panel', $this->zona->id))
             ->assertOk()
-            ->assertSee('Eficiente');
+            ->assertSee('Modo consulta')
+            ->assertSee('Paisaje')
+            ->assertSee(route('operativo.evaluacion_paisaje.ponderacion', $this->zona->id), false);
     }
 
-    /** Una zona sin la matriz completada no puede reventar la vista del admin. */
-    public function test_el_admin_ve_un_aviso_si_la_zona_no_tiene_la_matriz(): void
+    public function test_el_admin_no_puede_modificar_la_matriz(): void
     {
         $admin = User::factory()->create([
             'role_id' => Role::where('nombre', 'admin')->value('id'),
         ]);
 
-        $this->actingAs($admin)
-            ->get("/admin/zona/{$this->zona->id}/paisaje")
-            ->assertOk()
-            ->assertSee('Matriz de Paisaje no disponible');
+        $this->actingAs($admin)->post($this->url(), $this->todosEn(5))
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('evaluaciones_paisaje', 0);
     }
 
     public function test_la_zona_aparece_en_el_dashboard_con_su_progreso(): void

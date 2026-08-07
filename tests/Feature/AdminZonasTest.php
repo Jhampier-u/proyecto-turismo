@@ -41,6 +41,54 @@ class AdminZonasTest extends TestCase
         ], $extra);
     }
 
+    /**
+     * EstadoZona::progresoDe() resuelve el progreso de todas las zonas de la
+     * página con seis consultas fijas (una por matriz). Si alguien volviera a
+     * instanciar un EstadoZona por zona dentro de un map, el coste crecería 6
+     * consultas por zona además de las fijas de listar zonas.
+     *
+     * Igual que en DashboardTest: se compara el conteo de consultas de
+     * /admin/zonas con 1 zona contra el mismo listado con 5 zonas. Un N+1
+     * dispararía ~24 consultas de más; se deja un margen de 3 para no acoplar
+     * el test a detalles ajenos (por ejemplo una consulta extra al pintar más
+     * filas en la vista).
+     */
+    public function test_el_numero_de_consultas_no_crece_con_el_numero_de_zonas(): void
+    {
+        $jefe = $this->usuarioCon('jefe_zona');
+
+        $crearZona = fn(string $nombre) => Zona::create([
+            'lugar_id'     => DB::table('lugares')->value('id'),
+            'jefe_user_id' => $jefe->id,
+            'nombre'       => $nombre,
+        ]);
+
+        $crearZona('Zona única');
+
+        DB::enableQueryLog();
+        $this->actingAs($this->admin)->get('/admin/zonas')->assertOk();
+        $conUnaZona = count(DB::getQueryLog());
+        DB::flushQueryLog();
+
+        for ($i = 1; $i <= 4; $i++) {
+            $crearZona("Zona extra {$i}");
+        }
+        // Las inserciones de las zonas extra no son parte de la petición que
+        // se mide: se descartan del log antes de la segunda medición.
+        DB::flushQueryLog();
+
+        $this->actingAs($this->admin)->get('/admin/zonas')->assertOk();
+        $conCincoZonas = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertLessThanOrEqual(
+            $conUnaZona + 3,
+            $conCincoZonas,
+            "Con 1 zona hubo {$conUnaZona} consultas y con 5 zonas {$conCincoZonas}. " .
+            'El número de consultas no debería crecer con el número de zonas.'
+        );
+    }
+
     public function test_no_se_puede_nombrar_jefe_a_quien_no_tiene_ese_rol(): void
     {
         $estudiante = $this->usuarioCon('equipo');

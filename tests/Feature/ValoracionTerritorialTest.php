@@ -158,7 +158,7 @@ class ValoracionTerritorialTest extends TestCase
         $this->actingAs($ajeno)->get($this->url())->assertForbidden();
     }
 
-    public function test_el_admin_consulta_los_resultados(): void
+    public function test_el_admin_consulta_la_zona_en_modo_lectura(): void
     {
         $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(2));
 
@@ -167,8 +167,23 @@ class ValoracionTerritorialTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->get("/admin/zona/{$this->zona->id}/valoracion-territorial")
-            ->assertOk();
+            ->get(route('operativo.zona.panel', $this->zona->id))
+            ->assertOk()
+            ->assertSee('Modo consulta')
+            ->assertSee('Valoración territorial')
+            ->assertSee(route('operativo.evaluacion_valoracion_territorial.ponderacion', $this->zona->id), false);
+    }
+
+    public function test_el_admin_no_puede_modificar_la_matriz(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)->post($this->url(), $this->todosEn(2))
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('evaluaciones_valoracion_territorial', 0);
     }
 
     public function test_la_zona_aparece_en_el_dashboard_con_su_progreso(): void

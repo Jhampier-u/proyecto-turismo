@@ -2,17 +2,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Matrices\Paisaje;
-use App\Matrices\ValoracionTerritorial;
 use App\Models\Zona;
 use App\Models\Lugar;
 use App\Models\User;
-use App\Models\EvaluacionPercepcion;
-use App\Models\EvaluacionPaisaje;
-use App\Models\EvaluacionPotencialidad;
-use App\Models\EvaluacionValoracionTerritorial;
 use App\Models\InventarioImagen;
 use App\Models\Role;
+use App\Servicios\EstadoZona;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -43,7 +38,14 @@ class ZonaController extends Controller
     }
     public function index() {
         $zonas = Zona::with(['lugar', 'jefe'])->withCount('equipo')->paginate(10);
-        return view('admin.zonas.index', compact('zonas'));
+
+        // progresoDe() resuelve el progreso de todas las zonas de la página con
+        // seis consultas fijas (una por matriz). Instanciar un EstadoZona por
+        // zona dentro de un map costaría 6 consultas por fila: un N+1 con las
+        // 10 zonas de cada página.
+        $progreso = EstadoZona::progresoDe($zonas->getCollection());
+
+        return view('admin.zonas.index', compact('zonas', 'progreso'));
     }
 
     public function create() {
@@ -137,49 +139,5 @@ class ZonaController extends Controller
         Storage::delete($archivos->all());
 
         return redirect()->route('admin.zonas.index')->with('success', 'Zona eliminada correctamente.');
-    }
-
-    // Vista admin de resultados de potencialidad
-    public function potencialidad($id) {
-        $zona = Zona::findOrFail($id);
-        $evaluacion = EvaluacionPotencialidad::where('zona_id', $id)->first();
-        return view('admin.zonas.potencialidad', compact('zona', 'evaluacion'));
-    }
-
-    // Vista admin de resultados de la Matriz de Percepción
-    public function percepcion($id) {
-        $zona = Zona::findOrFail($id);
-        $evaluacion = EvaluacionPercepcion::where('zona_id', $id)->first();
-        $categorias = \App\Http\Controllers\Operativo\EvaluacionPercepcionController::$categorias;
-        $readonly = true;
-        return view('operativo.evaluacion_percepcion.ponderacion',
-            compact('zona', 'evaluacion', 'categorias', 'readonly'));
-    }
-
-    // Vista admin de resultados de la Matriz de Paisaje
-    public function paisaje($id) {
-        $zona = Zona::findOrFail($id);
-
-        return view('operativo.evaluacion_paisaje.ponderacion', [
-            'zona'       => $zona,
-            'evaluacion' => EvaluacionPaisaje::where('zona_id', $id)->first(),
-            'categorias' => Paisaje::CATEGORIAS,
-            'readonly'   => true,
-        ]);
-    }
-
-    // Vista admin de resultados de valoración territorial
-    public function valoracionTerritorial($id) {
-        $zona = Zona::findOrFail($id);
-        $evaluacion = EvaluacionValoracionTerritorial::where('zona_id', $id)->first();
-        $readonly = true;
-
-        return view('operativo.evaluacion_valoracion_territorial.ponderacion', [
-            'zona'       => $zona,
-            'evaluacion' => $evaluacion,
-            'ct'         => ValoracionTerritorial::CT,
-            'uc'         => ValoracionTerritorial::UC,
-            'readonly'   => $readonly,
-        ]);
     }
 }

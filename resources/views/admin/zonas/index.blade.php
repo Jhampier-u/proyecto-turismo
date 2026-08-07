@@ -19,11 +19,12 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zona</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ubicación</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jefe</th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Equipo</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                            <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Zona</th>
+                            <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Ubicación</th>
+                            <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Jefe</th>
+                            <th class="px-6 py-3 text-center text-sm font-medium text-gray-600">Equipo</th>
+                            <th class="px-6 py-3 text-center text-sm font-medium text-gray-600">Progreso</th>
+                            <th class="px-6 py-3 text-right text-sm font-medium text-gray-600">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -39,39 +40,37 @@
                                             {{ strtoupper(substr($zona->nombre, 0, 2)) }}
                                         </div>
                                     @endif
-                                    <div class="text-sm font-bold text-gray-900">{{ $zona->nombre }}</div>
+                                    <div class="text-base font-bold text-gray-900">{{ $zona->nombre }}</div>
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $zona->lugar->nombre ?? 'N/A' }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $zona->jefe->name ?? 'Sin Asignar' }}</td>
                             <td class="px-6 py-4 text-center">
-                                <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                                <span class="bg-purple-100 text-purple-800 text-sm font-semibold px-2.5 py-0.5 rounded">
                                     {{ $zona->equipo_count }} miembros
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-right text-sm font-medium">
-                                <div class="flex justify-end gap-2 flex-wrap">
-                                    <a href="{{ route('admin.vtt.final.admin', $zona->id) }}"
-                                       class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">
-                                        Resultados VTT
-                                    </a>
-                                    <a href="{{ route('admin.zonas.potencialidad', $zona->id) }}"
-                                       class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">
-                                        ⭐ Potencialidad
-                                    </a>
-                                    <a href="{{ route('admin.zonas.percepcion', $zona->id) }}"
-                                       class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">
-                                        🧭 Percepción
-                                    </a>
-                                    <a href="{{ route('admin.zonas.valoracion_territorial', $zona->id) }}"
-                                       class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">
-                                        🗺️ Valoración Territorial
+                            <td class="px-6 py-4 text-center text-sm text-gray-600">
+                                @php $p = $progreso[$zona->id]; @endphp
+                                {{ $p['hechas'] }} / {{ $p['total'] }}
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex justify-end gap-2">
+                                    <a href="{{ route('operativo.zona.panel', $zona->id) }}"
+                                       class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">
+                                        Abrir zona
                                     </a>
                                     <a href="{{ route('admin.zonas.edit', $zona->id) }}"
-                                       class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded text-xs font-bold">Editar</a>
-                                    <form action="{{ route('admin.zonas.destroy', $zona->id) }}" method="POST" onsubmit="return confirm('¿Eliminar esta zona?');">
+                                       class="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200">
+                                        Editar
+                                    </a>
+                                    <form action="{{ route('admin.zonas.destroy', $zona->id) }}" method="POST"
+                                          onsubmit="return confirm('¿Eliminar esta zona?');">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="bg-red-100 text-red-700 px-3 py-1 rounded text-xs font-bold">Eliminar</button>
+                                        <button type="submit"
+                                                class="px-3 py-1.5 rounded-lg bg-red-100 text-red-700 text-sm font-medium hover:bg-red-200">
+                                            Eliminar
+                                        </button>
                                     </form>
                                 </div>
                             </td>
