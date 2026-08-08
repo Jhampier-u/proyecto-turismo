@@ -61,6 +61,42 @@ final class Involucrados
     ];
 
     /**
+     * Vocabulario de la escala 0-3, común a poder y legitimidad.
+     *
+     * "0" no es "el peor valor de la escala": es "no lo posee", una
+     * valoración cualitativa. Se define aquí y no en el componente de
+     * formulario ni en la vista porque es conocimiento del instrumento —lo
+     * mismo que ATRIBUTOS o tipoDe()—, no de cómo se pinta.
+     *
+     * @var array<int, string>
+     */
+    private const ETIQUETAS_ESCALA_COMUN = ['No lo posee', 'Poca', 'Media', 'Máxima'];
+
+    /**
+     * Excepciones al vocabulario común: el instrumento nombra la escala de
+     * urgencia con sus propias palabras en cada uno de sus dos campos, no
+     * "no posee / poca / media / máxima". El valor 0-3 es el mismo en los
+     * tres atributos; cambia solo cómo se nombra, y quien rellena la ficha
+     * reconoce estas palabras de su hoja.
+     *
+     * @var array<string, array<int, string>>
+     */
+    private const ETIQUETAS_ESCALA = [
+        'urg_sensibilidad' => ['Nada sensible', 'Poco sensible', 'Sensible', 'Alta sensibilidad'],
+        'urg_criticidad'   => ['Nada crítico', 'Baja criticidad', 'Media criticidad', 'Alta criticidad'],
+    ];
+
+    /**
+     * Las cuatro etiquetas (0..3) de la escala para un campo concreto.
+     *
+     * @return array<int, string>
+     */
+    public static function etiquetasEscala(string $campo): array
+    {
+        return self::ETIQUETAS_ESCALA[$campo] ?? self::ETIQUETAS_ESCALA_COMUN;
+    }
+
+    /**
      * Los once nombres de campo en orden, aplanando ATRIBUTOS. Es lo que usan
      * $fillable del modelo y cualquier construcción de datos de prueba: pedir
      * "todos los criterios" no debería tener que conocer los tres grupos.

@@ -50,7 +50,8 @@
                                 <x-select-involucrados
                                     :label="$etiqueta"
                                     :name="$campo"
-                                    :val="$actor->$campo" />
+                                    :val="$actor->$campo"
+                                    :etiquetas="$etiquetasEscala[$campo]" />
                             @endforeach
                         </div>
                     </section>

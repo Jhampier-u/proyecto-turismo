@@ -495,6 +495,122 @@ class InvolucradosTest extends TestCase
         $this->assertDatabaseMissing('involucrados_config', ['zona_id' => $this->zona->id]);
     }
 
+    // ── Reapertura: tocar la lista validada la vuelve a borrador ───────────
+
+    /**
+     * "Confirmado" significa que ESE conjunto de actores fue validado. El
+     * CRUD de un actor no toca InvolucradosConfig, y bloqueoSiCerrada() no
+     * detiene al jefe (solo al equipo), así que sin este mecanismo el jefe
+     * podía seguir escribiendo actores bajo una lista que seguía diciendo
+     * "validada" — justo lo que la normalización por conjunto (grado del
+     * actor / suma de todos) no puede permitirse.
+     */
+    private function validar(): InvolucradosConfig
+    {
+        Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor ya validado',
+        ]);
+
+        $this->actingAs($this->jefe)->post("{$this->urlIndex($this->zona)}/validar");
+
+        return InvolucradosConfig::where('zona_id', $this->zona->id)->firstOrFail();
+    }
+
+    public function test_crear_un_actor_reabre_la_lista_ya_validada(): void
+    {
+        $config = $this->validar();
+        $this->assertSame('confirmado', $config->estado);
+
+        $this->actingAs($this->jefe)
+            ->post($this->urlIndex($this->zona), [
+                'nombre' => 'Actor nuevo tras validar',
+            ] + $this->todosEn(1))
+            ->assertSessionHas('success', fn(string $m) => str_contains($m, 'vuelve a borrador'));
+
+        $this->assertSame('borrador', $config->fresh()->estado);
+    }
+
+    public function test_editar_un_actor_reabre_la_lista_ya_validada(): void
+    {
+        $config = $this->validar();
+        $actor  = Involucrado::where('zona_id', $this->zona->id)->firstOrFail();
+
+        $this->actingAs($this->jefe)
+            ->put("{$this->urlIndex($this->zona)}/{$actor->id}", [
+                'nombre' => 'Actor editado tras validar',
+            ] + $this->todosEn(2))
+            ->assertSessionHas('success', fn(string $m) => str_contains($m, 'vuelve a borrador'));
+
+        $this->assertSame('borrador', $config->fresh()->estado);
+    }
+
+    public function test_borrar_un_actor_reabre_la_lista_ya_validada(): void
+    {
+        $config = $this->validar();
+        $actor  = Involucrado::where('zona_id', $this->zona->id)->firstOrFail();
+
+        $this->actingAs($this->jefe)
+            ->delete("{$this->urlIndex($this->zona)}/{$actor->id}")
+            ->assertSessionHas('success', fn(string $m) => str_contains($m, 'vuelve a borrador'));
+
+        $this->assertSame('borrador', $config->fresh()->estado);
+    }
+
+    /** Sin nada validado todavía, escribir un actor no toca InvolucradosConfig. */
+    public function test_escribir_sin_lista_validada_no_menciona_ninguna_reapertura(): void
+    {
+        $this->actingAs($this->jefe)
+            ->post($this->urlIndex($this->zona), [
+                'nombre' => 'Actor en borrador',
+            ] + $this->todosEn(1))
+            ->assertSessionHas('success', fn(string $m) => ! str_contains($m, 'vuelve a borrador'));
+
+        $this->assertDatabaseMissing('involucrados_config', ['zona_id' => $this->zona->id]);
+    }
+
+    // ── Vocabulario de la escala (urgencia tiene el suyo propio) ───────────
+
+    public function test_etiquetas_escala_usa_el_vocabulario_propio_de_urgencia(): void
+    {
+        $this->assertSame(
+            ['Nada sensible', 'Poco sensible', 'Sensible', 'Alta sensibilidad'],
+            Involucrados::etiquetasEscala('urg_sensibilidad')
+        );
+        $this->assertSame(
+            ['Nada crítico', 'Baja criticidad', 'Media criticidad', 'Alta criticidad'],
+            Involucrados::etiquetasEscala('urg_criticidad')
+        );
+    }
+
+    /**
+     * Los otros nueve campos —poder y legitimidad— comparten el mismo
+     * vocabulario común. No se recorren los nueve uno a uno: basta con uno
+     * de cada atributo para comprobar que no caen en la excepción de
+     * urgencia por accidente.
+     */
+    public function test_etiquetas_escala_usa_el_vocabulario_comun_fuera_de_urgencia(): void
+    {
+        $comun = ['No lo posee', 'Poca', 'Media', 'Máxima'];
+
+        $this->assertSame($comun, Involucrados::etiquetasEscala('pod_poder'));
+        $this->assertSame($comun, Involucrados::etiquetasEscala('leg_territorio'));
+    }
+
+    public function test_el_formulario_usa_el_vocabulario_de_urgencia_en_sus_dos_campos(): void
+    {
+        $pagina = $this->actingAs($this->jefe)
+            ->get(route('operativo.involucrados.create', $this->zona->id))
+            ->assertOk();
+
+        // Las palabras exclusivas de cada campo de urgencia...
+        $pagina->assertSee('Alta sensibilidad');
+        $pagina->assertSee('Media criticidad');
+        // ...y el vocabulario común, que sigue apareciendo en poder/legitimidad.
+        $pagina->assertSee('No lo posee');
+        $pagina->assertSee('Máxima');
+    }
+
     /**
      * Pareja de EstadoZonaTest::test_una_entrada_de_actores_sin_empezar_lo_dice,
      * pero por HTTP y con actores de verdad: cubre que la página de zona

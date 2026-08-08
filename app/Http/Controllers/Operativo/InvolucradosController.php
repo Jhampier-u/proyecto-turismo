@@ -65,9 +65,10 @@ class InvolucradosController extends Controller
         }
 
         return view('operativo.involucrados.form', [
-            'zona'      => $zona,
-            'actor'     => new Involucrado(),
-            'atributos' => Involucrados::ATRIBUTOS,
+            'zona'            => $zona,
+            'actor'           => new Involucrado(),
+            'atributos'       => Involucrados::ATRIBUTOS,
+            'etiquetasEscala' => $this->etiquetasEscala(),
         ]);
     }
 
@@ -84,7 +85,7 @@ class InvolucradosController extends Controller
         Involucrado::create($this->datosDe($request) + ['zona_id' => $zonaId]);
 
         return redirect()->route('operativo.involucrados.index', $zonaId)
-            ->with('success', 'Actor registrado correctamente.');
+            ->with('success', $this->mensajeConReapertura('Actor registrado correctamente.', $zonaId));
     }
 
     public function edit($zonaId, $actorId)
@@ -97,9 +98,10 @@ class InvolucradosController extends Controller
         }
 
         return view('operativo.involucrados.form', [
-            'zona'      => $zona,
-            'actor'     => $actor,
-            'atributos' => Involucrados::ATRIBUTOS,
+            'zona'            => $zona,
+            'actor'           => $actor,
+            'atributos'       => Involucrados::ATRIBUTOS,
+            'etiquetasEscala' => $this->etiquetasEscala(),
         ]);
     }
 
@@ -116,7 +118,7 @@ class InvolucradosController extends Controller
         $actor->update($this->datosDe($request));
 
         return redirect()->route('operativo.involucrados.index', $zonaId)
-            ->with('success', 'Actor actualizado correctamente.');
+            ->with('success', $this->mensajeConReapertura('Actor actualizado correctamente.', $zonaId));
     }
 
     public function destroy($zonaId, $actorId)
@@ -130,7 +132,7 @@ class InvolucradosController extends Controller
         $actor->delete();
 
         return redirect()->route('operativo.involucrados.index', $zonaId)
-            ->with('success', 'Actor eliminado.');
+            ->with('success', $this->mensajeConReapertura('Actor eliminado.', $zonaId));
     }
 
     /**
@@ -214,6 +216,74 @@ class InvolucradosController extends Controller
     private function mensajeCerrada(): string
     {
         return 'Esta lista de actores ya fue validada por el Jefe de Zona. No puedes editarla.';
+    }
+
+    /**
+     * "Confirmado" significa que ESE conjunto exacto de actores fue
+     * validado, no "hubo una validación en algún momento": el resultado
+     * normaliza cada grado dividiendo por la suma de todos los actores, así
+     * que si la lista cambia después de validarla, todos los normalizados
+     * cambian con ella y lo que queda "cerrado" ya no es lo que se validó.
+     *
+     * Las siete matrices de formulario no necesitan este mecanismo porque su
+     * propio guardado recalcula `estado` en cada envío —guardar como
+     * borrador ya reabre la evaluación—; aquí el CRUD de un actor no toca
+     * `InvolucradosConfig` en absoluto, así que sin esto la lista podía
+     * seguir diciendo "validada" mientras el jefe (al único que
+     * bloqueoSiCerrada() no le impide escribir) le añadía, editaba o le
+     * borraba actores por debajo.
+     *
+     * Solo el jefe llega hasta aquí en la práctica: bloqueoSiCerrada() ya
+     * cierra el paso al equipo antes de que el actor se llegue a tocar.
+     */
+    private function reabrirSiConfirmada($zonaId): bool
+    {
+        $config = InvolucradosConfig::where('zona_id', $zonaId)->first();
+
+        if ($config?->estado !== 'confirmado') {
+            return false;
+        }
+
+        // user_id también se actualiza: la tabla guarda "qué usuario la
+        // tocó por última vez" (ver el docblock de InvolucradosConfig), y
+        // reabrirla es justo eso, un toque, aunque no sea una confirmación.
+        $config->update(['estado' => 'borrador', 'user_id' => Auth::id()]);
+
+        return true;
+    }
+
+    /**
+     * Compone el mensaje de éxito de una escritura, avisando si de paso
+     * reabrió una lista ya validada. El aviso va en el propio mensaje —no
+     * solo en el estado de la página— porque quien acaba de guardar es quien
+     * necesita saber que tiene que volver a validar, no quien mire la zona
+     * más tarde.
+     */
+    private function mensajeConReapertura(string $base, $zonaId): string
+    {
+        return $this->reabrirSiConfirmada($zonaId)
+            ? "{$base} Al modificar la lista ya validada, vuelve a borrador: hay que validarla de nuevo."
+            : $base;
+    }
+
+    /**
+     * El vocabulario de la escala 0-3 para cada uno de los once campos,
+     * indexado por nombre de campo. Vive resuelto aquí y no en la vista
+     * —que solo lo consume— por el mismo motivo que EvaluacionIrritacionController
+     * no deja que sus plantillas lean App\Matrices\Irritacion por su cuenta:
+     * una sola fuente de verdad para lo que sabe el instrumento.
+     *
+     * @return array<string, array<int, string>>
+     */
+    private function etiquetasEscala(): array
+    {
+        return array_combine(
+            Involucrados::campos(),
+            array_map(
+                fn(string $campo) => Involucrados::etiquetasEscala($campo),
+                Involucrados::campos()
+            )
+        );
     }
 
     /** @return array<string, string> */

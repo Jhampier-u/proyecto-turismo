@@ -1,4 +1,4 @@
-@props(['label', 'name', 'val', 'disabled' => false])
+@props(['label', 'name', 'val', 'etiquetas', 'disabled' => false])
 
 {{--
     Escala 0-3 de la Matriz de Involucrados Turísticos Territoriales.
@@ -11,6 +11,13 @@
     es "el peor valor de la escala": es "no posee el criterio", una valoración
     cualitativa distinta. Compartir el componente de FIT/FET habría mezclado
     dos vocabularios que significan cosas distintas con el mismo número.
+
+    Las CUATRO PALABRAS no viven aquí: llegan por :etiquetas desde
+    App\Matrices\Involucrados::etiquetasEscala(), porque el vocabulario de
+    urgencia ("nada sensible / poco sensible...") no es el de poder y
+    legitimidad ("no lo posee / poca..."). El componente solo sabe pintar
+    cuatro opciones sobre los valores 0-3; cuáles son esas cuatro palabras
+    para cada campo es conocimiento del instrumento, no de la vista.
 --}}
 
 @php
@@ -27,10 +34,9 @@
             class="w-full border-gray-300 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:text-gray-500"
             {{ $disabled ? 'disabled' : '' }}>
         <option value="" @selected($val === null)>— sin responder —</option>
-        <option value="0" @selected($val === 0)>0 — No lo posee</option>
-        <option value="1" @selected($val === 1)>1 — Poca</option>
-        <option value="2" @selected($val === 2)>2 — Media</option>
-        <option value="3" @selected($val === 3)>3 — Máxima</option>
+        @foreach($etiquetas as $valor => $texto)
+            <option value="{{ $valor }}" @selected($val === $valor)>{{ $valor }} — {{ $texto }}</option>
+        @endforeach
     </select>
     @error($name)
         <span class="text-sm text-red-500">{{ $message }}</span>
