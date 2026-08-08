@@ -166,10 +166,14 @@ es menos indirección, no más.
 
 ## Interfaz
 
-**Formulario.** Dos secciones, una por bloque, con el mismo contador de
-respondidos y el botón de borrar respuesta que ya tienen las demás. Encabezando
-la página, un aviso de que la escala es inversa: sin él, quien venga de rellenar
-Paisaje puntuará al revés.
+**Formulario.** Dos secciones, una por bloque. Encabezando la página, una
+leyenda con los tres tramos y sus colores que avisa de que la escala es inversa:
+sin ella, quien venga de rellenar Paisaje puntuará al revés.
+
+Sin contador de respondidos ni botón de «borrar respuesta»: los dos son de los
+componentes de tarjeta, que llevan su estado en Alpine. En un formulario de
+desplegables, volver a «sin responder» es elegir esa opción, igual que en FIT,
+FET y Percepción.
 
 **Resultados.** Un panel por bloque con su promedio, su clasificación y el texto
 de interpretación que corresponda, más el desglose de los seis atributos con la
