@@ -76,19 +76,18 @@ class EvaluacionIrritacionController extends MatrizPonderadaController
     }
 
     /**
-     * Los dos bloques de campos y sus etiquetas, para que la vista consuma
-     * variables en vez de alcanzar App\Matrices\Irritacion por su cuenta.
-     * Igual que EvaluacionValoracionTerritorialController pasa CT/UC o
-     * EvaluacionPaisajeController pasa CATEGORIAS.
+     * Las etiquetas de los doce campos. No evita que la vista alcance
+     * App\Matrices\Irritacion por su cuenta —lo hace, para BLOQUES, TRAMOS e
+     * INTERPRETACIONES, igual que ya hacía antes de esta cesta—: solo ahorra
+     * repetir aquí el texto de ETIQUETAS, que es largo y no cambia según el
+     * bloque.
      *
      * @return array<string, mixed>
      */
     private function datosDelInstrumento(): array
     {
         return [
-            'visitantes' => Irritacion::VISITANTES,
-            'residentes' => Irritacion::RESIDENTES,
-            'etiquetas'  => Irritacion::ETIQUETAS,
+            'etiquetas' => Irritacion::ETIQUETAS,
         ];
     }
 

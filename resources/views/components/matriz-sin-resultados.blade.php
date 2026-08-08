@@ -33,6 +33,14 @@
                     Responde los criterios que faltan y volverá a aparecer.
                 @endif
             </p>
+
+            {{-- Slot opcional: alguna matriz necesita precisar qué le falta
+                 —el Índice de Irritación tiene dos bloques independientes y
+                 "no está completa" por sí solo no dice si falta uno o los
+                 dos—. Sin contenido no se pinta nada de más. --}}
+            @if($slot->isNotEmpty())
+                <p class="text-sm mt-2">{{ $slot }}</p>
+            @endif
         </div>
 
         <div class="mt-6 text-center">

@@ -126,10 +126,12 @@ class RegistroMatricesTest extends TestCase
     public function test_cada_entrada_declara_un_icono_existente_y_sin_repetir(): void
     {
         // El trazo que icono.blade.php pinta cuando el nombre no coincide con
-        // ninguno de los suyos. Se renderiza el componente de verdad, en vez
-        // de copiar aquí la lista de nombres válidos, para no mantener una
-        // segunda fuente de verdad que también pueda quedarse desactualizada.
-        $trazoPorDefecto = 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z';
+        // ninguno de los suyos. Se deriva renderizando el componente con un
+        // nombre inexistente, en vez de copiar aquí el trazo a mano: si
+        // alguien cambia el trazo por defecto, una copia a mano seguiría
+        // comparando contra el valor viejo y el test pasaría siempre, sin
+        // proteger nada.
+        $trazoPorDefecto = $this->trazoIconoPorDefecto();
 
         $vistos = [];
 
@@ -154,5 +156,21 @@ class RegistroMatricesTest extends TestCase
 
             $vistos[$entrada['icono']] = $clave;
         }
+    }
+
+    /**
+     * Renderiza <x-icono> con un nombre que no existe y extrae el trazo del
+     * SVG resultante: es el mismo componente que produce el fallback, así que
+     * esta referencia no puede quedarse desactualizada por su cuenta.
+     */
+    private function trazoIconoPorDefecto(): string
+    {
+        $html = (string) $this->blade('<x-icono nombre="__inexistente__" />');
+
+        preg_match('/\sd="([^"]+)"/', $html, $coincidencia);
+
+        $this->assertNotEmpty($coincidencia, 'No se pudo extraer el trazo por defecto de icono.blade.php.');
+
+        return $coincidencia[1];
     }
 }

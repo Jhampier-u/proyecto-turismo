@@ -20,41 +20,12 @@
     @endphp
 
     @if($sinDatos)
-        <div class="py-12">
-            <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg shadow">
-                    <div class="flex items-center gap-4">
-                        <span class="text-4xl">🧭</span>
-                        <div>
-                            <h3 class="font-bold text-yellow-800 text-lg">Índice de Irritación no disponible</h3>
-                            <p class="text-yellow-700 mt-1">
-                                La zona <strong>{{ $zona->nombre }}</strong> todavía no tiene los dos bloques
-                                —visitantes y residentes— respondidos por completo.
-                            </p>
-                            @if($readonly)
-                                <p class="text-yellow-600 text-sm mt-2">
-                                    Como administrador puedes consultar la zona, pero <strong>completar y validar
-                                    esta matriz es responsabilidad del Jefe de Zona y su equipo</strong>.
-                                </p>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        @if($readonly)
-                            <a href="{{ route('admin.zonas.index') }}"
-                               class="inline-block bg-gray-200 hover:bg-gray-400 text-black font-bold py-2 px-5 rounded shadow transition">
-                                Volver a Zonas
-                            </a>
-                        @else
-                            <a href="{{ route('operativo.evaluacion_irritacion.edit', $zona->id) }}"
-                               class="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-5 rounded shadow transition">
-                                Ver Formulario de Evaluación
-                            </a>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
+        <x-matriz-sin-resultados
+            nombre="Índice de Irritación"
+            :zona="$zona"
+            ruta-formulario="operativo.evaluacion_irritacion.edit">
+            Hacen falta los dos bloques —visitantes y residentes— respondidos por completo.
+        </x-matriz-sin-resultados>
     @else
 
     <div class="py-12">
@@ -63,53 +34,44 @@
 
                 <x-flash-exito />
 
-                <h3 class="text-center font-bold text-xl text-gray-700 mb-8 uppercase tracking-wide">
+                <h3 class="text-center font-bold text-xl text-gray-700 mb-8">
                     Índice de Irritación Turística
                 </h3>
 
-                @php
-                    // Mismos tres tramos que la leyenda del formulario: el color
-                    // vive en Irritacion::TRAMOS y no aquí, para no mantener dos
-                    // copias que corregir el día que el instrumento cambie una.
-                    $coloresClasificacion = array_map(
-                        fn(array $tramo) => $tramo['color'],
-                        \App\Matrices\Irritacion::TRAMOS
-                    );
-                @endphp
-
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
                     <div class="bg-sky-50 border border-sky-200 rounded-lg p-6 text-center">
-                        <p class="text-xs text-sky-700 uppercase font-bold">Visitantes</p>
+                        <p class="text-sm text-sky-700 font-bold">Visitantes</p>
                         <p class="text-4xl font-black text-sky-700 mt-1">
                             {{ number_format($evaluacion->visitantes_promedio, 2) }}
                         </p>
-                        <span class="inline-block mt-2 px-3 py-1 rounded text-sm font-semibold {{ $coloresClasificacion[$evaluacion->clasificacion_visitantes] }}">
-                            {{ $evaluacion->clasificacion_visitantes }}
-                        </span>
+                        <x-insignia-clasificacion :valor="$evaluacion->clasificacion_visitantes" class="mt-2" />
+                        <p class="text-sm text-gray-600 mt-3">
+                            {{ \App\Matrices\Irritacion::INTERPRETACIONES['visitantes'][$evaluacion->clasificacion_visitantes] }}
+                        </p>
                     </div>
                     <div class="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
-                        <p class="text-xs text-amber-700 uppercase font-bold">Residentes</p>
+                        <p class="text-sm text-amber-700 font-bold">Residentes</p>
                         <p class="text-4xl font-black text-amber-700 mt-1">
                             {{ number_format($evaluacion->residentes_promedio, 2) }}
                         </p>
-                        <span class="inline-block mt-2 px-3 py-1 rounded text-sm font-semibold {{ $coloresClasificacion[$evaluacion->clasificacion_residentes] }}">
-                            {{ $evaluacion->clasificacion_residentes }}
-                        </span>
+                        <x-insignia-clasificacion :valor="$evaluacion->clasificacion_residentes" class="mt-2" />
+                        <p class="text-sm text-gray-600 mt-3">
+                            {{ \App\Matrices\Irritacion::INTERPRETACIONES['residentes'][$evaluacion->clasificacion_residentes] }}
+                        </p>
                     </div>
                 </div>
 
                 {{-- Detalle por bloque, cada uno con sus propios seis atributos:
                      cruzarlos en una sola tabla mezclaría dos poblaciones
                      distintas, igual que evita el controlador al no combinarlos
-                     en un índice único. --}}
-                @foreach([
-                    [\App\Matrices\Irritacion::BLOQUES['visitantes']['titulo'], $visitantes],
-                    [\App\Matrices\Irritacion::BLOQUES['residentes']['titulo'], $residentes],
-                ] as [$titulo, $campos])
-                    <h4 class="font-bold text-gray-700 mt-6 mb-2">{{ $titulo }}</h4>
+                     en un índice único. Un solo bucle sobre Irritacion::BLOQUES
+                     en vez de un array literal de pares: el conjunto de bloques
+                     ya vive declarado una sola vez en el instrumento. --}}
+                @foreach(\App\Matrices\Irritacion::BLOQUES as $bloque)
+                    <h4 class="font-bold text-gray-700 mt-6 mb-2">{{ $bloque['titulo'] }}</h4>
                     <div class="overflow-x-auto mb-6">
                         <table class="min-w-full text-sm border-collapse border border-gray-300">
-                            <thead class="bg-gray-100 text-xs uppercase">
+                            <thead class="bg-gray-100">
                                 <tr>
                                     <th class="border border-gray-300 p-2 text-left">Atributo</th>
                                     <th class="border border-gray-300 p-2">Valor</th>
@@ -119,18 +81,16 @@
                             <tbody>
                                 {{-- clasificar() sigue llamándose directo, sin pasar por el
                                      controlador: no es dato del instrumento —eso ya llega en
-                                     $visitantes/$residentes/$etiquetas—, es una función pura
+                                     $etiquetas y en los campos del bloque—, es una función pura
                                      sobre el valor de cada fila, igual que ya la invoca
                                      select-0-10.blade.php por su cuenta. --}}
-                                @foreach($campos as $campo)
+                                @foreach($bloque['campos'] as $campo)
                                     @php $clasificacion = \App\Matrices\Irritacion::clasificar($evaluacion->$campo); @endphp
                                     <tr>
                                         <td class="border border-gray-300 p-2">{{ $etiquetas[$campo] }}</td>
                                         <td class="border border-gray-300 p-2 text-center font-bold">{{ $evaluacion->$campo }}</td>
                                         <td class="border border-gray-300 p-2 text-center">
-                                            <span class="inline-block px-2 py-1 rounded text-xs font-semibold {{ $coloresClasificacion[$clasificacion] }}">
-                                                {{ $clasificacion }}
-                                            </span>
+                                            <x-insignia-clasificacion :valor="$clasificacion" />
                                         </td>
                                     </tr>
                                 @endforeach

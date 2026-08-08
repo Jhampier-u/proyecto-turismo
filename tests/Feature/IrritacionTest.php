@@ -94,6 +94,71 @@ class IrritacionTest extends TestCase
     }
 
     /**
+     * La vista de resultados indexa
+     * INTERPRETACIONES[$clave][$evaluacion->clasificacion_...] sin "??",
+     * igual que antes indexaba los colores: mismo riesgo, así que se cubre
+     * con el mismo tipo de test. todosEn(4) solo ejercita 'Moderado' en las
+     * pruebas HTTP, así que sin esto un tramo sin interpretación en un bloque
+     * concreto no lo detectaría nada hasta producción.
+     */
+    public function test_cada_bloque_tiene_interpretacion_para_los_tres_tramos(): void
+    {
+        foreach (array_keys(Irritacion::BLOQUES) as $clave) {
+            foreach (array_keys(Irritacion::TRAMOS) as $clasificacion) {
+                $this->assertArrayHasKey(
+                    $clasificacion,
+                    Irritacion::INTERPRETACIONES[$clave],
+                    "INTERPRETACIONES['{$clave}'] no tiene texto para '{$clasificacion}'."
+                );
+            }
+        }
+    }
+
+    /**
+     * Nada ata las claves de TRAMOS a lo que devuelve clasificar(): la vista
+     * de resultados indexa Irritacion::TRAMOS (a través de
+     * <x-insignia-clasificacion>) con la clasificación de cada bloque sin
+     * "??", así que renombrar una clave rompería con un error de clave
+     * inexistente cualquier zona 'Bajo' o 'Crítico' sin que ningún test lo
+     * note: todosEn(4) —el único dato que abre esa página en el resto de la
+     * suite— solo ejercita 'Moderado'.
+     */
+    public function test_clasificar_devuelve_siempre_una_clave_declarada_en_tramos(): void
+    {
+        for ($valor = Irritacion::ESCALA_MIN; $valor <= Irritacion::ESCALA_MAX; $valor++) {
+            $clasificacion = Irritacion::clasificar((float) $valor);
+
+            $this->assertArrayHasKey(
+                $clasificacion,
+                Irritacion::TRAMOS,
+                "clasificar({$valor}) devolvió '{$clasificacion}', que no está declarado en TRAMOS."
+            );
+        }
+    }
+
+    /**
+     * El rango de cada tramo se deriva de los umbrales en el propio
+     * Irritacion::TRAMOS (ver su docblock); este test es lo que impediría que
+     * la derivación y los umbrales se desincronizaran en el futuro sin que
+     * nada lo note.
+     */
+    public function test_el_rango_declarado_concuerda_con_los_umbrales(): void
+    {
+        $this->assertSame(
+            Irritacion::ESCALA_MIN . ' a ' . (Irritacion::UMBRAL_MODERADO - 1),
+            Irritacion::TRAMOS['Bajo']['rango']
+        );
+        $this->assertSame(
+            Irritacion::UMBRAL_MODERADO . ' a ' . (Irritacion::UMBRAL_CRITICO - 1),
+            Irritacion::TRAMOS['Moderado']['rango']
+        );
+        $this->assertSame(
+            Irritacion::UMBRAL_CRITICO . ' a ' . Irritacion::ESCALA_MAX,
+            Irritacion::TRAMOS['Crítico']['rango']
+        );
+    }
+
+    /**
      * Nada instancia hoy el modelo. Una errata en el nombre del atributo
      * dentro de un accesorio devolvería null en silencio, y no se vería
      * hasta la Task 3, a través de un POST, donde diagnosticarlo cuesta
@@ -267,7 +332,7 @@ class IrritacionTest extends TestCase
         // lista de clases siempre termina en comilla antes de esa posición.
         $html = $respuesta->getContent();
         $this->assertSame(
-            12,
+            count(Irritacion::ETIQUETAS),
             substr_count($html, 'disabled>'),
             'Los doce <select> deberían llegar deshabilitados al admin.'
         );
@@ -312,5 +377,52 @@ class IrritacionTest extends TestCase
             ->assertSee('Volver a Zonas')
             ->assertSee(route('admin.zonas.index'), false)
             ->assertDontSee(route('operativo.evaluacion_irritacion.edit', $this->zona->id), false);
+    }
+
+    /**
+     * Si el bucle que pinta la leyenda desaparece del formulario, ningún otro
+     * test lo nota: ninguno busca los tres tramos ahí. Se recorre
+     * Irritacion::TRAMOS en vez de escribir los tres textos a mano, para que
+     * un cambio de rango o de etiqueta no desincronice esta prueba con el
+     * instrumento.
+     */
+    public function test_el_formulario_muestra_los_tres_tramos_de_la_leyenda(): void
+    {
+        $pagina = $this->actingAs($this->jefe)->get($this->url())->assertOk();
+
+        foreach (Irritacion::TRAMOS as $clasificacion => $tramo) {
+            $pagina->assertSee("{$tramo['rango']}: {$clasificacion}");
+        }
+    }
+
+    public function test_los_resultados_muestran_los_dos_bloques_con_su_interpretacion(): void
+    {
+        $datos = $this->todosEn(1);
+        foreach (Irritacion::RESIDENTES as $campo) {
+            $datos[$campo] = 8;
+        }
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos);
+
+        $this->actingAs($this->jefe)->get($this->url('/resultados'))
+            ->assertOk()
+            ->assertSee('Bajo')
+            ->assertSee('Crítico')
+            ->assertSee('nivel de aceptación amplio')
+            ->assertSee('estado de insatisfacción');
+    }
+
+    /** Mismo trato que las otras seis: sin resultado no se pinta un cero. */
+    public function test_con_la_matriz_a_medias_no_hay_resultados(): void
+    {
+        $datos = $this->todosEn(5);
+        unset($datos['res_seguridad']);
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos);
+
+        $this->actingAs($this->jefe)->get($this->url('/resultados'))
+            ->assertOk()
+            ->assertSee('todavía no está completa')
+            ->assertDontSee('0.00');
     }
 }
