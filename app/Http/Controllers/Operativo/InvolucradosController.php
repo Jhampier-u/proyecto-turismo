@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * CRUD de la Matriz de Involucrados Turísticos Territoriales.
@@ -83,10 +84,19 @@ class InvolucradosController extends Controller
 
         $request->validate($this->reglas());
 
-        Involucrado::create($this->datosDe($request) + ['zona_id' => $zonaId]);
+        // Alta y reapertura en la misma transacción: si reabrirSiConfirmada()
+        // fallara a mitad de camino, un rollback a medias dejaría el actor
+        // nuevo ya escrito pero la lista todavía diciendo "confirmado" sobre
+        // un conjunto que ya cambió — justo el conjunto que ya no corresponde
+        // a lo que se validó. Ver el docblock de reabrirSiConfirmada().
+        $reabrio = DB::transaction(function () use ($request, $zonaId) {
+            Involucrado::create($this->datosDe($request) + ['zona_id' => $zonaId]);
+
+            return $this->reabrirSiConfirmada($zonaId);
+        });
 
         return redirect()->route('operativo.involucrados.index', $zonaId)
-            ->with('success', $this->mensajeConReapertura('Actor registrado correctamente.', $zonaId));
+            ->with('success', $this->mensajeConReapertura('Actor registrado correctamente.', $reabrio));
     }
 
     public function edit($zonaId, $actorId)
@@ -116,10 +126,16 @@ class InvolucradosController extends Controller
 
         $request->validate($this->reglas());
 
-        $actor->update($this->datosDe($request));
+        // Misma transacción que store(): la actualización y la reapertura
+        // tienen que caer juntas o ninguna, por el mismo motivo.
+        $reabrio = DB::transaction(function () use ($actor, $request, $zonaId) {
+            $actor->update($this->datosDe($request));
+
+            return $this->reabrirSiConfirmada($zonaId);
+        });
 
         return redirect()->route('operativo.involucrados.index', $zonaId)
-            ->with('success', $this->mensajeConReapertura('Actor actualizado correctamente.', $zonaId));
+            ->with('success', $this->mensajeConReapertura('Actor actualizado correctamente.', $reabrio));
     }
 
     public function destroy($zonaId, $actorId)
@@ -130,10 +146,29 @@ class InvolucradosController extends Controller
             return $bloqueo;
         }
 
-        $actor->delete();
+        // Borrar y reabrir en la misma transacción, por el mismo motivo que
+        // store()/update(): sin ella, un fallo al reabrir podía dejar la
+        // lista "confirmado" con un actor de menos del que se validó.
+        //
+        // Esta ruta es además la que sostiene una invariante que
+        // EstadoZona::filaActores() da por descontada en un comentario: "una
+        // configuración confirmada con cero actores no debería poder
+        // existir". No es una garantía aparte, es consecuencia de solo dos
+        // reglas trabajando juntas — validar() exige $total > 0 antes de
+        // confirmar, y borrar el último actor de una lista confirmada pasa
+        // por aquí, que la reabre en la misma transacción que la vacía. Si
+        // algún día la reapertura se aparta de destroy() (una cola, un job,
+        // un "deshacer" que borre sin pasar por este método) ese estado
+        // imposible deja de serlo, y filaActores() empezaría a tratar un caso
+        // real como si fuera una inconsistencia de datos.
+        $reabrio = DB::transaction(function () use ($actor, $zonaId) {
+            $actor->delete();
+
+            return $this->reabrirSiConfirmada($zonaId);
+        });
 
         return redirect()->route('operativo.involucrados.index', $zonaId)
-            ->with('success', $this->mensajeConReapertura('Actor eliminado.', $zonaId));
+            ->with('success', $this->mensajeConReapertura('Actor eliminado.', $reabrio));
     }
 
     /**
@@ -314,6 +349,14 @@ class InvolucradosController extends Controller
      *
      * Solo el jefe llega hasta aquí en la práctica: bloqueoSiCerrada() ya
      * cierra el paso al equipo antes de que el actor se llegue a tocar.
+     *
+     * store()/update()/destroy() la llaman de forma explícita, dentro de la
+     * misma transacción que la escritura del actor — no desde
+     * mensajeConReapertura() como antes. Que la transición de estado más
+     * delicada de esta matriz colgara de que alguien siga componiendo un
+     * flash era el propio bug: un cambio futuro en cómo se arman los
+     * mensajes de éxito podía dejar de llamar a este método sin que nada lo
+     * avisara, y la lista seguiría diciendo "validada" para siempre.
      */
     private function reabrirSiConfirmada($zonaId): bool
     {
@@ -332,15 +375,22 @@ class InvolucradosController extends Controller
     }
 
     /**
-     * Compone el mensaje de éxito de una escritura, avisando si de paso
-     * reabrió una lista ya validada. El aviso va en el propio mensaje —no
-     * solo en el estado de la página— porque quien acaba de guardar es quien
+     * Compone el mensaje de éxito de una escritura, avisando si de paso se
+     * reabrió una lista ya validada.
+     *
+     * Recibe el booleano ya decidido — no llama a reabrirSiConfirmada() — a
+     * propósito: este método solo arma una cadena de texto, y una función
+     * que compone un mensaje no es el sitio para disparar la transición de
+     * estado más delicada de la matriz. Quien escribe en la base es
+     * store()/update()/destroy(), dentro de su propia transacción; aquí solo
+     * se decide cómo contarlo. El aviso va en el propio mensaje —no solo en
+     * el estado de la página— porque quien acaba de guardar es quien
      * necesita saber que tiene que volver a validar, no quien mire la zona
      * más tarde.
      */
-    private function mensajeConReapertura(string $base, $zonaId): string
+    private function mensajeConReapertura(string $base, bool $reabrio): string
     {
-        return $this->reabrirSiConfirmada($zonaId)
+        return $reabrio
             ? "{$base} Al modificar la lista ya validada, vuelve a borrador: hay que validarla de nuevo."
             : $base;
     }

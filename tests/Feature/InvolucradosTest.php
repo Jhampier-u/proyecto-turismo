@@ -300,6 +300,98 @@ class InvolucradosTest extends TestCase
     }
 
     /**
+     * Recorrido completo por HTTP, y no vía Involucrado::create() directo
+     * como los otros cuarenta usos de valores en 0 de este archivo: sin este
+     * test el camino "el usuario elige 0 → llega por POST → se guarda → se
+     * repinta el desplegable con el 0 marcado" no se ejecuta nunca de punta
+     * a punta. select-involucrados es justo el desplegable donde ese 0
+     * significa más —"no lo posee", una valoración explícita, no un hueco—,
+     * así que perder ese 0 al repintar sería el fallo que este instrumento
+     * menos se puede permitir.
+     */
+    public function test_un_cero_elegido_por_el_usuario_llega_por_post_y_se_repinta_marcado(): void
+    {
+        // pod_poder va en el array de la izquierda a propósito: "+" entre
+        // arrays conserva el valor del lado izquierdo en un choque de
+        // claves, y pod_poder SÍ es una de las once claves que todosEn(2)
+        // ya trae. Ponerlo después de todosEn(2), como con tiene_poder en
+        // otros tests, lo habría dejado en 2 en vez de en 0 sin que ningún
+        // error lo avisara.
+        $this->actingAs($this->jefe)
+            ->post($this->urlIndex($this->zona), [
+                'nombre'    => 'Actor con un cero real',
+                'pod_poder' => '0',
+            ] + $this->todosEn(2))
+            ->assertSessionHas('success');
+
+        $actor = Involucrado::where('zona_id', $this->zona->id)->firstOrFail();
+        $this->assertSame(0, $actor->pod_poder);
+
+        $pagina = $this->actingAs($this->jefe)
+            ->get("{$this->urlIndex($this->zona)}/{$actor->id}/editar")
+            ->assertOk();
+
+        preg_match('/<select[^>]*name="pod_poder".*?<\/select>/s', $pagina->getContent(), $bloque);
+        $this->assertNotEmpty($bloque, 'No se encontró el desplegable pod_poder.');
+        $this->assertStringContainsString('<option value="0" selected>', $bloque[0]);
+    }
+
+    /**
+     * Único formulario del sistema sin este candado de rol. El middleware
+     * PerteneceAZona ya cierra la escritura para el admin —cualquier método
+     * no seguro se come un 403 antes de llegar al controlador—, pero
+     * create()/edit() solo comprobaban esEquipo() vía bloqueoSiCerrada(), que
+     * es falso para el admin: un GET directo a /nuevo o a /editar devolvía
+     * 200 con los once desplegables, las tres casillas y el botón de guardar
+     * activos. Mismo patrón que
+     * AutorizacionZonaTest::test_el_admin_no_ve_botones_de_escritura_en_el_inventario:
+     * los controles tienen que desaparecer, no solo fallar al enviarlos.
+     */
+    public function test_el_admin_no_ve_el_formulario_de_actor_editable(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $actor = Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor existente',
+        ]);
+
+        $nuevo = $this->actingAs($admin)->get("{$this->urlIndex($this->zona)}/nuevo");
+        $nuevo->assertOk();
+        $nuevo->assertDontSee('Guardar');
+
+        // Los desplegables llevan la clase Tailwind "disabled:bg-gray-100" en
+        // TODOS los casos, activos o no: buscar la palabra "disabled" a
+        // secas no distingue nada. El atributo HTML real va al final de la
+        // etiqueta, así que "disabled>" solo aparece cuando de verdad está
+        // desactivado.
+        preg_match('/<select[^>]*name="pod_poder"[^>]*>/', $nuevo->getContent(), $select);
+        $this->assertNotEmpty($select, 'No se encontró el desplegable pod_poder.');
+        $this->assertStringContainsString('disabled>', $select[0]);
+
+        // En la casilla el atributo disabled va ANTES de class="...", así
+        // que basta con mirar la parte de la etiqueta anterior a "class=".
+        preg_match('/<input[^>]*name="tiene_poder"[^>]*>/', $nuevo->getContent(), $checkbox);
+        $this->assertNotEmpty($checkbox, 'No se encontró la casilla tiene_poder.');
+        [$antesDeClase] = explode('class=', $checkbox[0]);
+        $this->assertStringContainsString('disabled', $antesDeClase);
+
+        $this->actingAs($admin)
+            ->get("{$this->urlIndex($this->zona)}/{$actor->id}/editar")
+            ->assertOk()
+            ->assertDontSee('Guardar');
+
+        // El jefe, en cambio, sigue viendo el mismo formulario abierto de par
+        // en par: el arreglo no debe cerrarle la escritura a quien sí puede
+        // escribir.
+        $this->actingAs($this->jefe)
+            ->get("{$this->urlIndex($this->zona)}/nuevo")
+            ->assertSee('Guardar');
+    }
+
+    /**
      * old('tiene_poder', $actor->tiene_poder) parecía razonable pero no lo
      * es: una casilla que el usuario acaba de desmarcar no viaja en la
      * petición, así que si OTRO campo falla la validación, old() no
@@ -567,6 +659,48 @@ class InvolucradosTest extends TestCase
             ->assertSessionHas('success', fn(string $m) => ! str_contains($m, 'vuelve a borrador'));
 
         $this->assertDatabaseMissing('involucrados_config', ['zona_id' => $this->zona->id]);
+    }
+
+    /**
+     * Al jefe no se le puede avisar de la reapertura recién DESPUÉS de
+     * provocarla: con la lista validada, "+ Nuevo actor", "Editar" y
+     * "Eliminar" siguen activos justo debajo de este banner, así que el
+     * aviso tiene que estar aquí, antes de que pulse cualquiera de los tres,
+     * no solo en el flash que sale después de guardar.
+     */
+    public function test_el_banner_de_lista_validada_avisa_que_modificarla_la_reabre(): void
+    {
+        $this->validar();
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('vuelve a borrador: hay que validarla de nuevo');
+    }
+
+    /**
+     * Mismo aviso en el diálogo nativo de "¿Borrar este actor?", y solo
+     * cuando de verdad aplica: con la lista en borrador, borrar un actor no
+     * reabre nada, y anunciarlo igual sería un aviso falso.
+     */
+    public function test_el_dialogo_de_borrar_avisa_de_la_reapertura_solo_si_la_lista_esta_validada(): void
+    {
+        Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor en borrador',
+        ]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertDontSee('validada: al borrarlo');
+
+        $this->validar();
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('validada: al borrarlo');
     }
 
     // ── Vocabulario de la escala (urgencia tiene el suyo propio) ───────────

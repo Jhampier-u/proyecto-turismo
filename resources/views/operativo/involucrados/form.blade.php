@@ -24,6 +24,26 @@
                     @method('PUT')
                 @endif
 
+                @php
+                    // Único formulario del sistema que no llevaba este
+                    // candado: las siete matrices de formulario bloquean con
+                    // `! auth()->user()->puedeEditarEvaluaciones() || ($estaConfirmado && !$esJefe)`,
+                    // pero aquí la segunda mitad de esa fórmula no hace
+                    // falta —bloqueoSiCerrada() ya redirige al equipo antes
+                    // de llegar a esta vista en cuanto la lista está
+                    // confirmada, y al jefe no lo bloquea nunca—, así que
+                    // repetirla aquí sería una segunda rama que nunca se
+                    // ejecuta. Lo único que faltaba de verdad es el candado
+                    // de ROL: el admin no tenía ninguno, y create()/edit()
+                    // solo preguntaban esEquipo() (falso para él), así que un
+                    // GET directo a esta ruta lo dejaba ver los once
+                    // desplegables, las tres casillas y el botón de guardar
+                    // activos, aunque el POST se lo comiera un 403 de
+                    // PerteneceAZona. Los controles tienen que desaparecer,
+                    // no solo fallar al pulsarlos.
+                    $bloqueado = ! auth()->user()->puedeEditarEvaluaciones();
+                @endphp
+
                 <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
                     <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">
                         Nombre del actor
@@ -31,7 +51,8 @@
                     <input type="text" name="nombre" id="nombre" maxlength="200" required
                            value="{{ old('nombre', $actor->nombre) }}"
                            placeholder="Un municipio, una comunidad, una operadora..."
-                           class="w-full border-gray-300 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                           class="w-full border-gray-300 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:text-gray-500"
+                           @disabled($bloqueado)>
                     @error('nombre')
                         <span class="text-sm text-red-500">{{ $message }}</span>
                     @enderror
@@ -51,7 +72,8 @@
                                     :label="$etiqueta"
                                     :name="$campo"
                                     :val="$actor->$campo"
-                                    :etiquetas="$etiquetasEscala[$campo]" />
+                                    :etiquetas="$etiquetasEscala[$campo]"
+                                    :disabled="$bloqueado" />
                             @endforeach
                         </div>
                     </section>
@@ -90,29 +112,38 @@
                         <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
                             <input type="checkbox" name="tiene_poder" value="1"
                                    @checked($marcado('tiene_poder'))
-                                   class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                   @disabled($bloqueado)
+                                   class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 disabled:bg-gray-100">
                             Tiene poder
                         </label>
                         <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
                             <input type="checkbox" name="tiene_legitimidad" value="1"
                                    @checked($marcado('tiene_legitimidad'))
-                                   class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                   @disabled($bloqueado)
+                                   class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 disabled:bg-gray-100">
                             Tiene legitimidad
                         </label>
                         <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
                             <input type="checkbox" name="tiene_urgencia" value="1"
                                    @checked($marcado('tiene_urgencia'))
-                                   class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                   @disabled($bloqueado)
+                                   class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 disabled:bg-gray-100">
                             Tiene urgencia
                         </label>
                     </div>
                 </section>
 
                 <div class="flex justify-end">
-                    <button type="submit"
-                            class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow">
-                        Guardar
-                    </button>
+                    @if($bloqueado)
+                        <span class="text-gray-500 italic self-center">
+                            El administrador puede consultar esta ficha, pero no puede modificarla.
+                        </span>
+                    @else
+                        <button type="submit"
+                                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow">
+                            Guardar
+                        </button>
+                    @endif
                 </div>
             </form>
 

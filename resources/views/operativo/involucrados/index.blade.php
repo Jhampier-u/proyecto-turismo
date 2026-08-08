@@ -32,6 +32,18 @@
                         <div>
                             <strong class="font-bold text-lg">Lista de actores validada</strong>
                             <p>El Jefe de Zona confirmó esta lista. Los normalizados y el tipo de Mitchell ya se pueden consultar.</p>
+                            {{--
+                                El jefe no debería enterarse de la reapertura recién
+                                DESPUÉS de provocarla: "+ Nuevo actor", "Editar" y
+                                "Eliminar" siguen activos justo debajo de este banner
+                                mientras la lista sigue "validada", y el aviso de que
+                                tocarla la reabre tiene que estar aquí, antes de que
+                                pulse cualquiera de los tres, no solo en el flash que
+                                sale después de guardar.
+                            --}}
+                            <p class="text-sm mt-1">
+                                Si la modificas —añades, editas o borras un actor—, vuelve a borrador: hay que validarla de nuevo.
+                            </p>
                         </div>
                         <a href="{{ route('operativo.involucrados.resultados', $zona->id) }}"
                            class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700">
@@ -84,8 +96,17 @@
                                     <div class="flex justify-end gap-2">
                                         <a href="{{ route('operativo.involucrados.edit', ['zona' => $zona->id, 'actor' => $actor->id]) }}"
                                            class="text-indigo-600 font-bold text-sm bg-indigo-50 px-2 py-1 rounded">Editar</a>
+                                        {{--
+                                            El mismo aviso que el banner verde, y por la
+                                            misma razón: el diálogo nativo es lo último que
+                                            el jefe ve ANTES de reabrir la lista, no
+                                            después. Condicionado a $confirmada para no
+                                            anunciar una reapertura que no va a ocurrir
+                                            cuando la lista todavía está en borrador.
+                                        --}}
                                         <form action="{{ route('operativo.involucrados.destroy', ['zona' => $zona->id, 'actor' => $actor->id]) }}"
-                                              method="POST" onsubmit="return confirm('¿Borrar este actor?');">
+                                              method="POST"
+                                              onsubmit="return confirm('¿Borrar este actor?{{ $confirmada ? ' Esta lista está validada: al borrarlo, vuelve a borrador y hay que validarla de nuevo.' : '' }}');">
                                             @csrf @method('DELETE')
                                             <button class="text-red-600 font-bold text-sm bg-red-50 px-2 py-1 rounded">Eliminar</button>
                                         </form>

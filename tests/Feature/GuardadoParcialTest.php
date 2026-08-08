@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Matrices\Involucrados;
 use App\Matrices\Paisaje;
 use App\Matrices\Registro;
 use App\Models\EvaluacionFit;
@@ -281,6 +282,16 @@ class GuardadoParcialTest extends TestCase
      * que vuelve como «sin responder» se pierde en cuanto el usuario guarda
      * otra vez, y un hueco que vuelve como 0 se convierte en una puntuación que
      * nadie eligió. Es el paso que el plan dejaba en verificación manual.
+     *
+     * select-involucrados entra en los dos bucles como select-0-3/select-0-2/
+     * select-irritacion: también empieza en 0, y es justo la matriz donde ese
+     * 0 significa más —"no lo posee", una valoración explícita, no el peor
+     * valor de una escala—. Antes no estaba en esta lista y ningún test lo
+     * tocaba (un grep por su nombre en tests/ no devolvía nada), así que
+     * quedaba fuera del contrato compartido que el resto de desplegables sí
+     * cumple. A diferencia de sus hermanos necesita :etiquetas —el
+     * vocabulario de la escala no es fijo, cambia por campo—, así que se le
+     * pasa aparte en vez de forzarlo en la firma común de los demás.
      */
     public function test_los_desplegables_distinguen_el_hueco_del_cero(): void
     {
@@ -288,14 +299,20 @@ class GuardadoParcialTest extends TestCase
         // llevan @error.
         $this->withViewErrors([]);
 
-        foreach (['select-0-3', 'select-0-2', 'select-percepcion', 'select-irritacion'] as $componente) {
+        $etiquetas = Involucrados::etiquetasEscala('pod_poder');
+        $extraDe   = fn(string $componente) => $componente === 'select-involucrados' ? ' :etiquetas="$etiquetas"' : '';
+
+        foreach (['select-0-3', 'select-0-2', 'select-percepcion', 'select-irritacion', 'select-involucrados'] as $componente) {
+            $extra = $extraDe($componente);
+
             $sinResponder = (string) $this->blade(
-                "<x-{$componente} label=\"Criterio\" name=\"c\" :val=\"null\" />"
+                "<x-{$componente} label=\"Criterio\" name=\"c\" :val=\"null\"{$extra} />",
+                ['etiquetas' => $etiquetas]
             );
             $conValor = (string) $this->blade(
-                "<x-{$componente} label=\"Criterio\" name=\"c\" :val=\"\$val\" />",
+                "<x-{$componente} label=\"Criterio\" name=\"c\" :val=\"\$val\"{$extra} />",
                 // Percepción no tiene 0 en su escala; su valor bajo es el 1.
-                ['val' => $componente === 'select-percepcion' ? 1 : 0]
+                ['val' => $componente === 'select-percepcion' ? 1 : 0, 'etiquetas' => $etiquetas]
             );
 
             $this->assertStringContainsString(
@@ -306,12 +323,14 @@ class GuardadoParcialTest extends TestCase
             );
         }
 
-        // El caso que de verdad importa, y solo lo tienen las dos escalas que
+        // El caso que de verdad importa, y solo lo tienen las escalas que
         // empiezan en 0: un cero guardado tiene que volver marcado como cero.
-        foreach (['select-0-3', 'select-0-2', 'select-irritacion'] as $componente) {
+        foreach (['select-0-3', 'select-0-2', 'select-irritacion', 'select-involucrados'] as $componente) {
+            $extra = $extraDe($componente);
+
             $this->assertStringContainsString(
                 '<option value="0" selected>',
-                (string) $this->blade("<x-{$componente} label=\"C\" name=\"c\" :val=\"0\" />"),
+                (string) $this->blade("<x-{$componente} label=\"C\" name=\"c\" :val=\"0\"{$extra} />", ['etiquetas' => $etiquetas]),
                 "{$componente}: un cero guardado no vuelve marcado"
             );
         }
