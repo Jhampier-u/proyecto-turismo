@@ -146,10 +146,21 @@ class EstadoZonaTest extends TestCase
      * criterio de verdad, falta. De paso verifica los números del registro para
      * FIT, FET, Percepción y Potencialidad, que hasta ahora solo se habían
      * comprobado a mano.
+     *
+     * Solo recorre entradas con 'criterios' no nulo, simétrico al filtro de
+     * Registro::matrices(): una entrada de tipo 'actores' no tiene denominador
+     * fijo —su 'criterios' es null— y su tabla no es una tabla de criterios
+     * (lleva zona, usuario y estado, nada más), así que ni assertCount
+     * (tipado int) ni Schema::getColumnListing() tendrían sentido sobre ella.
      */
-    public function test_el_filtro_de_criterios_cuadra_con_el_esquema_de_las_seis_tablas(): void
+    public function test_el_filtro_de_criterios_cuadra_con_el_esquema_de_las_tablas(): void
     {
-        foreach (\App\Matrices\Registro::matrices() as $clave => $entrada) {
+        $conCriterios = array_filter(
+            \App\Matrices\Registro::matrices(),
+            fn(array $entrada) => $entrada['criterios'] !== null
+        );
+
+        foreach ($conCriterios as $clave => $entrada) {
             $tabla = (new $entrada['modelo']())->getTable();
 
             $criterios = array_filter(

@@ -257,7 +257,30 @@ final class EstadoZona
         $config  = $this->evaluaciones[$clave];
         $esAdmin = $this->usuario->esAdmin();
 
-        $cuantos = $this->zona->involucrados()->count();
+        $cuantos  = $this->zona->involucrados()->count();
+        $validada = $config?->estado === 'confirmado';
+        $firma    = $config ? $this->firma($config) : '';
+
+        // El estado de la configuración manda sobre el recuento de actores,
+        // igual que en las hermanas: filaMatriz() decide por $evaluacion, no
+        // por cuántas respuestas tiene. Comprobar 'sin actores' antes que
+        // 'validada' dejaba una fila «sin empezar» mientras validadas() y
+        // progresoDe() ya la contaban como hecha, con cabecera y fila en
+        // contradicción. Una configuración confirmada con cero actores no
+        // debería poder existir —la validación de la tarea 3 va a exigir al
+        // menos un actor—, así que si este caso aparece aquí es una
+        // inconsistencia de datos, no un estado normal que haya que diseñar.
+        if ($validada) {
+            return new FilaMatriz(
+                clave:   $clave,
+                nombre:  $entrada['nombre'],
+                icono:   $entrada['icono'],
+                estado:  'validada',
+                detalle: "Validada · {$cuantos} actores" . $firma,
+                url:     route($entrada['rutas']['ver'], $this->zona->id),
+                accion:  'Ver',
+            );
+        }
 
         if ($cuantos === 0) {
             return new FilaMatriz(
@@ -268,21 +291,6 @@ final class EstadoZona
                 detalle: 'Todavía sin actores registrados',
                 url:     $esAdmin ? null : route($entrada['rutas']['editar'], $this->zona->id),
                 accion:  $esAdmin ? null : 'Empezar',
-            );
-        }
-
-        $validada = $config?->estado === 'confirmado';
-        $firma    = $config ? $this->firma($config) : '';
-
-        if ($validada) {
-            return new FilaMatriz(
-                clave:   $clave,
-                nombre:  $entrada['nombre'],
-                icono:   $entrada['icono'],
-                estado:  'validada',
-                detalle: "Validada · {$cuantos} actores" . $firma,
-                url:     route($entrada['rutas']['ver'], $this->zona->id),
-                accion:  'Ver',
             );
         }
 
