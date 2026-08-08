@@ -108,6 +108,7 @@ class PaginaZonaTest extends TestCase
         }
     }
 
+    /** Con Irritación, 'presion' deja de estar vacío: ya tiene título que pintar. */
     public function test_muestra_los_titulos_de_los_grupos_con_matrices(): void
     {
         $this->actingAs($this->jefe)->get($this->url())
@@ -115,7 +116,7 @@ class PaginaZonaTest extends TestCase
             ->assertSee('Base territorial')
             ->assertSee('Vocación turística')
             ->assertSee('Valoración del territorio')
-            ->assertDontSee('Presión y uso');
+            ->assertSee('Presión y uso');
     }
 
     public function test_muestra_el_progreso_de_la_zona(): void
@@ -124,7 +125,7 @@ class PaginaZonaTest extends TestCase
 
         $this->actingAs($this->jefe)->get($this->url())
             ->assertOk()
-            ->assertSee('1 de 6');
+            ->assertSee('1 de 7');
     }
 
     public function test_vocacion_aparece_bloqueada_y_luego_disponible(): void

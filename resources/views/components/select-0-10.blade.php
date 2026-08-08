@@ -18,12 +18,12 @@
         {{-- Sin responder tiene que ser distinguible de un 0 elegido a
              conciencia: aquí el 0 es el mejor resultado posible, no un hueco. --}}
         <option value="" @selected($val === null)>— sin responder —</option>
-        @for($n = 0; $n <= 10; $n++)
-            {{-- La escala es INVERSA: 0 es el mejor caso y 10 el peor. Se
-                 consulta la definición del instrumento en vez de
-                 reimplementar aquí sus umbrales: son los mismos que se
-                 aplican al promedio del bloque, y duplicarlos dejaría dos
-                 sitios que corregir el día que el instrumento cambie uno. --}}
+        {{-- La escala es INVERSA: 0 es el mejor caso y 10 el peor. Se
+             consulta la definición del instrumento —rango y umbrales— en vez
+             de reimplementarla aquí: son los mismos que se aplican al
+             promedio del bloque, y duplicarlos dejaría dos sitios que
+             corregir el día que el instrumento cambie uno. --}}
+        @for($n = \App\Matrices\Irritacion::ESCALA_MIN; $n <= \App\Matrices\Irritacion::ESCALA_MAX; $n++)
             <option value="{{ $n }}" @selected($val === $n)>{{ $n }} — {{ \App\Matrices\Irritacion::clasificar($n) }}</option>
         @endfor
     </select>

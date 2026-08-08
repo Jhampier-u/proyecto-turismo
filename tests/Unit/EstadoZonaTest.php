@@ -218,7 +218,7 @@ class EstadoZonaTest extends TestCase
     {
         $estado = new EstadoZona($this->zona, $this->jefe);
         $this->assertSame(0, $estado->validadas());
-        $this->assertSame(6, $estado->totalMatrices());
+        $this->assertSame(7, $estado->totalMatrices());
 
         EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'confirmado']);
         EvaluacionFet::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
@@ -323,12 +323,16 @@ class EstadoZonaTest extends TestCase
         $this->assertStringContainsString('Validada', $detalle);
     }
 
+    /**
+     * grupos() descarta cualquier fase sin matrices declaradas. Con Irritación
+     * ya no queda ninguna fase vacía —las cinco de GRUPOS tienen al menos una
+     * matriz—, así que la prueba pasa a comprobar que el mecanismo no excluye
+     * de más: los grupos devueltos son exactamente los declarados.
+     */
     public function test_no_se_devuelven_grupos_sin_filas(): void
     {
         $grupos = (new EstadoZona($this->zona, $this->jefe))->grupos();
 
-        // 'presion' no tiene ninguna matriz implementada todavía.
-        $this->assertArrayNotHasKey('presion', $grupos);
-        $this->assertArrayHasKey('vocacion', $grupos);
+        $this->assertSame(array_keys(\App\Matrices\Registro::GRUPOS), array_keys($grupos));
     }
 }

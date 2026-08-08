@@ -4,6 +4,7 @@ namespace App\Matrices;
 
 use App\Models\EvaluacionFet;
 use App\Models\EvaluacionFit;
+use App\Models\EvaluacionIrritacion;
 use App\Models\EvaluacionPaisaje;
 use App\Models\EvaluacionPercepcion;
 use App\Models\EvaluacionPotencialidad;
@@ -30,7 +31,7 @@ final class Registro
      *
      * Los grupos 'social' y 'presion' ya están declarados aunque les falten
      * matrices: sus entradas llegan cuando se implementen Involucrados,
-     * Irritación, Concentración y Frecuentación.
+     * Concentración y Frecuentación.
      */
     public const GRUPOS = [
         'base'       => ['titulo' => 'Base territorial'],
@@ -149,6 +150,20 @@ final class Registro
             'rutas'      => [
                 'editar' => 'operativo.evaluacion_percepcion.edit',
                 'ver'    => 'operativo.evaluacion_percepcion.ponderacion',
+            ],
+            'depende_de' => [],
+        ],
+
+        'irritacion' => [
+            'nombre'     => 'Irritación turística',
+            'icono'      => 'brujula',
+            'grupo'      => 'presion',
+            'tipo'       => 'matriz',
+            'modelo'     => EvaluacionIrritacion::class,
+            'criterios'  => 12,
+            'rutas'      => [
+                'editar' => 'operativo.evaluacion_irritacion.edit',
+                'ver'    => 'operativo.evaluacion_irritacion.ponderacion',
             ],
             'depende_de' => [],
         ],

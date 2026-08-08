@@ -339,7 +339,7 @@ class PaisajeTest extends TestCase
             ->assertOk()
             ->assertSee($this->zona->nombre)
             ->assertSee(route('operativo.zona.panel', $this->zona->id), false)
-            ->assertSee('0 / 6');
+            ->assertSee('0 / 7');
     }
 
     public function test_paisaje_es_alcanzable_desde_la_pagina_de_zona(): void

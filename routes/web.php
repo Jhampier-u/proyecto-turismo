@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ZonaController;
 use App\Http\Controllers\Operativo\DashboardController;
 use App\Http\Controllers\Operativo\EvaluacionFetController;
 use App\Http\Controllers\Operativo\EvaluacionFitController;
+use App\Http\Controllers\Operativo\EvaluacionIrritacionController;
 use App\Http\Controllers\Operativo\EvaluacionPaisajeController;
 use App\Http\Controllers\Operativo\EvaluacionPercepcionController;
 use App\Http\Controllers\Operativo\EvaluacionPotencialidadController;
@@ -87,6 +88,11 @@ Route::middleware(['auth', 'personal'])->group(function () {
         Route::get('/valoracion-territorial',            [EvaluacionValoracionTerritorialController::class, 'edit'])->name('evaluacion_valoracion_territorial.edit');
         Route::post('/valoracion-territorial',           [EvaluacionValoracionTerritorialController::class, 'update'])->name('evaluacion_valoracion_territorial.update');
         Route::get('/valoracion-territorial/resultados', [EvaluacionValoracionTerritorialController::class, 'ponderacion'])->name('evaluacion_valoracion_territorial.ponderacion');
+
+        // Índice de Irritación Turística
+        Route::get('/irritacion',            [EvaluacionIrritacionController::class, 'edit'])->name('evaluacion_irritacion.edit');
+        Route::post('/irritacion',           [EvaluacionIrritacionController::class, 'update'])->name('evaluacion_irritacion.update');
+        Route::get('/irritacion/resultados', [EvaluacionIrritacionController::class, 'ponderacion'])->name('evaluacion_irritacion.ponderacion');
     });
 });
 

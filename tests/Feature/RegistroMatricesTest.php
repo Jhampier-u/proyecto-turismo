@@ -70,7 +70,7 @@ class RegistroMatricesTest extends TestCase
      */
     public function test_solo_las_matrices_validables_cuentan_para_el_progreso(): void
     {
-        $this->assertCount(6, Registro::matrices());
+        $this->assertCount(7, Registro::matrices());
 
         foreach (Registro::matrices() as $clave => $entrada) {
             $this->assertSame('matriz', $entrada['tipo'], $clave);

@@ -35,24 +35,19 @@ class EvaluacionIrritacion extends Model
     }
 
     /**
-     * Clasifica un valor de la escala, sea un atributo suelto o el promedio de
-     * un bloque. Delega en App\Matrices\Irritacion: la definición del
-     * instrumento —criterios, etiquetas y umbrales— vive ahí, no en el
-     * modelo. El método se conserva aquí porque ya hay código que lo llama.
+     * Clasifica el promedio de cada bloque llamando directamente a
+     * App\Matrices\Irritacion: la definición del instrumento —criterios,
+     * etiquetas y umbrales— vive ahí, y no hace falta una segunda puerta
+     * pública en el modelo para una función que ya es pura y estática.
      */
-    public static function clasificar(?float $valor): ?string
-    {
-        return Irritacion::clasificar($valor);
-    }
-
     public function getClasificacionVisitantesAttribute(): ?string
     {
-        return self::clasificar($this->visitantes_promedio);
+        return Irritacion::clasificar($this->visitantes_promedio);
     }
 
     public function getClasificacionResidentesAttribute(): ?string
     {
-        return self::clasificar($this->residentes_promedio);
+        return Irritacion::clasificar($this->residentes_promedio);
     }
 
     public function zona()
