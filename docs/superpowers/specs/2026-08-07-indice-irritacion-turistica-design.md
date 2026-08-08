@@ -84,6 +84,20 @@ cerrarse.
 inventa aquí un promedio de promedios: mezclaría dos poblaciones distintas en
 una cifra que no significa nada.
 
+**Pero los dos resultados aparecen a la vez, no cada uno por su lado.** La clase
+base calcula todo o nada: mientras falte cualquiera de los doce atributos, los
+dos promedios quedan en `null`. Es decir que rellenar el bloque de visitantes
+entero no da su resultado hasta que esté también el de residentes.
+
+Puede parecer que contradice lo anterior —si son dos poblaciones que no se
+mezclan, ¿por qué una espera a la otra?— y conviene dejar escrito que es
+deliberado. Una cosa es **mezclar** los dos resultados en una cifra, que sería
+falsear, y otra es **publicar** medio instrumento como si estuviera terminado.
+Enseñar el lado de los visitantes mientras el de residentes está sin empezar
+invita a leer la matriz como si dijera algo del territorio, y solo dice algo de
+la mitad del trabajo de campo. El guardado parcial ya permite que ese trabajo
+llegue en dos momentos; lo que no permite es dar por buena la mitad.
+
 **Un desplegable, no tarjetas.** Once valores por atributo y doce atributos son
 132 controles si se usan tarjetas. Además, `criterio-escala` y
 `criterio-pildoras` colorean **por posición dando por hecho que más alto es
@@ -157,10 +171,29 @@ confirmar, totales en `null` mientras falte algún criterio, aviso de matriz sin
 resultados, cuenta de respondidos en la página de zona, y el control de acceso
 por rol.
 
-No hace falta una clase en `App\Matrices`: esas existen para instrumentos
-generados desde el Excel —21 pesos y 63 descripciones en Valoración
-Territorial—. Aquí son doce nombres y ningún peso; declararlos en el controlador
-es menos indirección, no más.
+### `App\Matrices\Irritacion` — la definición del instrumento
+
+Una clase con los dos bloques de nombres de campo, las etiquetas, los umbrales y
+`clasificar()`. El modelo delega en ella, el controlador la consume en vez de
+declarar los campos, y las vistas la importan.
+
+**Esto corrige una decisión anterior de este mismo documento**, que decía que no
+hacía falta porque «son doce nombres y ningún peso». Ese razonamiento contaba
+los nombres de campo y se dejaba fuera dos cosas:
+
+- **Los umbrales.** Son exactamente el tipo de conocimiento del instrumento que
+  esas clases existen para guardar, y tienen tres consumidores fuera del
+  modelo: el desplegable, la leyenda del formulario y los resultados.
+- **Quién importa a quién.** Sin la clase, el desplegable acaba importando el
+  modelo de Eloquent —el único `use App\` de todas las vistas del repositorio—
+  y el formulario y los resultados acaban importando el *controlador*. Las seis
+  matrices anteriores hacen lo contrario: la definición vive en `App\Matrices`,
+  el controlador se la pasa a la vista, y lo derivado llega ya calculado en el
+  modelo.
+
+Que la clase no se genere desde el Excel, como `ValoracionTerritorial` o
+`Paisaje`, no cambia dónde tiene que vivir el conocimiento. Se escribe a mano
+porque son doce nombres, no doscientos.
 
 ---
 

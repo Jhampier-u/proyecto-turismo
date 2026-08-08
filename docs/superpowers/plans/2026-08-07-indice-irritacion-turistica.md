@@ -23,6 +23,10 @@
 ## Estructura de ficheros
 
 **Crear:**
+- `app/Matrices/Irritacion.php` — la definición del instrumento: los dos bloques
+  de campos, las etiquetas, los umbrales y `clasificar()`. Es de donde beben el
+  modelo, el controlador y las tres vistas, para que ninguna de ellas tenga que
+  importar a las otras.
 - `resources/views/components/select-0-10.blade.php` — el desplegable de la escala inversa.
 - `database/migrations/2026_08_09_000001_create_evaluaciones_irritacion_table.php`
 - `app/Models/EvaluacionIrritacion.php` — modelo y clasificación derivada.
@@ -205,7 +209,9 @@ git commit -m "feat(ui): desplegable de escala inversa 0-10 con su clasificacion
 - Test: ampliar `tests/Feature/IrritacionTest.php`
 
 **Interfaces:**
-- Produce: `EvaluacionIrritacion::clasificar(?float $promedio): ?string`
+- Produce: `App\Matrices\Irritacion::clasificar(?float $valor): ?string` — la
+  única puerta a la clasificación. El modelo la consume desde sus accesorios;
+  no la reexpone.
 - Produce: los accesorios `clasificacion_visitantes` y `clasificacion_residentes`.
 
 - [ ] **Step 1: Escribir los tests de los umbrales**
@@ -446,8 +452,8 @@ Añadir a `tests/Feature/IrritacionTest.php`:
     {
         return array_fill_keys(
             array_merge(
-                \App\Http\Controllers\Operativo\EvaluacionIrritacionController::VISITANTES,
-                \App\Http\Controllers\Operativo\EvaluacionIrritacionController::RESIDENTES,
+                \App\Matrices\Irritacion::VISITANTES,
+                \App\Matrices\Irritacion::RESIDENTES,
             ),
             $valor
         );
@@ -459,7 +465,7 @@ Añadir a `tests/Feature/IrritacionTest.php`:
 
         // Visitantes a 6 de media: 10, 8, 6, 4, 2, 6.
         $valores = [10, 8, 6, 4, 2, 6];
-        foreach (\App\Http\Controllers\Operativo\EvaluacionIrritacionController::VISITANTES as $i => $campo) {
+        foreach (\App\Matrices\Irritacion::VISITANTES as $i => $campo) {
             $datos[$campo] = $valores[$i];
         }
 
@@ -570,6 +576,7 @@ Crear `app/Http/Controllers/Operativo/EvaluacionIrritacionController.php`:
 
 namespace App\Http\Controllers\Operativo;
 
+use App\Matrices\Irritacion;
 use App\Models\EvaluacionIrritacion;
 use App\Models\Zona;
 
@@ -584,42 +591,6 @@ use App\Models\Zona;
  */
 class EvaluacionIrritacionController extends MatrizPonderadaController
 {
-    /** Públicas porque las vistas recorren cada bloque por separado. */
-    public const VISITANTES = [
-        'vis_congestion',
-        'vis_calidad_servicios',
-        'vis_calidad_actividades',
-        'vis_calidad_vida',
-        'vis_apertura',
-        'vis_seguridad',
-    ];
-
-    public const RESIDENTES = [
-        'res_congestion',
-        'res_impacto_social',
-        'res_impacto_economico',
-        'res_impacto_ambiental',
-        'res_calidad_vida',
-        'res_seguridad',
-    ];
-
-    /** Etiqueta de cada atributo, con la sigla del instrumento original. */
-    public const ETIQUETAS = [
-        'vis_congestion'          => 'Cg · Congestión de visitantes en el destino',
-        'vis_calidad_servicios'   => 'Cs · Calidad percibida de servicios y productos',
-        'vis_calidad_actividades' => 'Ca · Calidad percibida de actividades turísticas',
-        'vis_calidad_vida'        => 'Cv · Calidad de vida de la localidad percibida por el visitante',
-        'vis_apertura'            => 'Ga · Grado de apertura u hospitalidad de la localidad',
-        'vis_seguridad'           => 'Sd · Seguridad percibida en el destino',
-
-        'res_congestion'        => 'Cg · Congestión de visitantes en el destino',
-        'res_impacto_social'    => 'Is · Impacto social percibido',
-        'res_impacto_economico' => 'Ie · Impacto económico percibido',
-        'res_impacto_ambiental' => 'Ia · Impacto ambiental percibido',
-        'res_calidad_vida'      => 'Cv · Calidad de vida percibida por el residente',
-        'res_seguridad'         => 'Sd · Seguridad percibida en el destino',
-    ];
-
     protected function modelo(): string
     {
         return EvaluacionIrritacion::class;
@@ -638,8 +609,8 @@ class EvaluacionIrritacionController extends MatrizPonderadaController
     protected function criterios(): array
     {
         return [
-            'visitantes' => self::VISITANTES,
-            'residentes' => self::RESIDENTES,
+            'visitantes' => Irritacion::VISITANTES,
+            'residentes' => Irritacion::RESIDENTES,
         ];
     }
 
@@ -656,8 +627,8 @@ class EvaluacionIrritacionController extends MatrizPonderadaController
         ) / count($campos);
 
         return [
-            'visitantes_promedio' => $media(self::VISITANTES),
-            'residentes_promedio' => $media(self::RESIDENTES),
+            'visitantes_promedio' => $media(Irritacion::VISITANTES),
+            'residentes_promedio' => $media(Irritacion::RESIDENTES),
         ];
     }
 
@@ -786,7 +757,7 @@ Añadir a `tests/Feature/IrritacionTest.php`:
     {
         $pagina = $this->actingAs($this->jefe)->get($this->url())->assertOk();
 
-        foreach (\App\Http\Controllers\Operativo\EvaluacionIrritacionController::ETIQUETAS as $campo => $etiqueta) {
+        foreach (\App\Matrices\Irritacion::ETIQUETAS as $campo => $etiqueta) {
             $pagina->assertSee("name=\"{$campo}\"", false);
         }
     }
@@ -829,7 +800,7 @@ Crear `resources/views/operativo/evaluacion_irritacion/form.blade.php`:
 
 ```blade
 @php
-    use App\Http\Controllers\Operativo\EvaluacionIrritacionController as Ctrl;
+    use App\Matrices\Irritacion;
 @endphp
 
 <x-app-layout>
@@ -889,8 +860,8 @@ Crear `resources/views/operativo/evaluacion_irritacion/form.blade.php`:
                 @csrf
 
                 @foreach([
-                    'visitantes' => ['titulo' => 'Percepción de los visitantes', 'campos' => Ctrl::VISITANTES],
-                    'residentes' => ['titulo' => 'Percepción de la localidad receptora', 'campos' => Ctrl::RESIDENTES],
+                    'visitantes' => ['titulo' => 'Percepción de los visitantes', 'campos' => Irritacion::VISITANTES],
+                    'residentes' => ['titulo' => 'Percepción de la localidad receptora', 'campos' => Irritacion::RESIDENTES],
                 ] as $clave => $bloque)
                     <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
                         <h3 class="text-xl font-bold text-gray-900 mb-1">{{ $bloque['titulo'] }}</h3>
@@ -901,7 +872,7 @@ Crear `resources/views/operativo/evaluacion_irritacion/form.blade.php`:
 
                         @foreach($bloque['campos'] as $campo)
                             <x-select-0-10
-                                :label="Ctrl::ETIQUETAS[$campo]"
+                                :label="Irritacion::ETIQUETAS[$campo]"
                                 :name="$campo"
                                 :val="$evaluacion->$campo"
                                 :disabled="$bloqueado" />
@@ -963,7 +934,7 @@ Añadir a `tests/Feature/IrritacionTest.php`:
     public function test_los_resultados_muestran_los_dos_bloques_con_su_interpretacion(): void
     {
         $datos = $this->todosEn(1);
-        foreach (\App\Http\Controllers\Operativo\EvaluacionIrritacionController::RESIDENTES as $campo) {
+        foreach (\App\Matrices\Irritacion::RESIDENTES as $campo) {
             $datos[$campo] = 8;
         }
 
@@ -1006,8 +977,7 @@ Crear `resources/views/operativo/evaluacion_irritacion/ponderacion.blade.php`:
 
 ```blade
 @php
-    use App\Http\Controllers\Operativo\EvaluacionIrritacionController as Ctrl;
-    use App\Models\EvaluacionIrritacion;
+    use App\Matrices\Irritacion;
 @endphp
 
 <x-app-layout>
@@ -1050,13 +1020,13 @@ Crear `resources/views/operativo/evaluacion_irritacion/ponderacion.blade.php`:
         $bloques = [
             'visitantes' => [
                 'titulo'        => 'Percepción de los visitantes',
-                'campos'        => Ctrl::VISITANTES,
+                'campos'        => Irritacion::VISITANTES,
                 'promedio'      => $evaluacion->visitantes_promedio,
                 'clasificacion' => $evaluacion->clasificacion_visitantes,
             ],
             'residentes' => [
                 'titulo'        => 'Percepción de la localidad receptora',
-                'campos'        => Ctrl::RESIDENTES,
+                'campos'        => Irritacion::RESIDENTES,
                 'promedio'      => $evaluacion->residentes_promedio,
                 'clasificacion' => $evaluacion->clasificacion_residentes,
             ],
@@ -1102,10 +1072,10 @@ Crear `resources/views/operativo/evaluacion_irritacion/ponderacion.blade.php`:
                                 @foreach($bloque['campos'] as $campo)
                                     @php
                                         $valor = $evaluacion->$campo;
-                                        $clase = EvaluacionIrritacion::clasificar($valor === null ? null : (float) $valor);
+                                        $clase = Irritacion::clasificar($valor);
                                     @endphp
                                     <tr>
-                                        <td class="p-3 text-gray-800">{{ Ctrl::ETIQUETAS[$campo] }}</td>
+                                        <td class="p-3 text-gray-800">{{ Irritacion::ETIQUETAS[$campo] }}</td>
                                         <td class="p-3 text-center font-semibold text-gray-900">{{ $valor }}</td>
                                         <td class="p-3 text-center {{ $estilos[$clase]['texto'] }}">{{ $clase }}</td>
                                     </tr>
