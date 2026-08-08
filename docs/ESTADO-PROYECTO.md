@@ -72,7 +72,7 @@ vistas. Ahora `RegistroMatricesTest` recorre el registro y falla si una ruta o
 un modelo declarado no existe, y `PaginaZonaTest` comprueba que la página pinta
 todas las entradas, como jefe **y** como admin.
 
-### Rama `guardado-parcial` — TERMINADA, sin fusionar
+### Rama `guardado-parcial` — TERMINADA y fusionada en `main`
 
 Las ocho tareas están hechas y revisadas. Suite: **209 tests**.
 
@@ -87,8 +87,13 @@ Las ocho tareas están hechas y revisadas. Suite: **209 tests**.
 | GP7 — progreso real en la página de zona | hecha | `94d485f` |
 | GP8 — revisión final de rama | hecha | `ecb560a` |
 
-**Lo que falta antes de fusionar: verificar las migraciones contra PostgreSQL**
-(ver más abajo). Es el único punto abierto.
+Fusionada en `main` y subida a `origin`. Las tres migraciones **ya se probaron
+contra un PostgreSQL 16.14 real**, reproduciendo el escenario de producción
+(tablas con datos, no un `migrate:fresh`); ver §4.
+
+Queda un punto abierto, de otra naturaleza: **la suite no se puede ejecutar
+entera sobre Postgres** por un problema de aislamiento entre tests. También
+en §4.
 
 #### Lo que se apartó del plan, y por qué
 
@@ -149,16 +154,51 @@ antes de validar. En borrador los criterios son `nullable`; al confirmar,
 sobre los respondidos, y se vuelve al formulario en vez de a unos resultados
 vacíos.
 
-### PostgreSQL sin verificar — el único punto abierto de la rama
+### PostgreSQL — verificado
 
-Las tres migraciones de esta rama (`2026_08_08_000001`, `000002` y `000003`)
-**solo se han probado en SQLite**. `change()` recrea la tabla en SQLite y emite
-`ALTER COLUMN` en Postgres, y fallan de formas distintas. No hay Postgres nativo
-en la máquina y Docker está prohibido.
+Las tres migraciones (`2026_08_08_000001`, `000002` y `000003`) se probaron
+contra un **PostgreSQL 16.14** real, en un contenedor desechable
+(`docker run --rm`, borrado por nombre; los contenedores ajenos de la máquina no
+se tocaron).
 
-La `000003` es la más delicada de las tres: hace `decimal(5, 3)` sobre columnas
-que ya existen, y si el tipo declarado no coincide **exactamente** con el de la
-migración de creación, Postgres las recrea con otro tipo.
+Se reprodujo el escenario de producción, no un `migrate:fresh`: primero todas
+las migraciones **menos** esas tres, luego los seeders y una evaluación por
+matriz, y solo entonces las tres. Alterar tablas vacías no habría probado nada.
+
+Resultado: las tres corren sin error y el esquema queda como debía —254 columnas
+de criterio en `smallint`, 60 calculadas en `numeric`, todas nullable y sin
+defecto, y las filas que ya existían intactas en las seis tablas—. Los criterios
+por tabla cuadran con lo que declara el registro.
+
+Se comprobó también la única discrepancia de tipos que había: Percepción creó
+sus 16 criterios como `unsignedTinyInteger` y la migración los redeclara como
+`tinyInteger`. En Postgres da igual —`PostgresGrammar::typeTinyInteger()`
+delega en `typeSmallInteger()` y no existe `modifyUnsigned`, así que ambos son
+`smallint`—. En MySQL sí habría quitado el `UNSIGNED`, pero aquí no se usa.
+
+### Lo que sigue sin verificarse: la suite sobre PostgreSQL
+
+Distinto asunto, y este queda abierto. Ejecutar la suite contra Postgres da 37
+errores y 89 fallos, **pero cada test que se probó pasa en aislado**. Es un
+problema de aislamiento entre tests, no de la aplicación: con SQLite
+`:memory:` cada test arranca con una base genuinamente nueva, y contra una base
+persistente eso deja de ser cierto.
+
+No se llegó a la causa exacta. Lo que se sabe: en el segundo test y siguientes
+la petición se rechaza antes de escribir, sin dejar ningún error SQL en el log,
+y la base queda limpia entre tests (el rollback sí funciona).
+
+Consecuencia práctica: **la suite no sirve hoy como red contra regresiones
+específicas de Postgres.** Merece la pena arreglarlo antes de la próxima matriz,
+porque es el único sitio donde se cazarían.
+
+Para reproducirlo, en una sola invocación (XAMPP trae las DLL de pgsql
+comentadas, y `php artisan test` lanza PHPUnit en otro proceso al que no viajan
+los `-d`):
+
+```bash
+php -d extension=pdo_pgsql -d extension=pgsql vendor/phpunit/phpunit/phpunit
+```
 
 **Vigilar el despliegue en Render** cuando esta rama llegue a producción, o
 verificarlo antes en una máquina que sí tenga Postgres:
