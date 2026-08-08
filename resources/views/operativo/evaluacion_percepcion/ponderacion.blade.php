@@ -12,7 +12,11 @@
         // que nada lo detectara. El rol es la única fuente de verdad que no se
         // puede desincronizar.
         $readonly      = ! auth()->user()->puedeEditarEvaluaciones();
-        $sinDatos      = !$evaluacion;
+        // No basta con que la evaluación exista: desde el guardado parcial
+        // puede existir a medias, y entonces percepcion_total está en null.
+        // Sin esta condición, $totalPct daría 0 y la matriz se leería como
+        // «Percepción Desfavorable» sin que nadie haya respondido nada.
+        $sinDatos      = ! $evaluacion || $evaluacion->percepcion_total === null;
         $etiquetaValor = fn($v) => match((int)$v) { 1 => 'Negativo', 2 => 'Neutral', 3 => 'Positivo', default => '—' };
         $colorValor    = fn($v) => match((int)$v) { 1 => 'bg-red-100 text-red-800', 2 => 'bg-yellow-100 text-yellow-800', 3 => 'bg-green-100 text-green-800', default => 'bg-gray-100 text-gray-600' };
         $totalPct      = $sinDatos ? 0 : $evaluacion->percepcion_total * 100;

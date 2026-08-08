@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Matrices\Paisaje;
+use App\Matrices\Registro;
 use App\Models\EvaluacionFit;
 use App\Models\EvaluacionPaisaje;
 use App\Models\Role;
@@ -226,6 +227,52 @@ class GuardadoParcialTest extends TestCase
             ->from($this->url())
             ->post($this->url(), $datos)
             ->assertRedirect($this->url());
+    }
+
+    /**
+     * Con el total en null, number_format() pintaría «0.00»: un resultado
+     * inventado, indistinguible de una zona valorada con ceros de verdad.
+     */
+    public function test_los_resultados_avisan_si_la_matriz_esta_incompleta(): void
+    {
+        $datos = $this->todosEn(3);
+        unset($datos['pn_geologia']);
+        $this->actingAs($this->jefe)->post($this->url(), $datos);
+
+        $this->actingAs($this->jefe)->get($this->url('/resultados'))
+            ->assertOk()
+            ->assertSee('todavía no está completa')
+            ->assertDontSee('0.00');
+    }
+
+    /**
+     * La invariante de la tarea, matriz por matriz y sin listas de campos: con
+     * la evaluación creada y ningún criterio respondido, ninguna vista de
+     * resultados puede pintar un número. Recorre el registro para que una
+     * matriz futura quede cubierta sin acordarse de este test.
+     *
+     * Potencialidad queda fuera a propósito: su guardado parcial es la tarea
+     * siguiente y hoy sigue rellenando los huecos con ceros.
+     */
+    public function test_ninguna_vista_de_resultados_inventa_ceros(): void
+    {
+        foreach (Registro::matrices() as $clave => $entrada) {
+            if ($clave === 'potencialidad') {
+                continue;
+            }
+
+            $entrada['modelo']::create([
+                'zona_id' => $this->zona->id,
+                'user_id' => $this->jefe->id,
+                'estado'  => 'borrador',
+            ]);
+
+            $this->actingAs($this->jefe)
+                ->get(route($entrada['rutas']['ver'], $this->zona->id))
+                ->assertOk()
+                ->assertDontSee('0.00')
+                ->assertDontSee('0,00');
+        }
     }
 
     public function test_el_equipo_tambien_guarda_a_medias(): void

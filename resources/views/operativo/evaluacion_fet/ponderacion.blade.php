@@ -14,6 +14,18 @@
         $readonly = ! auth()->user()->puedeEditarEvaluaciones();
     @endphp
 
+    {{-- Desde el guardado parcial, una FET puede existir con criterios sin
+         responder: entonces sus medias y su total están en null y la tabla
+         entera se llenaría de ceros que nadie ha puntuado. El script del
+         gráfico queda dentro del @else por lo mismo: sin datos no hay nada
+         que dibujar. --}}
+    @if($fet->fet === null)
+        <x-matriz-sin-resultados
+            nombre="Evaluación FET"
+            :zona="$zona"
+            ruta-formulario="operativo.evaluacion_fet.edit" />
+    @else
+
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
@@ -223,4 +235,6 @@
             }
         });
     </script>
+
+    @endif
 </x-app-layout>

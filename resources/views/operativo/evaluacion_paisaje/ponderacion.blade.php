@@ -14,26 +14,15 @@
         $readonly = ! auth()->user()->puedeEditarEvaluaciones();
     @endphp
 
-    @if(! $evaluacion)
-        {{-- El admin puede abrir una zona que aún no completó la matriz. Sin
-             esta rama, acceder a $evaluacion->escenario daría un error fatal. --}}
-        <div class="py-12">
-            <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-800 p-6 rounded shadow">
-                    <h3 class="font-bold text-lg mb-2">Matriz de Paisaje no disponible</h3>
-                    <p>
-                        La zona <strong>{{ $zona->nombre }}</strong> todavía no tiene registrada
-                        esta matriz. El Jefe de Zona o el Equipo operativo deben completarla primero.
-                    </p>
-                </div>
-                <div class="mt-6 text-center">
-                    <a href="{{ $readonly ? route('admin.zonas.index') : route('operativo.dashboard') }}"
-                       class="inline-block px-5 py-2 bg-gray-200 text-black font-bold rounded-lg hover:bg-gray-400 shadow">
-                        Volver
-                    </a>
-                </div>
-            </div>
-        </div>
+    {{-- Dos casos, un mismo aviso: la matriz no existe (el admin puede abrir
+         una zona sin empezar) o existe a medias, y entonces paisaje_total está
+         en null. En ambos, seguir adelante rompería: $evaluacion->escenario
+         necesita un total real. --}}
+    @if(! $evaluacion || $evaluacion->paisaje_total === null)
+        <x-matriz-sin-resultados
+            nombre="Matriz de Paisaje"
+            :zona="$zona"
+            ruta-formulario="operativo.evaluacion_paisaje.edit" />
     @else
 
     @php

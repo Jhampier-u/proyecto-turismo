@@ -12,7 +12,11 @@
         // que nada lo detectara. El rol es la única fuente de verdad que no se
         // puede desincronizar.
         $readonly = ! auth()->user()->puedeEditarEvaluaciones();
-        $sinDatos = !$evaluacion;
+
+        // No basta con que la evaluación exista: desde el guardado parcial
+        // puede existir a medias, y entonces sus totales están en null. Pintar
+        // ese null da un 0,00 que parece un territorio valorado con ceros.
+        $sinDatos = ! $evaluacion || $evaluacion->ct_total === null;
     @endphp
 
     @if($sinDatos)
