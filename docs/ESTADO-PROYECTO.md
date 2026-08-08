@@ -1,6 +1,6 @@
 # Estado del proyecto — traspaso entre máquinas
 
-**Fecha:** 7 de agosto de 2026
+**Fecha:** 7 de agosto de 2026 (actualizado al terminar `guardado-parcial`)
 **Para:** continuar en otro ordenador sin perder contexto.
 
 Este documento reemplaza a `ESTADO-MATRICES.md`, que quedó desfasado.
@@ -20,8 +20,14 @@ ponderados hasta un resultado.
 
 ## 2. Entorno
 
-- **PHP 8.2.33 y Composer, nativos.** `php artisan test` tarda unos 10 s.
-- **Node/npm nativos.** `npm run build` tarda unos 2 s.
+- **PHP 8.2 y Composer, nativos.** `php artisan test` tarda unos 7 s. La versión
+  exacta varía por máquina (8.2.33 en una, 8.2.12 de XAMPP en otra) y da igual
+  mientras sea 8.2: `composer.json` fija ahí `config.platform.php`.
+- **Node/npm nativos.** `npm run build` tarda unos 4 s.
+- **Hay que construir los assets antes de correr los tests.** En un clon recién
+  hecho, sin `public/build/manifest.json`, `@vite` revienta al renderizar y
+  fallan de golpe unos 57 tests que no tienen nada roto. `npm run build` una vez
+  y desaparecen.
 - Base de datos: **SQLite** en desarrollo y tests, **PostgreSQL 16** en
   producción (Render). Las migraciones se comportan distinto en cada uno.
 - Python está en `C:\Python314\python.exe`, accesible como `python` desde
@@ -66,32 +72,76 @@ vistas. Ahora `RegistroMatricesTest` recorre el registro y falla si una ruta o
 un modelo declarado no existe, y `PaginaZonaTest` comprueba que la página pinta
 todas las entradas, como jefe **y** como admin.
 
-### Rama `guardado-parcial` — EN CURSO, no fusionada
+### Rama `guardado-parcial` — TERMINADA, sin fusionar
 
-Cinco commits sobre `a325cb5`. **No subida a GitHub todavía** — hay que hacer
-`git push -u origin guardado-parcial` para que viaje.
+Las ocho tareas están hechas y revisadas. Suite: **209 tests**.
 
 | Tarea | Estado | Commit |
 |---|---|---|
 | GP1 — caracterización de Potencialidad | hecha y revisada | `87d9b3d`, `5b6d200` |
 | GP2 — criterios a nullable | hecha y revisada | `f5ff57f` |
-| GP3 — obligatoriedad por estado | **hecha SIN REVISAR** | `aa80348` |
-| GP4 — vistas de resultados con matriz incompleta | pendiente | — |
-| GP5 — guardado parcial en Potencialidad | pendiente | — |
-| GP6 — formularios que distinguen el vacío | pendiente | — |
-| GP7 — progreso real en la página de zona | pendiente | — |
-| GP8 — revisión final de rama | pendiente | — |
+| GP3 — obligatoriedad por estado | hecha, revisada después | `aa80348`, `9a57d12` |
+| GP4 — vistas de resultados con matriz incompleta | hecha | `356a2f9` |
+| GP5 — guardado parcial en Potencialidad | hecha | `0e43326` |
+| GP6 — formularios que distinguen el vacío | hecha | `cfb6aa8` |
+| GP7 — progreso real en la página de zona | hecha | `94d485f` |
+| GP8 — revisión final de rama | hecha | `ecb560a` |
 
-Suite actual en esta rama: **195 tests**.
+**Lo que falta antes de fusionar: verificar las migraciones contra PostgreSQL**
+(ver más abajo). Es el único punto abierto.
+
+#### Lo que se apartó del plan, y por qué
+
+- **GP4** usa un componente compartido (`x-matriz-sin-resultados`) en vez de
+  cinco copias del mismo aviso. Valoración Territorial y Percepción conservan
+  el suyo, que estaba mejor escrito; solo se ensancha su condición.
+- **GP5** incluye la vista de resultados de Potencialidad, que el plan no
+  mencionaba: hasta GP5 esa matriz no podía tener totales en null, y a partir
+  de GP5 sí. Sin eso, GP5 habría reintroducido en Potencialidad justo el fallo
+  que GP4 quitó de las otras cinco.
+- **GP7** no usa el `min(respondidos, criterios)` del plan, que devuelve el
+  número correcto tapando un filtro mal puesto. En su lugar el filtro es
+  público y un test lo ata al esquema real de las seis tablas. De paso quedan
+  verificados los criterios declarados en el registro para FIT, FET, Percepción
+  y Potencialidad, que hasta ahora solo se habían comprobado a mano.
+
+#### Tres defectos que encontró la revisión, no los tests
+
+Los tres estaban tapados por tests que miraban al sitio equivocado. Conviene
+tenerlos presentes al revisar lo que venga:
+
+1. **El mensaje «Llevas 3 de 34 criterios» no lo veía nadie.** Ninguna vista de
+   formulario de matriz pintaba `session('success')`. El test que lo cubría
+   afirmaba sobre la sesión, no sobre la página. Arreglado con
+   `x-flash-exito`; el test ahora exige verlo.
+2. **Validar con un hueco borraba lo ya respondido.** Ningún formulario
+   repoblaba desde `old()`, y confirmar sin completar no persiste nada: 33
+   respuestas perdidas por olvidar una. Arreglado en los componentes.
+3. **`test_cero_campos_activos_no_revienta_y_todo_da_cero` pasaba en falso.**
+   `assertEqualsWithDelta(0.0, null)` compara iguales, así que el test seguía
+   verde sin distinguir «no hay resultado» de «el resultado es cero» — la
+   distinción entera de esta rama. Ahora afirma `assertNull`.
+
+#### Un aviso pendiente, sin arreglar
+
+Los mensajes de validación salen **en inglés y con el nombre de columna crudo**:
+«The ep cambios tiempo field is required». Es de siempre —Laravel no trae
+traducciones y la app no define `lang/es`—, pero antes casi no se veía: el
+formulario mandaba todos los campos y el error era raro. Ahora «confirmar
+cuando falta algo» es un camino normal, así que ese mensaje pasa a ser
+frecuente. Arreglarlo es traducir `validation.php` entero y poner
+`app.locale = es`; no entraba en esta rama.
 
 ## 4. Lo que hay que saber para continuar
 
-### GP3 está sin revisar
+### GP3 ya está revisado
 
-El commit `aa80348` se encontró **ya implementado y sin commitear** en el árbol,
-presumiblemente de una ejecución anterior del plan. Los tests pasan, pero no
-pasó por la revisión de código que sí tuvieron GP1 y GP2. **Revisarlo antes de
-fusionar la rama.**
+El commit `aa80348` se había encontrado ya implementado y sin commitear en el
+árbol, de una ejecución anterior del plan, y no pasó la revisión que sí tuvieron
+GP1 y GP2. Revisado en `9a57d12`: la implementación es correcta —verificado
+además que las 37 columnas calculadas de las cinco matrices ponderadas admiten
+`null` en el esquema, que es lo que escribe `columnasCalculadasVacias()`— y solo
+le faltaba cobertura por dos caminos, que ese commit añade.
 
 Lo que hace: `prepararDatos()` recibe el estado destino y `update()` lo calcula
 antes de validar. En borrador los criterios son `nullable`; al confirmar,
@@ -99,12 +149,16 @@ antes de validar. En borrador los criterios son `nullable`; al confirmar,
 sobre los respondidos, y se vuelve al formulario en vez de a unos resultados
 vacíos.
 
-### PostgreSQL sin verificar
+### PostgreSQL sin verificar — el único punto abierto de la rama
 
-Las migraciones de GP2 (`2026_08_08_000001` y `000002`) **solo se probaron en
-SQLite**. `change()` recrea la tabla en SQLite y emite `ALTER COLUMN` en
-Postgres, y fallan de formas distintas. No había Postgres nativo en la máquina y
-Docker está prohibido.
+Las tres migraciones de esta rama (`2026_08_08_000001`, `000002` y `000003`)
+**solo se han probado en SQLite**. `change()` recrea la tabla en SQLite y emite
+`ALTER COLUMN` en Postgres, y fallan de formas distintas. No hay Postgres nativo
+en la máquina y Docker está prohibido.
+
+La `000003` es la más delicada de las tres: hace `decimal(5, 3)` sobre columnas
+que ya existen, y si el tipo declarado no coincide **exactamente** con el de la
+migración de creación, Postgres las recrea con otro tipo.
 
 **Vigilar el despliegue en Render** cuando esta rama llegue a producción, o
 verificarlo antes en una máquina que sí tenga Postgres:
@@ -125,23 +179,30 @@ Lección aplicable a lo que queda: **los nombres de columna no siguen un único
 patrón entre matrices.** Verificar conteos contra el esquema real antes de
 aplicar cualquier filtro por prefijo.
 
-### El fallo que GP5 va a arreglar
+### El fallo que arregló GP5, y la regla que dejó
 
-Es la razón de ser de todo este plan. La Matriz de Potencialidad tiene 156
-criterios; su validación no exige ninguno, el formulario preselecciona
-«0 - Nulo» en todos, y `prepararDatos()` mete 0 en los ausentes. El promedio los
-cuenta porque comprueba `isset()`, y un 0 está *set*.
+Era la razón de ser de todo el plan. La Matriz de Potencialidad tiene 156
+criterios; su validación no exigía ninguno, el formulario preseleccionaba
+«0 - Nulo» en todos, y `prepararDatos()` metía 0 en los ausentes. El promedio
+los contaba porque miraba `isset()`, y un 0 está *set*. Un criterio que nadie
+miró bajaba la media de su grupo, en silencio.
 
-Resultado: **un criterio que nadie miró puntúa como «Nulo» y baja la media de su
-grupo, sin aviso.** Con 156 campos eso no es un caso raro. El sistema no puede
-distinguir «no lo he revisado» de «lo he revisado y no hay nada».
+Arreglado en `0e43326`. La regla que dejó, y que conviene respetar en las
+matrices que vengan: **un hueco no entra en ningún promedio, y tampoco en
+ningún total**. Se aplica en las tres capas del cálculo —criterio, grupo y
+total ponderado—, porque un total al que le falta un sumando miente igual que
+una media a la que le falta un criterio. Descontar el factor que falta daría un
+número que se lee como el resultado del instrumento y está medido sobre otra
+escala.
 
-`tests/Feature/PotencialidadCalculoTest.php` (14 tests) congela el
-comportamiento actual de `calcular()` **antes** de tocarla — son 120 líneas de
-redistribución de pesos con cuatro niveles de anidamiento. Uno de esos tests,
-`test_comportamiento_actual_un_campo_no_enviado_cuenta_como_cero`, congela el
-fallo a propósito y lleva ese nombre: GP5 lo sustituye y el diff enseña el
-cambio de comportamiento a las claras.
+Ojo con una distinción que es fácil de romper: en `calcular()`, `hasCampos()`
+significa «tiene campos activos», **no** «tiene respuestas». Un grupo activo que
+nadie respondió no debe caerse de la ponderación como si no existiera; tiene que
+dejar el total sin calcular.
+
+`tests/Feature/PotencialidadCalculoTest.php` sigue siendo la red: sus diez tests
+de caracterización congelan la redistribución de pesos —120 líneas con cuatro
+niveles de anidamiento— y ninguno se movió con el cambio.
 
 ## 5. Documentos de referencia
 
@@ -149,7 +210,7 @@ cambio de comportamiento a las claras.
 |---|---|
 | `docs/superpowers/specs/2026-08-07-rediseno-interfaz-roles-design.md` | Diseño del rediseño: decisiones, arquitectura, lenguaje visual |
 | `docs/superpowers/plans/2026-08-07-pagina-de-zona.md` | Plan ejecutado y fusionado |
-| `docs/superpowers/plans/2026-08-07-guardado-parcial.md` | **El plan en curso.** GP1-GP3 hechos, GP4-GP8 pendientes |
+| `docs/superpowers/plans/2026-08-07-guardado-parcial.md` | Plan ejecutado entero. Lo que se apartó de él está arriba |
 | `docs/superpowers/plans/2026-08-07-vistas-admin.md` | Plan independiente, sin empezar |
 | `AUDITORIA.md` | Auditoría de seguridad y calidad, con lo ya corregido marcado |
 
@@ -157,7 +218,8 @@ cambio de comportamiento a las claras.
 
 ### En código
 
-1. **Terminar `guardado-parcial`**: GP4 a GP8, más revisar GP3.
+1. **Fusionar `guardado-parcial`**, en cuanto sus tres migraciones se hayan
+   probado contra un PostgreSQL de verdad. El código está terminado y revisado.
 2. **Vistas de admin** (`2026-08-07-vistas-admin.md`): panel con cifras reales,
    buscadores en usuarios y lugares, y las columnas que faltan. Independiente
    del resto; se puede hacer en cualquier momento.
@@ -202,11 +264,15 @@ git clone https://github.com/Jhampier-u/proyecto-turismo.git
 Después: `composer install`, `npm install`, `cp .env.example .env`,
 `php artisan key:generate`, `php artisan migrate --seed`, `npm run build`.
 
+La base es SQLite y el fichero **no viaja en el repositorio**: hay que crear
+`database/database.sqlite` vacío antes del `migrate`, o Laravel no encuentra la
+conexión.
+
 Y para retomar el trabajo en curso:
 
 ```bash
 git checkout guardado-parcial
 ```
 
-Comprobar que la suite da **195 tests** antes de tocar nada. Si da menos, algo
-no llegó.
+Comprobar que la suite da **209 tests** antes de tocar nada. Si da menos, algo
+no llegó; si fallan unos 57 de golpe, faltó el `npm run build` (ver §2).
