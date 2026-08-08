@@ -260,21 +260,49 @@ sus 16 criterios como `unsignedTinyInteger` y la migración los redeclara como
 delega en `typeSmallInteger()` y no existe `modifyUnsigned`, así que ambos son
 `smallint`—. En MySQL sí habría quitado el `UNSIGNED`, pero aquí no se usa.
 
-### Lo que sigue sin verificarse: la suite sobre PostgreSQL
+### La suite sobre PostgreSQL — RESUELTO (rama `aislamiento-postgres`)
 
-Distinto asunto, y este queda abierto. Ejecutar la suite contra Postgres da 37
-errores y 89 fallos, **pero cada test que se probó pasa en aislado**. Es un
-problema de aislamiento entre tests, no de la aplicación: con SQLite
-`:memory:` cada test arranca con una base genuinamente nueva, y contra una base
-persistente eso deja de ser cierto.
+Lo que antes quedaba como asunto abierto ("ejecutar la suite contra Postgres da
+37 errores y 89 fallos, pero cada test pasa en aislado") tenía una causa raíz
+concreta, ya arreglada.
 
-No se llegó a la causa exacta. Lo que se sabe: en el segundo test y siguientes
-la petición se rechaza antes de escribir, sin dejar ningún error SQL en el log,
-y la base queda limpia entre tests (el rollback sí funciona).
+`User::ROL_ADMIN`/`ROL_JEFE`/`ROL_EQUIPO` son constantes con id fijo (1, 2, 3)
+y `esAdmin()`/`esJefe()`/`esEquipo()`/`tieneRolOperativo()` comparan `role_id`
+contra ellas. `SystemSeeder::sembrarRoles()` insertaba los tres roles por
+nombre, **sin fijar el id**, y casi todos los tests siembran con
+`RefreshDatabase` + `$this->seed(SystemSeeder::class)`.
 
-Consecuencia práctica: **la suite no sirve hoy como red contra regresiones
-específicas de Postgres.** Merece la pena arreglarlo antes de la próxima matriz,
-porque es el único sitio donde se cazarían.
+En PostgreSQL **las secuencias no se revierten con la transacción**:
+`RefreshDatabase` limpia los datos entre tests, pero la secuencia de `roles`
+sigue avanzando. El primer test sembraba los roles con ids 1, 2 y 3; el
+segundo, con 4, 5 y 6; el tercero, con 7, 8 y 9. Desde el segundo test
+`role_id` no coincidía con ninguna constante, `esAdmin()` y compañía devolvían
+`false` para todo el mundo, y el middleware cortaba la petición antes de
+escribir — de ahí que no quedara ningún error SQL en el log. Con SQLite no
+pasaba porque, sin `AUTOINCREMENT`, el rowid de una tabla vacía vuelve a
+empezar en 1 tras el rollback.
+
+Efecto secundario que costó ver: en una tanda de `RedireccionDashboardTest`,
+los tests que comprobaban que jefe y equipo caen en el dashboard operativo
+**pasaban**, pero por el camino equivocado — sin rol, todo el mundo cae en el
+`else` de esa redirección.
+
+**Arreglo:** `sembrarRoles()` ahora fija el id explícitamente para cada rol al
+crearlo (las constantes de `User` son ciertas por construcción, no por orden
+de inserción) y solo actualiza la descripción si el rol ya existe, para no
+reasignar ids en producción. En Postgres, además, sincroniza la secuencia de
+`roles` con `setval()` tras sembrar, por si algún día algo más inserta ahí sin
+id explícito.
+
+**Medido antes/después contra el mismo PostgreSQL 16 desechable** (contenedor
+`docker run --rm`, borrado por nombre al terminar): antes del arreglo, 295
+tests dieron 46 errores y 129 fallos; después, **295 tests, 0 errores, 0
+fallos**, dos ejecuciones seguidas. La cifra exacta de antes no coincide con la
+de la revisión anterior (37/89) porque es un bug de arrastre acumulado por
+orden de ejecución — varía de una corrida a otra — pero la causa raíz es la
+misma y queda cerrada por construcción, no por casualidad de orden.
+
+SQLite sigue en 295 tests verdes, sin cambios.
 
 Para reproducirlo, en una sola invocación (XAMPP trae las DLL de pgsql
 comentadas, y `php artisan test` lanza PHPUnit en otro proceso al que no viajan
