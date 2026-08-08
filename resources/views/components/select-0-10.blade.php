@@ -1,8 +1,6 @@
 @props(['label', 'name', 'val', 'disabled' => false])
 
 @php
-    use App\Models\EvaluacionIrritacion;
-
     // old() gana sobre lo guardado: si la validación rechaza el envío, el
     // formulario tiene que devolver lo que el usuario acababa de responder.
     $val = old($name, $val);
@@ -10,12 +8,6 @@
     // De la base llega int o null; de old() llega string. Sin normalizar, la
     // comparación estricta de @selected fallaría justo al repintar tras el error.
     $val = ($val === null || $val === '') ? null : (int) $val;
-
-    // La escala es INVERSA: 0 es el mejor caso y 10 el peor. La clasificación
-    // se pide al modelo en vez de reimplementarse aquí: son los mismos
-    // umbrales que se aplican al promedio del bloque, y duplicarlos dejaría
-    // dos sitios que corregir el día que el instrumento cambie uno.
-    $clasificacion = fn(int $n) => EvaluacionIrritacion::clasificar((float) $n);
 @endphp
 
 <div class="mb-3">
@@ -27,7 +19,12 @@
              conciencia: aquí el 0 es el mejor resultado posible, no un hueco. --}}
         <option value="" @selected($val === null)>— sin responder —</option>
         @for($n = 0; $n <= 10; $n++)
-            <option value="{{ $n }}" @selected($val === $n)>{{ $n }} — {{ $clasificacion($n) }}</option>
+            {{-- La escala es INVERSA: 0 es el mejor caso y 10 el peor. Se
+                 consulta la definición del instrumento en vez de
+                 reimplementar aquí sus umbrales: son los mismos que se
+                 aplican al promedio del bloque, y duplicarlos dejaría dos
+                 sitios que corregir el día que el instrumento cambie uno. --}}
+            <option value="{{ $n }}" @selected($val === $n)>{{ $n }} — {{ \App\Matrices\Irritacion::clasificar($n) }}</option>
         @endfor
     </select>
     @error($name)

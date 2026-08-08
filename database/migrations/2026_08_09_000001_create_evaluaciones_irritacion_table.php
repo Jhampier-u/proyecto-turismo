@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Índice de Irritación Turística: dos bloques de seis atributos, escala 0-10.
  *
- * Los criterios nacen nullable y sin defecto, a diferencia de las cinco
+ * Los criterios nacen nullable y sin defecto, a diferencia de las seis
  * matrices anteriores, que necesitaron una migración posterior para llegar
  * aquí: un criterio sin responder no es un 0, y aquí el 0 significa además el
  * mejor resultado posible.

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\EvaluacionIrritacion;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Zona;
@@ -79,7 +80,7 @@ class IrritacionTest extends TestCase
         foreach ($casos as [$valor, $esperada]) {
             $this->assertSame(
                 $esperada,
-                \App\Models\EvaluacionIrritacion::clasificar($valor),
+                EvaluacionIrritacion::clasificar($valor),
                 "El promedio {$valor} no se clasificó como {$esperada}."
             );
         }
@@ -88,6 +89,26 @@ class IrritacionTest extends TestCase
     /** Sin promedio no hay clasificación: la matriz está a medias. */
     public function test_sin_promedio_no_hay_clasificacion(): void
     {
-        $this->assertNull(\App\Models\EvaluacionIrritacion::clasificar(null));
+        $this->assertNull(EvaluacionIrritacion::clasificar(null));
+    }
+
+    /**
+     * Nada instancia hoy el modelo. Una errata en el nombre del atributo
+     * dentro de un accesorio devolvería null en silencio, y no se vería
+     * hasta la Task 3, a través de un POST, donde diagnosticarlo cuesta
+     * mucho más. Construir con make() en vez de con datos ya guardados
+     * también comprueba que $fillable use los mismos nombres que las
+     * columnas: una errata ahí dejaría el atributo sin asignar y la
+     * clasificación en null, no en el valor esperado.
+     */
+    public function test_los_accesorios_de_clasificacion_leen_su_propio_promedio(): void
+    {
+        $eval = EvaluacionIrritacion::make([
+            'visitantes_promedio' => 7.0,
+            'residentes_promedio' => 1.0,
+        ]);
+
+        $this->assertSame('Crítico', $eval->clasificacion_visitantes);
+        $this->assertSame('Bajo',    $eval->clasificacion_residentes);
     }
 }
