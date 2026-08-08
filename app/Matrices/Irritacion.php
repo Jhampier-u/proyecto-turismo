@@ -22,6 +22,28 @@ final class Irritacion
     public const UMBRAL_CRITICO  = 7;
     public const UMBRAL_MODERADO = 3;
 
+    /**
+     * Los tres tramos de clasificación con su rango descriptivo y su color.
+     * Antes vivía duplicado en la vista de resultados; la leyenda del
+     * formulario necesita exactamente lo mismo, así que sube aquí como
+     * conocimiento del instrumento, igual que los umbrales de arriba.
+     *
+     * El rango es solo para el humano que lee la leyenda o la tabla: quien
+     * decide de verdad la clasificación es clasificar(), con estos mismos
+     * umbrales.
+     *
+     * Clases de Tailwind completas y no por concatenación: app/Matrices está
+     * en el content de tailwind.config.js precisamente para que el purgado
+     * las vea aquí y no solo en las vistas.
+     *
+     * @var array<string, array{rango: string, color: string}>
+     */
+    public const TRAMOS = [
+        'Bajo'     => ['rango' => '0 a 2',  'color' => 'bg-green-100 text-green-800'],
+        'Moderado' => ['rango' => '3 a 6',  'color' => 'bg-yellow-100 text-yellow-800'],
+        'Crítico'  => ['rango' => '7 a 10', 'color' => 'bg-red-100 text-red-800'],
+    ];
+
     /** Bloque de visitantes — 6 atributos. */
     public const VISITANTES = [
         'vis_congestion',
@@ -40,6 +62,28 @@ final class Irritacion
         'res_impacto_ambiental',
         'res_calidad_vida',
         'res_seguridad',
+    ];
+
+    /**
+     * Los dos bloques del instrumento: clave, título de sección, bajada de
+     * texto y los campos que lo componen. Antes vivía repartido en tres
+     * sitios —el criterios() del controlador, los <h3> del formulario y el
+     * array de la vista de resultados— así que un cambio de título había que
+     * hacerlo tres veces y nada avisaba si se olvidaba una.
+     *
+     * @var array<string, array{titulo: string, subtitulo: string, campos: array<int, string>}>
+     */
+    public const BLOQUES = [
+        'visitantes' => [
+            'titulo'    => 'Encuesta a visitantes',
+            'subtitulo' => 'Percepción de quien visita el destino.',
+            'campos'    => self::VISITANTES,
+        ],
+        'residentes' => [
+            'titulo'    => 'Encuesta a residentes',
+            'subtitulo' => 'Percepción de la localidad receptora.',
+            'campos'    => self::RESIDENTES,
+        ],
     ];
 
     /** @var array<string, string> campo => etiqueta con la sigla del instrumento */

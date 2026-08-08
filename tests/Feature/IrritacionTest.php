@@ -258,9 +258,39 @@ class IrritacionTest extends TestCase
         $respuesta = $this->actingAs($admin)->get($this->url())->assertOk();
 
         $respuesta->assertDontSee('Guardar Borrador');
-        // x-select-0-10 solo emite el atributo "disabled" cuando $disabled es
-        // verdadero: en esta página no aparece en ningún otro sitio.
-        $respuesta->assertSee('disabled', false);
+
+        // select-0-10.blade.php lleva "disabled:bg-gray-100 disabled:text-gray-500"
+        // en la clase de forma incondicional, así que la subcadena "disabled" a
+        // secas aparece igual con el formulario abierto de par en par: no prueba
+        // nada. "disabled>" sí es inequívoco, porque solo lo emite
+        // {{ $disabled ? 'disabled' : '' }} pegado al cierre de la etiqueta, y la
+        // lista de clases siempre termina en comilla antes de esa posición.
+        $html = $respuesta->getContent();
+        $this->assertSame(
+            12,
+            substr_count($html, 'disabled>'),
+            'Los doce <select> deberían llegar deshabilitados al admin.'
+        );
+    }
+
+    public function test_el_formulario_muestra_los_doce_atributos(): void
+    {
+        $pagina = $this->actingAs($this->jefe)->get($this->url())->assertOk();
+
+        foreach (array_keys(Irritacion::ETIQUETAS) as $campo) {
+            $pagina->assertSee("name=\"{$campo}\"", false);
+        }
+    }
+
+    /**
+     * Quien viene de rellenar Paisaje trae la escala al revés en la cabeza.
+     * El aviso no es decoración: es lo que evita doce respuestas invertidas.
+     */
+    public function test_el_formulario_avisa_de_que_la_escala_es_inversa(): void
+    {
+        $this->actingAs($this->jefe)->get($this->url())
+            ->assertOk()
+            ->assertSee('cuanto más alto, peor');
     }
 
     /**

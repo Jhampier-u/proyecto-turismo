@@ -32,12 +32,14 @@ class EvaluacionIrritacionController extends MatrizPonderadaController
         return [Irritacion::ESCALA_MIN, Irritacion::ESCALA_MAX];
     }
 
+    /**
+     * La clase base espera ['clave' => [campos...]]: Irritacion::BLOQUES
+     * guarda algo más (título y bajada además de los campos), así que aquí
+     * solo se proyecta la parte que ese contrato necesita.
+     */
     protected function criterios(): array
     {
-        return [
-            'visitantes' => Irritacion::VISITANTES,
-            'residentes' => Irritacion::RESIDENTES,
-        ];
+        return array_map(fn(array $bloque) => $bloque['campos'], Irritacion::BLOQUES);
     }
 
     /**

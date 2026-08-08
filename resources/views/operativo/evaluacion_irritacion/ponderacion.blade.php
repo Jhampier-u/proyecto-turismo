@@ -68,14 +68,13 @@
                 </h3>
 
                 @php
-                    // Mismos tres tramos que usa el desplegable del formulario:
-                    // la definición vive en Irritacion::clasificar(), aquí solo
-                    // se traduce la etiqueta a un color.
-                    $coloresClasificacion = [
-                        'Bajo'     => 'bg-green-100 text-green-800',
-                        'Moderado' => 'bg-yellow-100 text-yellow-800',
-                        'Crítico'  => 'bg-red-100 text-red-800',
-                    ];
+                    // Mismos tres tramos que la leyenda del formulario: el color
+                    // vive en Irritacion::TRAMOS y no aquí, para no mantener dos
+                    // copias que corregir el día que el instrumento cambie una.
+                    $coloresClasificacion = array_map(
+                        fn(array $tramo) => $tramo['color'],
+                        \App\Matrices\Irritacion::TRAMOS
+                    );
                 @endphp
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
@@ -104,8 +103,8 @@
                      distintas, igual que evita el controlador al no combinarlos
                      en un índice único. --}}
                 @foreach([
-                    ['Encuesta a visitantes', $visitantes],
-                    ['Encuesta a residentes', $residentes],
+                    [\App\Matrices\Irritacion::BLOQUES['visitantes']['titulo'], $visitantes],
+                    [\App\Matrices\Irritacion::BLOQUES['residentes']['titulo'], $residentes],
                 ] as [$titulo, $campos])
                     <h4 class="font-bold text-gray-700 mt-6 mb-2">{{ $titulo }}</h4>
                     <div class="overflow-x-auto mb-6">

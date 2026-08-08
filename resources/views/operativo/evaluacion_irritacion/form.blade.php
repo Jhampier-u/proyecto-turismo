@@ -45,22 +45,34 @@
             <x-flash-exito />
 
             {{-- La escala es inversa: hay que decirlo aquí y no solo en el
-                 desplegable, porque quien rellena esto por primera vez espera
-                 que 10 sea "lo mejor", como en el resto de matrices. --}}
+                 desplegable, porque quien viene de rellenar Paisaje trae la
+                 escala al revés en la cabeza y puntuaría los doce atributos
+                 invertidos si solo se fiara de la memoria. --}}
             <div class="mb-6 bg-indigo-50 border-l-4 border-indigo-500 text-indigo-800 p-4 text-sm rounded">
-                <p class="font-bold mb-1">Escala inversa</p>
-                <p>
+                <p class="font-bold mb-1">Escala inversa: cuanto más alto, peor</p>
+                <p class="mb-3">
                     0 es el mejor resultado posible y 10 la irritación crítica. Sin pesos: cada
                     bloque promedia por igual sus seis atributos.
                 </p>
+                {{-- Los tres tramos y su color viven en el instrumento
+                     (Irritacion::TRAMOS), no aquí: son los mismos que colorean
+                     la tabla de resultados, y duplicarlos dejaría dos sitios
+                     que corregir el día que el instrumento cambie uno. --}}
+                <div class="flex flex-wrap gap-2">
+                    @foreach(\App\Matrices\Irritacion::TRAMOS as $clasificacion => $tramo)
+                        <span class="inline-flex items-center px-2 py-1 rounded text-sm font-semibold {{ $tramo['color'] }}">
+                            {{ $tramo['rango'] }}: {{ $clasificacion }}
+                        </span>
+                    @endforeach
+                </div>
             </div>
 
             <form method="POST" action="{{ route('operativo.evaluacion_irritacion.update', $zona->id) }}">
                 @csrf
 
                 <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 border-sky-400">
-                    <h3 class="text-xl font-bold text-gray-900 mb-1">Encuesta a visitantes</h3>
-                    <p class="text-sm text-gray-500 mb-5">Percepción de quien visita el destino.</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-1">{{ \App\Matrices\Irritacion::BLOQUES['visitantes']['titulo'] }}</h3>
+                    <p class="text-sm text-gray-500 mb-5">{{ \App\Matrices\Irritacion::BLOQUES['visitantes']['subtitulo'] }}</p>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         @foreach($visitantes as $campo)
@@ -74,8 +86,8 @@
                 </section>
 
                 <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 border-amber-400">
-                    <h3 class="text-xl font-bold text-gray-900 mb-1">Encuesta a residentes</h3>
-                    <p class="text-sm text-gray-500 mb-5">Percepción de la localidad receptora.</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-1">{{ \App\Matrices\Irritacion::BLOQUES['residentes']['titulo'] }}</h3>
+                    <p class="text-sm text-gray-500 mb-5">{{ \App\Matrices\Irritacion::BLOQUES['residentes']['subtitulo'] }}</p>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         @foreach($residentes as $campo)

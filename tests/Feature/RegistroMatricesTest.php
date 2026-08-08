@@ -113,4 +113,46 @@ class RegistroMatricesTest extends TestCase
             );
         }
     }
+
+    /**
+     * icono.blade.php degrada en silencio un nombre que no reconoce a un
+     * círculo genérico: sin este test, una errata de tipeo en 'icono' no se
+     * nota hasta que alguien la ve a ojo en la pantalla, que es justo como se
+     * cazó que dos matrices llegaron a compartir icono en esta misma rama.
+     * fila-matriz.blade.php reserva el color para el estado, así que la
+     * identidad de cada fila depende solo del icono y el nombre: repetido,
+     * dos matrices se vuelven indistinguibles.
+     */
+    public function test_cada_entrada_declara_un_icono_existente_y_sin_repetir(): void
+    {
+        // El trazo que icono.blade.php pinta cuando el nombre no coincide con
+        // ninguno de los suyos. Se renderiza el componente de verdad, en vez
+        // de copiar aquí la lista de nombres válidos, para no mantener una
+        // segunda fuente de verdad que también pueda quedarse desactualizada.
+        $trazoPorDefecto = 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z';
+
+        $vistos = [];
+
+        foreach (Registro::ENTRADAS as $clave => $entrada) {
+            $html = (string) $this->blade(
+                '<x-icono :nombre="$nombre" />',
+                ['nombre' => $entrada['icono']]
+            );
+
+            $this->assertStringNotContainsString(
+                $trazoPorDefecto,
+                $html,
+                "{$clave}: el icono '{$entrada['icono']}' no existe en icono.blade.php y degrada al círculo por defecto."
+            );
+
+            $anterior = $vistos[$entrada['icono']] ?? '';
+            $this->assertArrayNotHasKey(
+                $entrada['icono'],
+                $vistos,
+                "{$clave}: comparte el icono '{$entrada['icono']}' con '{$anterior}'."
+            );
+
+            $vistos[$entrada['icono']] = $clave;
+        }
+    }
 }
