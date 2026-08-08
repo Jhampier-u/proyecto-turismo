@@ -9,6 +9,7 @@ use App\Models\InvolucradosConfig;
 use App\Models\Zona;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -173,8 +174,8 @@ class InvolucradosController extends Controller
     }
 
     /**
-     * Resultados: el ranking de actores por relevancia (Involucrados::
-     * relevancias(), Tarea 4) con sus normalizados y su tipo de Mitchell.
+     * Resultados: el ranking de actores por relevancia (Tarea 4) con sus
+     * normalizados y su tipo de Mitchell.
      */
     public function resultados($zonaId)
     {
@@ -186,19 +187,90 @@ class InvolucradosController extends Controller
         // medias, porque el instrumento normaliza sobre el conjunto entero.
         $completa = $actores->isNotEmpty() && $actores->every(fn(Involucrado $a) => $a->estaCompleto());
 
+        $datos = $completa
+            ? $this->relevanciasDe($actores)
+            : ['filas' => collect(), 'degenerados' => []];
+
         return view('operativo.involucrados.resultados', [
             'zona'      => $zona,
             'completa'  => $completa,
             // Igual que index()/create()/edit(): la vista consume la
             // constante ya resuelta, no alcanza App\Matrices\Involucrados por
             // su cuenta.
-            'atributos' => Involucrados::ATRIBUTOS,
-            // relevancias() exige que grado() no devuelva null en ningún
-            // actor —su precondición, documentada ahí—: solo se llama con la
-            // lista completa. Con la lista a medias o vacía la vista ni la
-            // toca, así que una colección vacía basta.
-            'filas' => $completa ? Involucrados::relevancias($actores) : collect(),
+            'atributos'   => Involucrados::ATRIBUTOS,
+            'filas'       => $datos['filas'],
+            // Qué atributos no diferencian a nadie de este conjunto
+            // (Involucrados::esAtributoDegenerado()): la vista los pinta con
+            // "—" en vez de un 1.00 que se confundiría con "está justo en la
+            // media". Ver el docblock de esAtributoDegenerado().
+            'degenerados' => $datos['degenerados'],
         ]);
+    }
+
+    /**
+     * Arma las filas de la tabla de resultados —grados, normalizados y
+     * relevancia por actor— y qué atributos salieron degenerados en este
+     * conjunto. El ENSAMBLADO vive aquí y no en App\Matrices\Involucrados:
+     * leer los grados de cada actor por atributo, invocar la aritmética pura
+     * del instrumento y ordenar por relevancia es trabajo del controlador,
+     * igual que EvaluacionFitController::calcular() recibe un array de
+     * valores y dejar el CRUD y el modelo aparte. Antes esto vivía en
+     * Involucrados::relevancias(), que por eso tenía que importar el modelo
+     * Involucrado —el modelo ya importaba de vuelta a Involucrados para
+     * campos()/grado()/tipoDe()—, la primera dependencia circular
+     * instrumento↔modelo del sistema. Moverlo aquí la rompe: Involucrados
+     * vuelve a ser solo constantes y funciones puras sobre escalares, como
+     * las otras siete matrices.
+     *
+     * Precondición: solo se llama con $actores completos —resultados() la
+     * invoca únicamente cuando $completa es true—. Con un actor a medias,
+     * Involucrado::grado() devuelve null y
+     * Involucrados::normalizar()/esAtributoDegenerado() lo rechazan con un
+     * InvalidArgumentException en vez de devolver un número que parece
+     * válido y no lo es.
+     *
+     * @param Collection<int, Involucrado> $actores
+     * @return array{filas: Collection, degenerados: array<string, bool>}
+     */
+    private function relevanciasDe(Collection $actores): array
+    {
+        // Reindexado una sola vez: los arrays de grados/normalizados de abajo
+        // y el bucle que arma las filas tienen que alinear la misma posición
+        // con el mismo actor, y ->get() no garantiza claves 0..n-1 si algo
+        // aguas arriba las tocó.
+        $actores = $actores->values();
+        $claves  = array_keys(Involucrados::ATRIBUTOS);
+
+        $grados      = [];
+        $normalizado = [];
+        $degenerados = [];
+
+        foreach ($claves as $atributo) {
+            $grados[$atributo]      = $actores->map(fn(Involucrado $a) => $a->grado($atributo))->all();
+            $degenerados[$atributo] = Involucrados::esAtributoDegenerado($grados[$atributo]);
+            $normalizado[$atributo] = Involucrados::normalizar($grados[$atributo]);
+        }
+
+        $filas = $actores
+            ->map(function (Involucrado $actor, int $indice) use ($claves, $grados, $normalizado) {
+                $filaGrado       = [];
+                $filaNormalizado = [];
+                foreach ($claves as $atributo) {
+                    $filaGrado[$atributo]       = $grados[$atributo][$indice];
+                    $filaNormalizado[$atributo] = $normalizado[$atributo][$indice];
+                }
+
+                return [
+                    'actor'       => $actor,
+                    'grado'       => $filaGrado,
+                    'normalizado' => $filaNormalizado,
+                    'relevancia'  => Involucrados::relevancia($filaNormalizado),
+                ];
+            })
+            ->sortByDesc('relevancia')
+            ->values();
+
+        return ['filas' => $filas, 'degenerados' => $degenerados];
     }
 
     /**

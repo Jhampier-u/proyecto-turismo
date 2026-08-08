@@ -2,9 +2,6 @@
 
 namespace App\Matrices;
 
-use App\Models\Involucrado;
-use Illuminate\Support\Collection;
-
 /**
  * Matriz de Involucrados Turísticos Territoriales.
  *
@@ -147,99 +144,132 @@ final class Involucrados
     }
 
     /**
-     * Normaliza el grado de UN atributo (poder, legitimidad o urgencia) de
-     * cada actor frente al conjunto: (grado del actor / suma de los grados de
-     * todos) × número de actores. Es la mitad "por atributo" de la fórmula de
-     * relevancia; la otra mitad —el producto de los tres normalizados— vive
-     * en relevancias(), que es quien llama a este método tres veces.
+     * Valida que un array de grados esté completo, sin huecos (null). Se
+     * comprueba de forma explícita al principio de normalizar() y de
+     * esAtributoDegenerado(), en vez de confiar en que un hueco reviente solo
+     * más adelante en la aritmética: tanto array_sum() como
+     * Collection::sum() reducen con "+", y "0 + null" da 0 sin ningún aviso
+     * en PHP. Eso significa que un atributo con TODOS sus grados en null
+     * —todos los actores a medias en ese atributo— cae exactamente en la
+     * misma rama que "todos puntúan 0 de verdad" y, sin esta validación,
+     * devolvería 1.0 en silencio para un conjunto que en realidad nunca
+     * estuvo completo.
+     *
+     * @param array<int, mixed> $grados
+     */
+    private static function validarGradosCompletos(array $grados): void
+    {
+        foreach ($grados as $grado) {
+            if (! is_int($grado)) {
+                throw new \InvalidArgumentException(
+                    'normalizar() y esAtributoDegenerado() exigen una lista de grados completa, sin huecos (null): normalizar un conjunto a medias no tiene ningún significado.'
+                );
+            }
+        }
+    }
+
+    /**
+     * Normaliza un array de grados de UN atributo (poder, legitimidad o
+     * urgencia) frente al conjunto: (grado_i / suma) × n. Aritmética pura
+     * sobre escalares —sin Eloquent, sin conocer el modelo Involucrado—, en
+     * la línea de tipoDe(): quien reúne los grados de los actores de una zona
+     * en este array es el controlador (ver
+     * InvolucradosController::relevanciasDe()), igual que
+     * EvaluacionFitController::calcular() recibe un array de valores en vez
+     * de un modelo o una colección.
      *
      * DELIBERADO — no es un fallo que alguien deba "corregir": el resultado
-     * de CADA actor depende de los grados de TODOS los demás, porque se
+     * de una posición depende, en general, de TODAS las demás, porque se
      * divide por la suma del conjunto. Dar de alta o de baja un actor
      * recalcula los normalizados de los que ya estaban, aunque sus propios
-     * criterios no cambien. Está decidido así con el responsable del
-     * proyecto: comparar el normalizado de un actor entre dos listados
-     * distintos no tiene sentido, solo lo tiene dentro del mismo conjunto.
-     * InvolucradosTest fija esta propiedad a propósito con un test que crea
-     * un tercer actor y comprueba que los dos primeros cambian.
+     * criterios no cambien un ápice —con una excepción trivial y no un caso
+     * especial de la regla: un grado exactamente en 0 normaliza SIEMPRE a
+     * 0.0 mientras la suma no sea 0 (0/suma×n es 0 para cualquier suma), así
+     * que esa posición concreta no cambia porque ya estaba fija en 0.0 antes
+     * de tocar el conjunto—. Decidido así con el responsable del proyecto:
+     * comparar el normalizado de un actor entre dos listados distintos no
+     * tiene sentido, solo lo tiene dentro del mismo conjunto. Ver el test
+     * homónimo, que fija esta propiedad a propósito para que nadie la
+     * "corrija" dentro de seis meses pensando que debería ser estable entre
+     * altas.
      *
-     * DIVISIÓN POR CERO — "ninguno posee poder" (los siete campos en 0 para
-     * todos los actores) es un caso real del instrumento, no un error de
-     * captura, y ahí la suma da 0. La fórmula de arriba es en el fondo
-     * grado ÷ media(grados) —reescrita para no dividir por partes—, y
-     * mientras la suma no sea 0 la media de los normalizados del conjunto da
-     * SIEMPRE exactamente 1, sea cual sea la distribución de grados (es el
-     * álgebra: la media de (grado_i/suma)×n es n×(suma/suma)/n = 1). Con
-     * todos los actores empatados en 0, la continuación natural de "empatados
-     * en cualquier valor → todos normalizan a 1" sigue siendo 1.0: es el
-     * límite de la fórmula cuando un empate en un valor positivo tiende a
-     * cero. Devolver 0.0 en su lugar sería más intuitivo a primera vista,
-     * pero anularía la relevancia ENTERA de todos los actores —relevancia es
-     * un producto de los tres normalizados—, aunque legitimidad o urgencia sí
-     * los diferenciaran.
+     * SUMA CERO → 1.0, Y POR QUÉ NO ES "SALVAR LA RELEVANCIA DEL ACTOR":
+     * "Ninguno puntúa nada en este atributo" (los siete campos de poder en 0
+     * para todos los actores, por ejemplo) es un caso real del instrumento,
+     * y ahí la suma da 0. La justificación de devolver 1.0 NO es evitar que
+     * un actor pierda su relevancia: esa pérdida ya ocurre todo el tiempo, de
+     * forma perfectamente normal, cuando SOLO ESE actor puntúa 0 mientras
+     * otros no —legitimidad y urgencia tienen solo dos criterios cada una,
+     * así que un 0 aislado es corriente, y su normalizado 0.00 es
+     * exactamente lo que debe salir, no un caso a evitar—. Lo distinto en la
+     * suma-cero es que TODOS puntúan 0: el atributo no aporta ninguna
+     * información para diferenciar a nadie del conjunto, así que 1.0 —el
+     * neutro del producto de la relevancia— dice "este atributo no
+     * interviene, que decidan los otros dos". Es también la continuación
+     * algebraica de la fórmula: para cualquier suma > 0 la media de los
+     * normalizados del conjunto da siempre exactamente 1 (la media de
+     * (grado_i/suma)×n es n×(suma/suma)/n = 1), y con todos los grados
+     * empatados en 0 esa media, en el límite, sigue siendo 1.
      *
-     * @param Collection<int, Involucrado> $actores
-     * @return array<int, float> en el mismo orden que $actores->values()
+     * OJO EN PANTALLA: un 1.0 aquí es indistinguible de "este actor está
+     * justo en la media", que es un valor real y corriente. Quien pinte este
+     * número no debe hacerlo con un 1.00 desnudo sin comprobar antes
+     * esAtributoDegenerado(): ver InvolucradosController::relevanciasDe() y
+     * la vista de resultados, que pintan "—" con una nota en vez del número
+     * cuando el atributo resultó degenerado.
+     *
+     * @param array<int, int> $grados
+     * @return array<int, float>
      */
-    private static function normalizarAtributo(Collection $actores, string $atributo): array
+    public static function normalizar(array $grados): array
     {
-        // grado() exige que $actor no tenga ningún criterio en null: es la
-        // precondición de relevancias(), documentada ahí. Con un hueco, la
-        // suma en int + null lanzaría un TypeError en el map de más abajo en
-        // vez de mentir con un cálculo a medias.
-        $grados = $actores->values()->map(fn(Involucrado $actor) => $actor->grado($atributo));
-        $n      = $grados->count();
-        $suma   = $grados->sum();
+        self::validarGradosCompletos($grados);
+
+        $n    = count($grados);
+        $suma = array_sum($grados);
 
         if ($suma === 0) {
             return array_fill(0, $n, 1.0);
         }
 
-        return $grados->map(fn(int $grado) => ($grado / $suma) * $n)->all();
+        return array_map(fn(int $grado) => ($grado / $suma) * $n, $grados);
     }
 
     /**
-     * Consolida el conjunto de actores para la vista de resultados: por cada
-     * actor, sus tres normalizados y la relevancia —poder × legitimidad ×
-     * urgencia, ya normalizados—, ordenados de mayor a menor relevancia.
+     * Un atributo es degenerado cuando su normalizado no diferencia a NINGÚN
+     * actor del conjunto:
      *
-     * Vive aquí y no en el modelo Involucrado porque es lo único en todo el
-     * instrumento que cruza actores entre sí: grado() y tipo_mitchell son por
-     * actor y el modelo no tiene forma de ver a los demás actores de la zona.
-     * Vive aquí y no en la vista para que se pueda probar sin HTTP, igual que
-     * pide el diseño de la Tarea 4.
+     * - Porque todos puntúan 0 (la suma da 0, ver normalizar()), o
+     * - Porque solo hay un actor: con uno solo, grado/grado siempre da 1 (y
+     *   si ese único grado es 0, cae en la rama de suma 0, que también da
+     *   1.0), así que el normalizado sale 1.0 pase lo que pase con sus once
+     *   criterios y sin que eso diga nada de ese actor en particular.
      *
-     * Precondición: asume que Involucrado::grado() no devuelve null para
-     * ningún actor de la colección, es decir que la lista está completa.
-     * Responsabilidad de quien llama —InvolucradosController::resultados()
-     * solo la invoca cuando $completa es true—: normalizar sobre un hueco no
-     * tiene ningún significado, y llamarlo con un actor a medias falla con un
-     * TypeError en vez de devolver un número que parece válido y no lo es.
+     * Es una propiedad del CONJUNTO para ESE atributo, no de un actor
+     * concreto, y existe para que quien pinte esto sepa cuándo un 1.00
+     * necesita la aclaración de normalizar(): sin esto, "nadie puntúa poder"
+     * y "este actor está justo en la media" se pintarían idénticos.
      *
-     * @param Collection<int, Involucrado> $actores
-     * @return Collection<int, array{actor: Involucrado, normalizado: array<string, float>, relevancia: float}>
+     * @param array<int, int> $grados
      */
-    public static function relevancias(Collection $actores): Collection
+    public static function esAtributoDegenerado(array $grados): bool
     {
-        $normalizadosPorAtributo = [];
-        foreach (array_keys(self::ATRIBUTOS) as $atributo) {
-            $normalizadosPorAtributo[$atributo] = self::normalizarAtributo($actores, $atributo);
-        }
+        self::validarGradosCompletos($grados);
 
-        return $actores->values()
-            ->map(function (Involucrado $actor, int $indice) use ($normalizadosPorAtributo) {
-                $normalizado = [];
-                foreach (array_keys(self::ATRIBUTOS) as $atributo) {
-                    $normalizado[$atributo] = $normalizadosPorAtributo[$atributo][$indice];
-                }
+        return count($grados) <= 1 || array_sum($grados) === 0;
+    }
 
-                return [
-                    'actor'       => $actor,
-                    'normalizado' => $normalizado,
-                    'relevancia'  => array_product($normalizado),
-                ];
-            })
-            ->sortByDesc('relevancia')
-            ->values();
+    /**
+     * La relevancia de un actor: el producto de sus tres normalizados —poder,
+     * legitimidad y urgencia—. Un atributo degenerado normaliza a 1.0 (el
+     * neutro del producto, ver normalizar()), así que la relevancia queda
+     * decidida solo por los atributos que sí diferencian al conjunto, sin que
+     * quien ensambla las filas tenga que excluir nada a mano.
+     *
+     * @param array<string, float> $normalizados
+     */
+    public static function relevancia(array $normalizados): float
+    {
+        return array_product($normalizados);
     }
 }

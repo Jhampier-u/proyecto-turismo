@@ -638,155 +638,14 @@ class InvolucradosTest extends TestCase
             ->assertSee('2 actores, 1 sin completar');
     }
 
-    // ── Cálculo de relevancia (Tarea 4) ────────────────────────────────────
+    // ── Vista de resultados: ensamblado del ranking (Tarea 4) ──────────────
     //
-    // Involucrados::relevancias() es lo único que cruza actores entre sí en
-    // todo el sistema: las siete matrices anteriores puntúan una lista FIJA
-    // de criterios de la zona, así que nada en ellas depende de qué otras
-    // filas existan. Aquí sí, porque la fórmula normaliza dividiendo por la
-    // suma del conjunto. Se prueba aparte de la vista —sin HTTP— porque es
-    // aritmética pura sobre actores ya guardados, no reventa nada del CRUD.
-
-    public function test_normalizar_con_grados_de_poder_10_y_5_da_1_333_y_0_667(): void
-    {
-        // 10 = 3+3+3+1 en cuatro de los siete campos de poder; 5 = 3+2 en dos.
-        // El resto de campos —y los otros dos atributos— se dejan en 0 porque
-        // este test solo mira el normalizado de poder.
-        // Los overrides van a la IZQUIERDA de todosEn(0): "+" conserva el
-        // operando izquierdo cuando la clave se repite (ver el comentario de
-        // test_un_actor_esta_completo_solo_con_sus_once_criterios más arriba),
-        // así que todosEn(0) a la izquierda pisaría en silencio estos valores
-        // con sus propios ceros.
-        $actorA = Involucrado::create([
-            'zona_id'         => $this->zona->id,
-            'nombre'          => 'Actor A',
-            'pod_autoridad'   => 3,
-            'pod_poder'       => 3,
-            'pod_recursos'    => 3,
-            'pod_presupuesto' => 1,
-        ] + $this->todosEn(0));
-        $actorB = Involucrado::create([
-            'zona_id'       => $this->zona->id,
-            'nombre'        => 'Actor B',
-            'pod_autoridad' => 3,
-            'pod_poder'     => 2,
-        ] + $this->todosEn(0));
-
-        $this->assertSame(10, $actorA->grado('poder'));
-        $this->assertSame(5, $actorB->grado('poder'));
-
-        $filas = Involucrados::relevancias(collect([$actorA, $actorB]))
-            ->keyBy(fn(array $fila) => $fila['actor']->id);
-
-        // Suma 15, dos actores: (10/15)*2 = 1.333..., (5/15)*2 = 0.667...
-        $this->assertEqualsWithDelta(1.333, $filas[$actorA->id]['normalizado']['poder'], 0.001);
-        $this->assertEqualsWithDelta(0.667, $filas[$actorB->id]['normalizado']['poder'], 0.001);
-    }
-
-    /**
-     * DELIBERADO, no un fallo: normalizar() divide por la suma del conjunto,
-     * así que el normalizado de CADA actor depende de los grados de TODOS los
-     * demás. Dar de alta un tercer actor recalcula a los dos que ya estaban,
-     * sin que sus propios criterios cambien un ápice. Está decidido con el
-     * responsable del proyecto que se queda así: este test lo fija a
-     * propósito para que nadie lo "corrija" dentro de seis meses pensando que
-     * el normalizado de un actor debería ser estable entre altas.
-     */
-    public function test_anadir_un_actor_cambia_el_normalizado_de_los_que_ya_estaban(): void
-    {
-        $actorA = Involucrado::create([
-            'zona_id'       => $this->zona->id,
-            'nombre'        => 'Actor A',
-            'pod_autoridad' => 2,
-        ] + $this->todosEn(1));
-        $actorB = Involucrado::create([
-            'zona_id'       => $this->zona->id,
-            'nombre'        => 'Actor B',
-            'pod_autoridad' => 0,
-        ] + $this->todosEn(1));
-
-        $antes = Involucrados::relevancias(collect([$actorA, $actorB]))
-            ->keyBy(fn(array $fila) => $fila['actor']->id);
-
-        $actorC = Involucrado::create([
-            'zona_id'       => $this->zona->id,
-            'nombre'        => 'Actor C',
-            'pod_autoridad' => 3,
-        ] + $this->todosEn(1));
-
-        $despues = Involucrados::relevancias(collect([$actorA, $actorB, $actorC]))
-            ->keyBy(fn(array $fila) => $fila['actor']->id);
-
-        $this->assertGreaterThan(
-            0.001,
-            abs($antes[$actorA->id]['normalizado']['poder'] - $despues[$actorA->id]['normalizado']['poder']),
-            'El normalizado de poder del actor A debía cambiar al añadir un tercer actor.'
-        );
-        $this->assertGreaterThan(
-            0.001,
-            abs($antes[$actorB->id]['normalizado']['poder'] - $despues[$actorB->id]['normalizado']['poder']),
-            'El normalizado de poder del actor B debía cambiar al añadir un tercer actor.'
-        );
-    }
-
-    /**
-     * "Ninguno posee poder" —los siete campos en 0 para todos los actores—
-     * es un caso real del instrumento, no un error de captura: la suma del
-     * atributo da 0 y (grado/0) no tiene sentido. Ver el porqué de devolver
-     * 1.0 (y no 0.0) en el docblock de Involucrados::normalizarAtributo().
-     */
-    public function test_normalizar_no_revienta_si_todos_estan_en_cero_en_un_atributo(): void
-    {
-        $actorA = Involucrado::create($this->todosEn(0) + [
-            'zona_id' => $this->zona->id,
-            'nombre'  => 'Actor A',
-        ]);
-        $actorB = Involucrado::create([
-            'zona_id'        => $this->zona->id,
-            'nombre'         => 'Actor B',
-            'leg_territorio' => 3,
-            'leg_sociedad'   => 3,
-        ] + $this->todosEn(0));
-
-        $filas = Involucrados::relevancias(collect([$actorA, $actorB]))
-            ->keyBy(fn(array $fila) => $fila['actor']->id);
-
-        $this->assertSame(1.0, $filas[$actorA->id]['normalizado']['poder']);
-        $this->assertSame(1.0, $filas[$actorB->id]['normalizado']['poder']);
-
-        // La legitimidad sí tiene suma > 0, así que sigue su fórmula normal:
-        // (0/6)*2 = 0 para A, (6/6)*2 = 2 para B.
-        $this->assertEqualsWithDelta(0.0, $filas[$actorA->id]['normalizado']['legitimidad'], 0.0001);
-        $this->assertEqualsWithDelta(2.0, $filas[$actorB->id]['normalizado']['legitimidad'], 0.0001);
-    }
-
-    public function test_relevancia_es_el_producto_de_los_tres_normalizados_y_ordena_descendente(): void
-    {
-        $bajo = Involucrado::create($this->todosEn(0) + [
-            'zona_id' => $this->zona->id,
-            'nombre'  => 'Bajo en todo',
-        ]);
-        $alto = Involucrado::create($this->todosEn(3) + [
-            'zona_id' => $this->zona->id,
-            'nombre'  => 'Alto en todo',
-        ]);
-
-        $filas = Involucrados::relevancias(collect([$bajo, $alto]));
-
-        // Con solo dos actores y uno en el máximo de los tres atributos y el
-        // otro en el mínimo, el de arriba tiene que quedar primero.
-        $this->assertSame('Alto en todo', $filas->first()['actor']->nombre);
-
-        foreach ($filas as $fila) {
-            $esperado = $fila['normalizado']['poder']
-                * $fila['normalizado']['legitimidad']
-                * $fila['normalizado']['urgencia'];
-
-            $this->assertEqualsWithDelta($esperado, $fila['relevancia'], 0.0001);
-        }
-    }
-
-    // ── Vista de resultados (Tarea 4) ──────────────────────────────────────
+    // La aritmética pura (normalizar/esAtributoDegenerado/relevancia) se
+    // prueba sin base de datos en tests/Unit/InvolucradosCalculoTest.php. Lo
+    // que hace falta probar aquí, con actores de verdad, es el ENSAMBLADO de
+    // InvolucradosController::relevanciasDe(): que lee los grados correctos
+    // de cada actor para cada atributo, sin cruzar columnas entre sí, y que
+    // ordena y pinta lo que calculó.
 
     private function urlResultados(): string
     {
@@ -816,7 +675,206 @@ class InvolucradosTest extends TestCase
             ->assertSee('Dependiente')
             // El aviso de que los normalizados son relativos al conjunto:
             // el punto que el diseño marca como imprescindible.
-            ->assertSee('relativos a este conjunto de actores', false);
+            ->assertSee('relativos a este conjunto de actores', false)
+            // Positivo, no solo la ausencia de estos textos en el caso
+            // incompleto (ver el test de abajo): que en la rama COMPLETA la
+            // tabla de números de verdad se pinta. Con los dos actores
+            // empatados en 1 en los once criterios, los tres atributos
+            // normalizan a (1/2)*2 = 1.0 y la relevancia a 1×1×1 = 1.0.
+            ->assertSee('Relevancia')
+            ->assertSee('Tipo de Mitchell')
+            ->assertSee('(norm.)')
+            ->assertSee('1.000')
+            ->assertSee('1.0000');
+    }
+
+    /**
+     * Grados deliberadamente distintos y cruzados entre los tres atributos
+     * -A gana en poder y legitimidad pero pierde en urgencia, B al revés-
+     * para que un error de ensamblado en relevanciasDe() que mezclara la
+     * columna de un atributo con la de otro (itera los tres por separado y
+     * arma cada fila indexando con la misma posición) se note: si dos
+     * atributos compartieran la misma pareja de valores, ese error pasaría
+     * desapercibido.
+     */
+    public function test_resultados_calcula_normalizados_y_relevancia_para_los_tres_atributos(): void
+    {
+        $actorA = Involucrado::create([
+            'zona_id'          => $this->zona->id,
+            'nombre'           => 'Actor A',
+            'pod_autoridad'    => 3, 'pod_poder' => 3, 'pod_recursos' => 3, 'pod_presupuesto' => 1,
+            'leg_territorio'   => 3, 'leg_sociedad' => 2,
+            'urg_sensibilidad' => 1,
+        ] + $this->todosEn(0));
+        $actorB = Involucrado::create([
+            'zona_id'          => $this->zona->id,
+            'nombre'           => 'Actor B',
+            'pod_autoridad'    => 3, 'pod_poder' => 2,
+            'leg_territorio'   => 1,
+            'urg_sensibilidad' => 2, 'urg_criticidad' => 1,
+        ] + $this->todosEn(0));
+
+        $this->assertSame(10, $actorA->grado('poder'));
+        $this->assertSame(5, $actorA->grado('legitimidad'));
+        $this->assertSame(1, $actorA->grado('urgencia'));
+        $this->assertSame(5, $actorB->grado('poder'));
+        $this->assertSame(1, $actorB->grado('legitimidad'));
+        $this->assertSame(3, $actorB->grado('urgencia'));
+
+        $html = $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->getContent();
+
+        // Poder: suma 15 → (10/15)*2 = 1.333, (5/15)*2 = 0.667.
+        $this->assertStringContainsString('1.333', $html);
+        $this->assertStringContainsString('0.667', $html);
+        // Legitimidad: suma 6 → (5/6)*2 = 1.667, (1/6)*2 = 0.333.
+        $this->assertStringContainsString('1.667', $html);
+        $this->assertStringContainsString('0.333', $html);
+        // Urgencia: suma 4 → (1/4)*2 = 0.500, (3/4)*2 = 1.500.
+        $this->assertStringContainsString('0.500', $html);
+        $this->assertStringContainsString('1.500', $html);
+
+        // Relevancia A = (4/3)×(5/3)×(1/2) = 20/18 = 1.1111...
+        // Relevancia B = (2/3)×(1/3)×(3/2) = 6/18  = 0.3333...
+        $this->assertStringContainsString('1.1111', $html);
+        $this->assertStringContainsString('0.3333', $html);
+    }
+
+    /**
+     * DELIBERADO, no un fallo: normalizar() divide por la suma del conjunto,
+     * así que el normalizado de un actor depende, en general, de los grados
+     * de todos los demás. Dar de alta un tercer actor recalcula a los dos que
+     * ya estaban, sin que sus propios criterios cambien un ápice. Está
+     * decidido con el responsable del proyecto que se queda así: este test
+     * lo fija a propósito, en los TRES atributos (no solo en poder), para que
+     * nadie lo "corrija" dentro de seis meses pensando que el normalizado de
+     * un actor debería ser estable entre altas.
+     *
+     * Los grados de A y B son simétricos entre los tres atributos (4/2 en los
+     * tres) a propósito: si relevanciasDe() dejara de recalcular alguno de
+     * los tres al añadir el actor C —por ejemplo por un fallo que solo
+     * recorriera dos de las tres claves de ATRIBUTOS—, el valor "viejo"
+     * seguiría apareciendo en la página y el assertDontSee de más abajo lo
+     * detectaría igual, sea cual sea el atributo afectado.
+     */
+    public function test_anadir_un_actor_cambia_los_normalizados_renderizados_en_los_tres_atributos(): void
+    {
+        $actorA = Involucrado::create([
+            'zona_id'          => $this->zona->id,
+            'nombre'           => 'Actor A',
+            'pod_autoridad'    => 3, 'pod_poder' => 1,
+            'leg_territorio'   => 2, 'leg_sociedad' => 2,
+            'urg_sensibilidad' => 2, 'urg_criticidad' => 2,
+        ] + $this->todosEn(0));
+        Involucrado::create([
+            'zona_id'          => $this->zona->id,
+            'nombre'           => 'Actor B',
+            'pod_autoridad'    => 2,
+            'leg_territorio'   => 1, 'leg_sociedad' => 1,
+            'urg_sensibilidad' => 1, 'urg_criticidad' => 1,
+        ] + $this->todosEn(0));
+
+        $this->assertSame(4, $actorA->grado('poder'));
+        $this->assertSame(4, $actorA->grado('legitimidad'));
+        $this->assertSame(4, $actorA->grado('urgencia'));
+
+        // Antes de C: suma 6 en los tres atributos, dos actores →
+        // (4/6)*2 = 1.333, (2/6)*2 = 0.667 en los tres.
+        $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertSee('1.333')
+            ->assertSee('0.667');
+
+        Involucrado::create([
+            'zona_id'          => $this->zona->id,
+            'nombre'           => 'Actor C',
+            'pod_autoridad'    => 3, 'pod_poder' => 2,
+            'leg_territorio'   => 3, 'leg_sociedad' => 2,
+            'urg_sensibilidad' => 3, 'urg_criticidad' => 2,
+        ] + $this->todosEn(0));
+
+        // Después de C: suma 4+2+5 = 11, tres actores →
+        // A: (4/11)*3 = 1.091, B: (2/11)*3 = 0.545, C: (5/11)*3 = 1.364.
+        $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            // Los normalizados "viejos" de A y B ya no deben aparecer en
+            // NINGUNO de los tres atributos: si solo hubieran cambiado uno o
+            // dos, alguno de estos dos valores seguiría en la página.
+            ->assertDontSee('1.333')
+            ->assertDontSee('0.667')
+            ->assertSee('1.091')
+            ->assertSee('0.545')
+            ->assertSee('1.364');
+    }
+
+    /**
+     * "Ninguno puntúa nada en urgencia" —los dos campos en 0 para todos los
+     * actores— es un caso real del instrumento, no un error de captura, y no
+     * debe pintarse como un 1.00 indistinguible de "está justo en la media":
+     * Involucrados::esAtributoDegenerado() lo marca, y la vista lo pinta con
+     * "—" y una nota, sin afectar a las otras dos columnas, que sí tienen
+     * datos.
+     */
+    public function test_resultados_marca_con_guion_un_atributo_sin_ningun_puntaje_en_el_conjunto(): void
+    {
+        $actorA = Involucrado::create([
+            'zona_id'        => $this->zona->id,
+            'nombre'         => 'Actor A',
+            'pod_autoridad'  => 2,
+            'leg_territorio' => 1,
+        ] + $this->todosEn(0));
+        $actorB = Involucrado::create([
+            'zona_id'        => $this->zona->id,
+            'nombre'         => 'Actor B',
+            'pod_autoridad'  => 1,
+            'leg_territorio' => 2,
+        ] + $this->todosEn(0));
+
+        $this->assertSame(0, $actorA->grado('urgencia'));
+        $this->assertSame(0, $actorB->grado('urgencia'));
+
+        $contenido = $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertSee('no diferencia a ningún actor', false)
+            // Poder sí tiene datos: suma 3 → (2/3)*2 = 1.333, (1/3)*2 = 0.667.
+            ->assertSee('1.333')
+            ->assertSee('0.667')
+            ->getContent();
+
+        // Exactamente dos celdas marcadas con guión -una por actor-, ni una
+        // de más (que contagiaría a poder o legitimidad) ni de menos.
+        $this->assertSame(2, substr_count($contenido, 'class="text-gray-400"'));
+    }
+
+    /**
+     * Con un único actor, normalizar() da 1.0 en cualquier atributo sea cual
+     * sea su grado (grado/grado siempre es 1, y si ese grado es 0 la rama de
+     * suma-cero también da 1.0): los tres atributos cuentan como degenerados
+     * y ninguno debe pintar un 1.000 desnudo, aunque el actor sí tenga
+     * criterios variados.
+     */
+    public function test_resultados_con_un_solo_actor_marca_los_tres_atributos_como_degenerados(): void
+    {
+        Involucrado::create([
+            'zona_id'         => $this->zona->id,
+            'nombre'          => 'Actor único',
+            'pod_autoridad'   => 3,
+            'leg_territorio'  => 2,
+            'urg_criticidad'  => 1,
+        ] + $this->todosEn(0));
+
+        $contenido = $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertSee('Actor único')
+            ->getContent();
+
+        $this->assertSame(3, substr_count($contenido, 'class="text-gray-400"'));
     }
 
     /**
@@ -824,8 +882,8 @@ class InvolucradosTest extends TestCase
      * —igual que estaCompleto()/scopeIncompletos() ya hacen en el resto del
      * sistema—, así que no debe pintarse ningún normalizado ni relevancia:
      * calcularlos sobre un conjunto con un hueco no tiene significado, y
-     * Involucrados::relevancias() ni siquiera llega a invocarse (ver la
-     * precondición en su docblock).
+     * InvolucradosController::relevanciasDe() ni siquiera llega a invocarse
+     * (ver la precondición en su docblock).
      */
     public function test_resultados_con_un_actor_incompleto_no_pinta_ningun_numero(): void
     {
