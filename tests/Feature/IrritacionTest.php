@@ -59,4 +59,35 @@ class IrritacionTest extends TestCase
         // explicar por qué.
         $this->assertSame(12, substr_count($html, '<option '), 'La escala no tiene once valores más el hueco.');
     }
+
+    /**
+     * Los tres tramos en sus bordes exactos. El instrumento se contradice a sí
+     * mismo en una tabla —dice «De 3 a 5» en un lado y «De 3 a 6» en el otro—
+     * pero todas sus fórmulas usan >=3, y eso es lo que se implementa.
+     */
+    public function test_la_clasificacion_respeta_los_umbrales_del_instrumento(): void
+    {
+        // Pares y no un array asociativo: PHP trunca las claves float a
+        // entero, así que 2.9 pisaría a 2.0 y los dos casos con decimales
+        // —los que de verdad distinguen >= de >— nunca se llegarían a probar.
+        $casos = [
+            [0.0, 'Bajo'], [2.0, 'Bajo'], [2.9, 'Bajo'],
+            [3.0, 'Moderado'], [6.0, 'Moderado'], [6.9, 'Moderado'],
+            [7.0, 'Crítico'], [10.0, 'Crítico'],
+        ];
+
+        foreach ($casos as [$valor, $esperada]) {
+            $this->assertSame(
+                $esperada,
+                \App\Models\EvaluacionIrritacion::clasificar($valor),
+                "El promedio {$valor} no se clasificó como {$esperada}."
+            );
+        }
+    }
+
+    /** Sin promedio no hay clasificación: la matriz está a medias. */
+    public function test_sin_promedio_no_hay_clasificacion(): void
+    {
+        $this->assertNull(\App\Models\EvaluacionIrritacion::clasificar(null));
+    }
 }

@@ -1,6 +1,8 @@
 @props(['label', 'name', 'val', 'disabled' => false])
 
 @php
+    use App\Models\EvaluacionIrritacion;
+
     // old() gana sobre lo guardado: si la validación rechaza el envío, el
     // formulario tiene que devolver lo que el usuario acababa de responder.
     $val = old($name, $val);
@@ -9,13 +11,11 @@
     // comparación estricta de @selected fallaría justo al repintar tras el error.
     $val = ($val === null || $val === '') ? null : (int) $val;
 
-    // La escala es INVERSA: 0 es el mejor caso y 10 el peor. Los umbrales son
-    // los del instrumento y los mismos que aplica el modelo al promedio.
-    $clasificacion = fn(int $n) => match (true) {
-        $n >= 7 => 'Crítico',
-        $n >= 3 => 'Moderado',
-        default => 'Bajo',
-    };
+    // La escala es INVERSA: 0 es el mejor caso y 10 el peor. La clasificación
+    // se pide al modelo en vez de reimplementarse aquí: son los mismos
+    // umbrales que se aplican al promedio del bloque, y duplicarlos dejaría
+    // dos sitios que corregir el día que el instrumento cambie uno.
+    $clasificacion = fn(int $n) => EvaluacionIrritacion::clasificar((float) $n);
 @endphp
 
 <div class="mb-3">
