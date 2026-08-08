@@ -228,14 +228,12 @@ class PotencialidadCalculoTest extends TestCase
     }
 
     /**
-     * ESTE es el fallo que el cambio va a corregir, congelado tal cual está.
-     *
-     * Un campo activo que no se envía se guarda como 0 y cuenta en la media:
-     * «no lo he mirado» acaba puntuando igual que «lo he mirado y no hay nada».
-     * Cuando la Task 5 lo arregle, este test se reescribe con el comportamiento
-     * nuevo — a propósito y de forma visible en el diff.
+     * Sustituye a test_comportamiento_actual_un_campo_no_enviado_cuenta_como_cero,
+     * que congelaba el fallo: aquel exigía media 1.6 porque el campo ausente se
+     * guardaba como 0 y contaba. «No lo he mirado» ya no puntúa como «lo he
+     * mirado y no hay nada».
      */
-    public function test_comportamiento_actual_un_campo_no_enviado_cuenta_como_cero(): void
+    public function test_un_campo_sin_responder_no_baja_la_media(): void
     {
         $activos = $this->camposDe('Afluencia Turística');
 
@@ -243,8 +241,6 @@ class PotencialidadCalculoTest extends TestCase
         foreach ($activos as $campo) {
             $datos[$campo] = 2;
         }
-
-        // Se omite uno de los cinco campos de la sección.
         unset($datos['dt_at_estadia']);
 
         $this->actingAs($this->jefe)->post($this->url(), $datos)
@@ -252,9 +248,110 @@ class PotencialidadCalculoTest extends TestCase
 
         $eval = EvaluacionPotencialidad::where('zona_id', $this->zona->id)->firstOrFail();
 
-        // 4 campos a 2 y uno a 0 → media 1.6, no 2.
+        // Cuatro campos a 2 y uno sin responder: la media de los respondidos
+        // es 2, no 1.6. El hueco no puntúa.
+        $this->assertEqualsWithDelta(2.0, $eval->val_afluencia, 0.0001);
+        $this->assertNull($eval->dt_at_estadia);
+    }
+
+    /** La otra mitad del arreglo: un 0 elegido a conciencia sigue contando. */
+    public function test_un_cero_explicito_si_baja_la_media(): void
+    {
+        $activos = $this->camposDe('Afluencia Turística');
+
+        $datos = ['campos' => $activos];
+        foreach ($activos as $campo) {
+            $datos[$campo] = 2;
+        }
+        $datos['dt_at_estadia'] = 0;
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos)
+            ->assertSessionHasNoErrors();
+
+        $eval = EvaluacionPotencialidad::where('zona_id', $this->zona->id)->firstOrFail();
+
         $this->assertEqualsWithDelta(1.6, $eval->val_afluencia, 0.0001);
         $this->assertSame(0, (int) $eval->dt_at_estadia);
+    }
+
+    /**
+     * Un factor activo pero sin responder no se cae de la ponderación: deja el
+     * total sin calcular. Descontarlo daría un FX que parece completo y está
+     * medido sobre otra cosa.
+     */
+    public function test_un_grupo_entero_sin_responder_no_cuenta(): void
+    {
+        $activos = array_merge(
+            $this->camposDe('Afluencia Turística'),
+            $this->camposDe('Marketing Turístico'),
+        );
+
+        $datos = ['campos' => $activos];
+        foreach ($this->camposDe('Afluencia Turística') as $campo) {
+            $datos[$campo] = 2;
+        }
+        // Marketing queda activo pero entero sin responder.
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos)
+            ->assertSessionHasNoErrors();
+
+        $eval = EvaluacionPotencialidad::where('zona_id', $this->zona->id)->firstOrFail();
+
+        $this->assertNull($eval->fx_total);
+        $this->assertNull($eval->val_marketing);
+        $this->assertEqualsWithDelta(2.0, $eval->val_afluencia, 0.0001);
+    }
+
+    public function test_confirmar_con_campos_activos_en_blanco_se_rechaza(): void
+    {
+        $activos = $this->camposDe('Afluencia Turística');
+
+        $datos = ['campos' => $activos, 'accion_estado' => 'confirmado'];
+        foreach ($activos as $campo) {
+            $datos[$campo] = 2;
+        }
+        unset($datos['dt_at_estadia']);
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos)
+            ->assertSessionHasErrors('dt_at_estadia');
+
+        $this->assertDatabaseCount('evaluaciones_potencialidad', 0);
+    }
+
+    public function test_confirmar_completa_calcula_los_totales(): void
+    {
+        $activos = $this->camposDe('Afluencia Turística');
+
+        $datos = ['campos' => $activos, 'accion_estado' => 'confirmado'];
+        foreach ($activos as $campo) {
+            $datos[$campo] = 2;
+        }
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos)
+            ->assertSessionHasNoErrors();
+
+        $eval = EvaluacionPotencialidad::where('zona_id', $this->zona->id)->firstOrFail();
+
+        $this->assertSame('confirmado', $eval->estado);
+        $this->assertEqualsWithDelta(2.0, $eval->fx_total, 0.0001);
+    }
+
+    /**
+     * Con solo bloques de FX activos, FN no existe: no hay dos ejes que cruzar
+     * y el cuadrante no se puede situar. Antes ese null se comparaba como 0 y
+     * la zona salía en «Bajo Potencial Turístico», que es un veredicto y no un
+     * hueco.
+     */
+    public function test_sin_uno_de_los_dos_ejes_no_hay_cuadrante(): void
+    {
+        $activos = $this->camposDe('Afluencia Turística');
+        $this->guardar(array_fill_keys($activos, 2), $activos);
+
+        $this->actingAs($this->jefe)
+            ->get("{$this->url()}/resultados")
+            ->assertOk()
+            ->assertSee('Cuadrante sin determinar')
+            ->assertDontSee('Bajo Potencial Turístico');
     }
 
     /** Un campo desactivado conserva el valor que tenía guardado. */
@@ -281,19 +378,26 @@ class PotencialidadCalculoTest extends TestCase
     }
 
     /**
-     * Cero campos activos en absoluto: todos los `$fn_pesos`/`$fx_pesos`
-     * quedan vacíos, así que `array_sum($fn_pesos) ?: 1` (línea ~417) y su
-     * equivalente de FX (línea ~439) caen al `1` del fallback — evita la
-     * división entre cero, pero como ningún `isset($fn_pesos[...])` es
-     * cierto, ningún término se suma nunca a `$fn_total`/`$fx_total`, así
-     * que el resultado es 0 de todas formas. No debe reventar.
+     * Cero campos activos en absoluto: no debe reventar por división entre
+     * cero, y no hay ningún factor que ponderar, así que los totales quedan
+     * sin calcular.
+     *
+     * Antes daban 0 —ningún término llegaba a sumarse al acumulador, que
+     * arrancaba en 0— y este test lo afirmaba con assertEqualsWithDelta. Se
+     * cambia a assertNull a propósito: con delta, null y 0.0 comparan iguales,
+     * así que el test seguía en verde sin distinguir «no hay resultado» de
+     * «el resultado es cero», que es justo la diferencia que esta rama existe
+     * para marcar.
      */
-    public function test_cero_campos_activos_no_revienta_y_todo_da_cero(): void
+    public function test_cero_campos_activos_no_revienta_y_no_hay_totales(): void
     {
         $eval = $this->guardar([], []);
 
-        $this->assertEqualsWithDelta(0.0, $eval->fn_total, 0.0001);
-        $this->assertEqualsWithDelta(0.0, $eval->fx_total, 0.0001);
+        $this->assertNull($eval->fn_total);
+        $this->assertNull($eval->fx_total);
+
+        // RT sí sigue en 0: no es un resultado, es que sin campos de recursos
+        // activos RT no entra en la ponderación de FN.
         $this->assertEqualsWithDelta(0.0, $eval->val_recursos_turisticos, 0.0001);
     }
 }

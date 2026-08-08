@@ -5,6 +5,34 @@
         </h2>
     </x-slot>
 
+    @php
+        // Desde el guardado parcial, un criterio sin responder no puntúa, así
+        // que los promedios y los totales pueden llegar en null. Pintar ese
+        // null con number_format() da un «0,00» indistinguible de un territorio
+        // valorado con ceros de verdad, que es justo lo que hay que evitar.
+        $cifra = fn($valor, int $decimales) => $valor === null
+            ? '—'
+            : number_format($valor, $decimales);
+
+        // El aporte ponderado de un factor: sin valor no hay aporte, y
+        // null * 0.40 daría 0 en silencio.
+        $ponderado = fn($valor, float $peso, int $decimales = 4) => $valor === null
+            ? '—'
+            : number_format($valor * $peso, $decimales);
+
+        // Sin ninguno de los dos totales no hay nada que enseñar. Con uno solo
+        // sí: puede que la zona haya activado únicamente bloques de FN o de FX,
+        // y ese lado está bien calculado.
+        $sinResultados = $eval->fn_total === null && $eval->fx_total === null;
+    @endphp
+
+    @if($sinResultados)
+        <x-matriz-sin-resultados
+            nombre="Potencialidad turística"
+            :zona="$zona"
+            ruta-formulario="operativo.evaluacion_potencialidad.edit" />
+    @else
+
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
@@ -21,7 +49,20 @@
                     $fx = $eval->fx_total;
                     // Cuadrante según FN y FX (escala 0-2)
                     $umbral = 1.0;
-                    if ($fn >= $umbral && $fx >= $umbral) {
+
+                    // El cuadrante cruza los dos ejes: sin uno de ellos no hay
+                    // punto que situar. Sin esta rama, un null se comparaba como
+                    // 0 y la zona salía siempre en «Bajo Potencial», que es un
+                    // veredicto, no un hueco.
+                    if ($fn === null || $fx === null) {
+                        $cuadrante = 'Cuadrante sin determinar';
+                        $descripcion = 'Falta uno de los dos ejes: el cuadrante necesita '
+                            . 'los factores endógenos y los exógenos para situar al territorio.';
+                        $colorBorder = 'border-gray-400';
+                        $colorBg = 'bg-gray-50';
+                        $colorText = 'text-gray-700';
+                        $emoji = '⚪';
+                    } elseif ($fn >= $umbral && $fx >= $umbral) {
                         $cuadrante = 'Alto Potencial Turístico';
                         $descripcion = 'El territorio presenta condiciones endógenas y exógenas favorables para el desarrollo turístico competitivo.';
                         $colorBorder = 'border-green-500';
@@ -59,12 +100,12 @@
                     <div class="grid grid-cols-2 gap-6 mt-6 max-w-sm mx-auto">
                         <div class="bg-white rounded-lg p-4 shadow-sm">
                             <p class="text-xs text-gray-500 uppercase font-bold">Factores Endógenos (FN)</p>
-                            <p class="text-4xl font-black text-indigo-600">{{ number_format($fn, 2) }}</p>
+                            <p class="text-4xl font-black text-indigo-600">{{ $cifra($fn, 2) }}</p>
                             <p class="text-xs text-gray-400">Oferta + Infraestructura</p>
                         </div>
                         <div class="bg-white rounded-lg p-4 shadow-sm">
                             <p class="text-xs text-gray-500 uppercase font-bold">Factores Exógenos (FX)</p>
-                            <p class="text-4xl font-black text-teal-600">{{ number_format($fx, 2) }}</p>
+                            <p class="text-4xl font-black text-teal-600">{{ $cifra($fx, 2) }}</p>
                             <p class="text-xs text-gray-400">Demanda + Superestructura</p>
                         </div>
                     </div>
@@ -103,35 +144,35 @@
                                     Recursos Turísticos (RT) — 40%
                                 </td>
                                 <td class="border border-gray-300 p-2 text-left">RN — Zonas de Litoral</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_rn_litoral, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_rn_litoral, 3) }}</td>
                                 <td rowspan="4" class="border border-gray-300 p-2">RN 50%</td>
-                                <td rowspan="4" class="border border-gray-300 p-2 font-bold bg-indigo-50">{{ number_format($eval->val_recursos_naturales, 3) }}</td>
+                                <td rowspan="4" class="border border-gray-300 p-2 font-bold bg-indigo-50">{{ $cifra($eval->val_recursos_naturales, 3) }}</td>
                             </tr>
                             <tr>
                                 <td class="border border-gray-300 p-2 text-left">RN — Zonas de Montaña</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_rn_montana, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_rn_montana, 3) }}</td>
                             </tr>
                             <tr class="bg-gray-50">
                                 <td class="border border-gray-300 p-2 text-left">RN — Áreas Naturales Protegidas</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_rn_anp, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_rn_anp, 3) }}</td>
                             </tr>
                             <tr>
                                 <td class="border border-gray-300 p-2 text-left">RN — Cuerpos de Agua</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_rn_agua, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_rn_agua, 3) }}</td>
                             </tr>
                             <tr class="bg-gray-50">
                                 <td class="border border-gray-300 p-2 text-left">RC — Artístico-Monumental</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_rc_am, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_rc_am, 3) }}</td>
                                 <td rowspan="3" class="border border-gray-300 p-2">RC 50%</td>
-                                <td rowspan="3" class="border border-gray-300 p-2 font-bold bg-indigo-50">{{ number_format($eval->val_recursos_culturales, 3) }}</td>
+                                <td rowspan="3" class="border border-gray-300 p-2 font-bold bg-indigo-50">{{ $cifra($eval->val_recursos_culturales, 3) }}</td>
                             </tr>
                             <tr>
                                 <td class="border border-gray-300 p-2 text-left">RC — Nacionalidades y Pueblos</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_rc_np, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_rc_np, 3) }}</td>
                             </tr>
                             <tr class="bg-gray-50">
                                 <td class="border border-gray-300 p-2 text-left">RC — Expresiones Contemporáneas</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_rc_ec, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_rc_ec, 3) }}</td>
                             </tr>
                             {{-- Planta Turística --}}
                             <tr>
@@ -139,25 +180,25 @@
                                     Planta Turística (PT) — 20%
                                 </td>
                                 <td class="border border-gray-300 p-2 text-left">Alojamiento</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_pt_alojamiento, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_pt_alojamiento, 3) }}</td>
                                 <td rowspan="5" class="border border-gray-300 p-2">20%</td>
-                                <td rowspan="5" class="border border-gray-300 p-2 font-bold bg-indigo-50">{{ number_format($eval->val_planta_turistica, 3) }}</td>
+                                <td rowspan="5" class="border border-gray-300 p-2 font-bold bg-indigo-50">{{ $cifra($eval->val_planta_turistica, 3) }}</td>
                             </tr>
                             <tr class="bg-gray-50">
                                 <td class="border border-gray-300 p-2 text-left">Restauración</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_pt_restauracion, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_pt_restauracion, 3) }}</td>
                             </tr>
                             <tr>
                                 <td class="border border-gray-300 p-2 text-left">Intermediación</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_pt_intermediacion, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_pt_intermediacion, 3) }}</td>
                             </tr>
                             <tr class="bg-gray-50">
                                 <td class="border border-gray-300 p-2 text-left">Transportación</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_pt_transportacion, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_pt_transportacion, 3) }}</td>
                             </tr>
                             <tr>
                                 <td class="border border-gray-300 p-2 text-left">Interpretación / Guianza</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_pt_interpretacion, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_pt_interpretacion, 3) }}</td>
                             </tr>
                             {{-- Tipologías --}}
                             <tr class="bg-gray-50">
@@ -165,9 +206,9 @@
                                     Tipologías de Turismo (TT) — 20%
                                 </td>
                                 <td class="border border-gray-300 p-2 text-left">10 tipologías turísticas</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_tipologias, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_tipologias, 3) }}</td>
                                 <td class="border border-gray-300 p-2">20%</td>
-                                <td class="border border-gray-300 p-2 font-bold bg-indigo-50">{{ number_format($eval->val_tipologias, 3) }}</td>
+                                <td class="border border-gray-300 p-2 font-bold bg-indigo-50">{{ $cifra($eval->val_tipologias, 3) }}</td>
                             </tr>
                             {{-- Infraestructura --}}
                             <tr>
@@ -175,9 +216,9 @@
                                     Infraestructura (I) — 20%
                                 </td>
                                 <td class="border border-gray-300 p-2 text-left">6 elementos de infraestructura</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_infraestructura, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_infraestructura, 3) }}</td>
                                 <td class="border border-gray-300 p-2">20%</td>
-                                <td class="border border-gray-300 p-2 font-bold bg-indigo-50">{{ number_format($eval->val_infraestructura, 3) }}</td>
+                                <td class="border border-gray-300 p-2 font-bold bg-indigo-50">{{ $cifra($eval->val_infraestructura, 3) }}</td>
                             </tr>
                         </tbody>
                         <tfoot class="bg-indigo-600 text-white font-bold">
@@ -186,7 +227,7 @@
                                     CALIFICACIÓN TOTAL FACTORES ENDÓGENOS (FN):
                                 </td>
                                 <td class="border border-gray-300 p-3 text-2xl">
-                                    {{ number_format($eval->fn_total, 4) }}
+                                    {{ $cifra($eval->fn_total, 4) }}
                                 </td>
                             </tr>
                         </tfoot>
@@ -239,9 +280,9 @@
                                     Afluencia Turística (AT) — 40%
                                 </td>
                                 <td class="border border-gray-300 p-2 text-left">Flujos Local, Regional, Nacional, Internacional</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_afluencia, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_afluencia, 3) }}</td>
                                 <td class="border border-gray-300 p-2">40%</td>
-                                <td class="border border-gray-300 p-2 font-bold bg-teal-50">{{ number_format($eval->val_afluencia * 0.40, 4) }}</td>
+                                <td class="border border-gray-300 p-2 font-bold bg-teal-50">{{ $ponderado($eval->val_afluencia, 0.40) }}</td>
                             </tr>
                             {{-- Marketing --}}
                             <tr class="bg-gray-50">
@@ -249,9 +290,9 @@
                                     Marketing Turístico (MK) — 30%
                                 </td>
                                 <td class="border border-gray-300 p-2 text-left">Promotor, Plan, Tendencias, Investigación, Digital</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_marketing, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_marketing, 3) }}</td>
                                 <td class="border border-gray-300 p-2">30%</td>
-                                <td class="border border-gray-300 p-2 font-bold bg-teal-50">{{ number_format($eval->val_marketing * 0.30, 4) }}</td>
+                                <td class="border border-gray-300 p-2 font-bold bg-teal-50">{{ $ponderado($eval->val_marketing, 0.30) }}</td>
                             </tr>
                             {{-- Superestructura --}}
                             <tr>
@@ -259,9 +300,9 @@
                                     Superestructura del Turismo (ST) — 30%
                                 </td>
                                 <td class="border border-gray-300 p-2 text-left">Política, Gestión, Actores, Normativa, Planificación</td>
-                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ number_format($eval->val_superestructura, 3) }}</td>
+                                <td class="border border-gray-300 p-2 bg-yellow-50 font-bold">{{ $cifra($eval->val_superestructura, 3) }}</td>
                                 <td class="border border-gray-300 p-2">30%</td>
-                                <td class="border border-gray-300 p-2 font-bold bg-teal-50">{{ number_format($eval->val_superestructura * 0.30, 4) }}</td>
+                                <td class="border border-gray-300 p-2 font-bold bg-teal-50">{{ $ponderado($eval->val_superestructura, 0.30) }}</td>
                             </tr>
                         </tbody>
                         <tfoot class="bg-teal-600 text-white font-bold">
@@ -270,7 +311,7 @@
                                     CALIFICACIÓN TOTAL FACTORES EXÓGENOS (FX):
                                 </td>
                                 <td class="border border-gray-300 p-3 text-2xl">
-                                    {{ number_format($eval->fx_total, 4) }}
+                                    {{ $cifra($eval->fx_total, 4) }}
                                 </td>
                             </tr>
                         </tfoot>
@@ -573,4 +614,6 @@
             }
         });
     </script>
+
+    @endif
 </x-app-layout>

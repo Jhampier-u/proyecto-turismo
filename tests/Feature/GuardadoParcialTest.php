@@ -250,17 +250,10 @@ class GuardadoParcialTest extends TestCase
      * la evaluación creada y ningún criterio respondido, ninguna vista de
      * resultados puede pintar un número. Recorre el registro para que una
      * matriz futura quede cubierta sin acordarse de este test.
-     *
-     * Potencialidad queda fuera a propósito: su guardado parcial es la tarea
-     * siguiente y hoy sigue rellenando los huecos con ceros.
      */
     public function test_ninguna_vista_de_resultados_inventa_ceros(): void
     {
-        foreach (Registro::matrices() as $clave => $entrada) {
-            if ($clave === 'potencialidad') {
-                continue;
-            }
-
+        foreach (Registro::matrices() as $entrada) {
             $entrada['modelo']::create([
                 'zona_id' => $this->zona->id,
                 'user_id' => $this->jefe->id,

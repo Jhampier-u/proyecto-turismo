@@ -254,9 +254,15 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
 
     protected function mensajeExito(string $estado, array $datos): string
     {
+        // Un total puede estar sin calcular aunque la evaluación esté completa:
+        // basta con que no haya ningún campo activo de ese bloque. Pasarle ese
+        // null a number_format() lo pintaría como «0,00», que es exactamente el
+        // resultado inventado que esta rama quita de en medio.
+        $cifra = fn(?float $valor) => $valor === null ? 'sin calcular' : number_format($valor, 2);
+
         return $estado === 'confirmado'
-            ? 'Evaluación CONFIRMADA. FN: ' . number_format($datos['fn_total'], 2)
-              . ' | FX: ' . number_format($datos['fx_total'], 2)
+            ? 'Evaluación CONFIRMADA. FN: ' . $cifra($datos['fn_total'])
+              . ' | FX: ' . $cifra($datos['fx_total'])
             : 'Borrador guardado correctamente.';
     }
 
@@ -278,14 +284,17 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
             $camposActivos = $request->input('campos', []);
         } else {
             // Equipo: conservar la configuración actual del Jefe
-            $config = PotencialidadCamposActivos::where('zona_id', $zonaId)->first();
-            $camposActivos = $config ? $config->campos_activos : $this->getAllCampos();
+            $camposActivos = $this->camposActivosDe($zonaId);
         }
 
-        // Validar solo los campos activos
+        // Validar solo los campos activos. Solo se exige responderlos todos al
+        // confirmar: con 156 criterios, perder el avance por no tenerlos todos
+        // era lo que más dolía al usar esto de verdad.
+        $obligatoriedad = $estado === 'confirmado' ? 'required' : 'nullable';
+
         $reglas = [];
         foreach ($camposActivos as $campo) {
-            $reglas[$campo] = 'integer|min:0|max:2';
+            $reglas[$campo] = "{$obligatoriedad}|integer|min:0|max:2";
         }
         $request->validate($reglas);
 
@@ -298,15 +307,65 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
             );
         }
 
-        // Construir el array de valores para todos los campos conocidos
+        // Un campo activo sin responder entra como null, no como 0: con 156
+        // criterios, «no lo he mirado» puntuando como «Nulo» hundía la media de
+        // su grupo sin que nadie lo notara. Los desactivados conservan lo que ya
+        // tuvieran, por si vuelven a activarse.
         $valores = [];
         foreach ($this->getAllCampos() as $campo) {
-            $valores[$campo] = in_array($campo, $camposActivos)
-                ? (int) $request->input($campo, 0)
-                : ($actual->$campo ?? 0);
+            if (! in_array($campo, $camposActivos, true)) {
+                $valores[$campo] = $actual->$campo ?? null;
+                continue;
+            }
+
+            $bruto = $request->input($campo);
+            $valores[$campo] = $bruto === null ? null : (int) $bruto;
         }
 
+        $this->camposActivosEnMemoria = $camposActivos;
+
         return $valores + $this->calcular($valores, $camposActivos);
+    }
+
+    /** Campos activos guardados para la zona, o todos si nunca se configuró. */
+    private function camposActivosDe($zonaId): array
+    {
+        $config = PotencialidadCamposActivos::where('zona_id', $zonaId)->first();
+
+        return $config ? $config->campos_activos : $this->getAllCampos();
+    }
+
+    /**
+     * Campos activos de la última llamada a prepararDatos().
+     *
+     * estaCompleta() se ejecuta después de guardar y necesita saber cuáles eran
+     * obligatorios en ESA petición, no los que hubiera configurados antes.
+     *
+     * @var list<string>|null
+     */
+    private ?array $camposActivosEnMemoria = null;
+
+    protected function estaCompleta(array $datos): bool
+    {
+        foreach ($this->camposActivosEnMemoria ?? [] as $campo) {
+            if (($datos[$campo] ?? null) === null) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    protected function mensajeIncompleto(array $datos): string
+    {
+        $activos = $this->camposActivosEnMemoria ?? [];
+
+        $respondidos = count(array_filter(
+            $activos,
+            fn(string $campo) => ($datos[$campo] ?? null) !== null
+        ));
+
+        return "Borrador guardado. Llevas {$respondidos} de " . count($activos) . ' criterios activos.';
     }
 
     // ── Reconfigurar: activa todos los campos (reset) ─────────────────────────
@@ -341,13 +400,54 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
     // ── Cálculo ponderado usando solo los campos activos ─────────────────────
     private function calcular(array $v, array $camposActivos): array
     {
-        $avg = function(array $candidatos) use ($v, $camposActivos): float {
-            $activos = array_filter($candidatos, fn($c) => in_array($c, $camposActivos) && isset($v[$c]));
-            if (empty($activos)) return 0;
-            return array_sum(array_map(fn($c) => (float)$v[$c], $activos)) / count($activos);
+        // Un campo sin responder no entra en el promedio. isset() no servía:
+        // decía que sí a un 0 —que es una respuesta— y también a un null, que
+        // no lo es. null aquí significa «ningún campo activo respondido»: no
+        // hay nada que promediar, y devolver 0 sería inventarse un resultado.
+        $avg = function(array $candidatos) use ($v, $camposActivos): ?float {
+            $respondidos = array_filter(
+                $candidatos,
+                fn($c) => in_array($c, $camposActivos, true) && ($v[$c] ?? null) !== null
+            );
+
+            if ($respondidos === []) {
+                return null;
+            }
+
+            return array_sum(array_map(fn($c) => (float) $v[$c], $respondidos)) / count($respondidos);
         };
 
+        // Sigue significando «tiene campos activos», no «tiene respuestas»: un
+        // grupo activo que nadie respondió no debe caerse de la ponderación
+        // como si no existiera, tiene que dejar el total sin calcular.
         $hasCampos = fn(array $lista) => !empty(array_intersect($camposActivos, $lista));
+
+        /**
+         * Promedia los grupos de un factor. Cada grupo cuenta solo si tiene
+         * campos activos, y basta con que uno de esos esté sin responder para
+         * que el factor entero se quede sin valor: a un promedio al que le
+         * falta un grupo le pasa lo mismo que a una media a la que le falta un
+         * criterio, parece un resultado y mide otra cosa.
+         *
+         * @param list<array{0: list<string>, 1: ?float}> $pares campos y valor de cada grupo
+         */
+        $mediaGrupos = function(array $pares) use ($hasCampos): ?float {
+            $valores = [];
+
+            foreach ($pares as [$campos, $valor]) {
+                if (! $hasCampos($campos)) {
+                    continue;
+                }
+
+                if ($valor === null) {
+                    return null;
+                }
+
+                $valores[] = $valor;
+            }
+
+            return $valores === [] ? null : array_sum($valores) / count($valores);
+        };
 
         // ── Recursos Naturales ──────────────────────────────────────────────
         $litoral = ['rn_litoral_playas','rn_litoral_arrecifes','rn_litoral_cuevas','rn_litoral_flora_fauna','rn_litoral_actividades_acuaticas','rn_litoral_areas_deserticas'];
@@ -358,8 +458,7 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
         $rn_litoral = $avg($litoral); $rn_montana = $avg($montana);
         $rn_anp = $avg($anp);         $rn_agua = $avg($agua);
 
-        $rn_grupos = array_filter([$hasCampos($litoral) ? $rn_litoral : null, $hasCampos($montana) ? $rn_montana : null, $hasCampos($anp) ? $rn_anp : null, $hasCampos($agua) ? $rn_agua : null], fn($v) => $v !== null);
-        $val_rn = empty($rn_grupos) ? 0 : array_sum($rn_grupos) / count($rn_grupos);
+        $val_rn = $mediaGrupos([[$litoral, $rn_litoral], [$montana, $rn_montana], [$anp, $rn_anp], [$agua, $rn_agua]]);
 
         // ── Recursos Culturales ─────────────────────────────────────────────
         $am = ['rc_am_zonas_arqueologicas','rc_am_fosiles','rc_am_pinturas_rupestres','rc_am_ciudades_coloniales','rc_am_pueblos_antiguos','rc_am_patrimonio_humanidad','rc_am_santuarios'];
@@ -368,23 +467,20 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
 
         $rc_am = $avg($am); $rc_np = $avg($np); $rc_ec = $avg($ec);
 
-        $rc_grupos = array_filter([$hasCampos($am) ? $rc_am : null, $hasCampos($np) ? $rc_np : null, $hasCampos($ec) ? $rc_ec : null], fn($v) => $v !== null);
-        $val_rc = empty($rc_grupos) ? 0 : array_sum($rc_grupos) / count($rc_grupos);
+        $val_rc = $mediaGrupos([[$am, $rc_am], [$np, $rc_np], [$ec, $rc_ec]]);
 
-        // RT: redistribuir peso entre RN y RC según campos activos
+        // RT: redistribuir peso entre RN y RC según campos activos. Con los dos
+        // activos la media de ambos es el 0.5/0.5 de siempre; con uno solo, ese
+        // uno. Sin ninguno se queda en 0: no es un resultado, es que RT no entra
+        // en la ponderación de FN, y así estaba congelado por test.
         $allRN = array_merge($litoral, $montana, $anp, $agua);
         $allRC = array_merge($am, $np, $ec);
         $hasRN = $hasCampos($allRN);
         $hasRC = $hasCampos($allRC);
-        if ($hasRN && $hasRC) {
-            $val_rt = $val_rn * 0.5 + $val_rc * 0.5;
-        } elseif ($hasRN) {
-            $val_rt = $val_rn;
-        } elseif ($hasRC) {
-            $val_rt = $val_rc;
-        } else {
-            $val_rt = 0;
-        }
+
+        $val_rt = ($hasRN || $hasRC)
+            ? $mediaGrupos([[$allRN, $val_rn], [$allRC, $val_rc]])
+            : 0;
 
         // ── Planta Turística ────────────────────────────────────────────────
         $aloj  = ['pt_aloj_hoteles','pt_aloj_hostales','pt_aloj_hosterias','pt_aloj_haciendas','pt_aloj_lodges','pt_aloj_resorts','pt_aloj_refugios','pt_aloj_campamentos','pt_aloj_casa_huespedes','pt_aloj_ctc'];
@@ -396,8 +492,7 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
         $pt_aloj  = $avg($aloj);  $pt_rest  = $avg($rest);  $pt_inter = $avg($inter);
         $pt_trans = $avg($trans); $pt_guia  = $avg($guia);
 
-        $pt_grupos = array_filter([$hasCampos($aloj)?$pt_aloj:null,$hasCampos($rest)?$pt_rest:null,$hasCampos($inter)?$pt_inter:null,$hasCampos($trans)?$pt_trans:null,$hasCampos($guia)?$pt_guia:null], fn($v)=>$v!==null);
-        $val_pt = empty($pt_grupos) ? 0 : array_sum($pt_grupos) / count($pt_grupos);
+        $val_pt = $mediaGrupos([[$aloj, $pt_aloj], [$rest, $pt_rest], [$inter, $pt_inter], [$trans, $pt_trans], [$guia, $pt_guia]]);
 
         // ── Tipologías e Infraestructura ────────────────────────────────────
         $tt_campos = array_keys(self::$secciones['Tipologías de Turismo']);
@@ -414,12 +509,9 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
         if ($hasCampos($tt_campos)) $fn_pesos['tt'] = 0.20;
         if ($hasCampos($i_campos))  $fn_pesos['i']  = 0.20;
 
-        $fn_sum_pesos = array_sum($fn_pesos) ?: 1;
-        $fn_total = 0;
-        if (isset($fn_pesos['rt'])) $fn_total += $val_rt * ($fn_pesos['rt'] / $fn_sum_pesos);
-        if (isset($fn_pesos['pt'])) $fn_total += $val_pt * ($fn_pesos['pt'] / $fn_sum_pesos);
-        if (isset($fn_pesos['tt'])) $fn_total += $val_tt * ($fn_pesos['tt'] / $fn_sum_pesos);
-        if (isset($fn_pesos['i']))  $fn_total += $val_i  * ($fn_pesos['i']  / $fn_sum_pesos);
+        $fn_total = $this->totalPonderado($fn_pesos, [
+            'rt' => $val_rt, 'pt' => $val_pt, 'tt' => $val_tt, 'i' => $val_i,
+        ]);
 
         // ── Factores Exógenos ───────────────────────────────────────────────
         $at_campos = array_keys(self::$secciones['Afluencia Turística']);
@@ -436,11 +528,9 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
         if ($hasCampos($mk_campos)) $fx_pesos['mk'] = 0.30;
         if ($hasCampos($st_campos)) $fx_pesos['st'] = 0.30;
 
-        $fx_sum_pesos = array_sum($fx_pesos) ?: 1;
-        $fx_total = 0;
-        if (isset($fx_pesos['at'])) $fx_total += $val_afluencia       * ($fx_pesos['at'] / $fx_sum_pesos);
-        if (isset($fx_pesos['mk'])) $fx_total += $val_marketing       * ($fx_pesos['mk'] / $fx_sum_pesos);
-        if (isset($fx_pesos['st'])) $fx_total += $val_superestructura * ($fx_pesos['st'] / $fx_sum_pesos);
+        $fx_total = $this->totalPonderado($fx_pesos, [
+            'at' => $val_afluencia, 'mk' => $val_marketing, 'st' => $val_superestructura,
+        ]);
 
         return [
             'val_rn_litoral'       => $rn_litoral, 'val_rn_montana'    => $rn_montana,
@@ -458,5 +548,38 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
             'val_superestructura'  => $val_superestructura,
             'fx_total'             => $fx_total,
         ];
+    }
+
+    /**
+     * Suma ponderada de los factores, renormalizando los pesos entre los que
+     * tienen campos activos.
+     *
+     * Devuelve null si algún factor ponderado está sin responder, y también si
+     * no hay ningún factor activo. Descontar el que falta daría un número que
+     * se lee como el total del instrumento cuando en realidad está medido sobre
+     * otra escala: es el mismo engaño que promediar sobre los criterios
+     * respondidos, una capa más arriba.
+     *
+     * @param array<string, float>  $pesos       factor => peso, solo los activos
+     * @param array<string, ?float> $componentes factor => valor calculado
+     */
+    private function totalPonderado(array $pesos, array $componentes): ?float
+    {
+        if ($pesos === []) {
+            return null;
+        }
+
+        $suma  = array_sum($pesos);
+        $total = 0.0;
+
+        foreach ($pesos as $factor => $peso) {
+            if ($componentes[$factor] === null) {
+                return null;
+            }
+
+            $total += $componentes[$factor] * ($peso / $suma);
+        }
+
+        return $total;
     }
 }
