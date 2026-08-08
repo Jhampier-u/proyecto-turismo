@@ -251,7 +251,7 @@ niveles de anidamiento— y ninguno se movió con el cambio.
 | `docs/superpowers/specs/2026-08-07-rediseno-interfaz-roles-design.md` | Diseño del rediseño: decisiones, arquitectura, lenguaje visual |
 | `docs/superpowers/plans/2026-08-07-pagina-de-zona.md` | Plan ejecutado y fusionado |
 | `docs/superpowers/plans/2026-08-07-guardado-parcial.md` | Plan ejecutado entero. Lo que se apartó de él está arriba |
-| `docs/superpowers/plans/2026-08-07-vistas-admin.md` | Plan independiente, sin empezar |
+| `docs/superpowers/plans/2026-08-07-vistas-admin.md` | Plan ejecutado entero, en `main` |
 | `AUDITORIA.md` | Auditoría de seguridad y calidad, con lo ya corregido marcado |
 
 ## 6. Lo que queda, por orden
@@ -260,9 +260,11 @@ niveles de anidamiento— y ninguno se movió con el cambio.
 
 1. **Fusionar `guardado-parcial`**, en cuanto sus tres migraciones se hayan
    probado contra un PostgreSQL de verdad. El código está terminado y revisado.
-2. **Vistas de admin** (`2026-08-07-vistas-admin.md`): panel con cifras reales,
-   buscadores en usuarios y lugares, y las columnas que faltan. Independiente
-   del resto; se puede hacer en cualquier momento.
+2. ~~**Vistas de admin**~~ — hecho. El panel da cifras y avisa de las zonas sin
+   jefe, y las dos listas tienen buscador, filtro por rol y las columnas que
+   faltaban. Suite: **222 tests**. Quedan fuera, a propósito, los formularios
+   de alta y edición (`users/form`, `lugares/form`, `zonas/form`): comparten
+   los defectos de tipografía pero se usan de forma puntual.
 3. **Cuatro matrices sin implementar**: Involucrados Turísticos Territoriales,
    Índice Espacial de Frecuentación, Índice de Concentración e Índice de
    Irritación. Los ficheros están en `C:\Users\<usuario>\Downloads\fwdmatrices`
