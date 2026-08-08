@@ -173,24 +173,31 @@ class InvolucradosController extends Controller
     }
 
     /**
-     * Vista mínima de resultados: solo lo necesario para que la ruta exista y
-     * no rompa. La tarea 4 la completa con la normalización, el producto de
-     * relevancia y el ranking de Mitchell que describe el diseño del
-     * instrumento.
+     * Resultados: el ranking de actores por relevancia (Involucrados::
+     * relevancias(), Tarea 4) con sus normalizados y su tipo de Mitchell.
      */
     public function resultados($zonaId)
     {
         $zona    = Zona::findOrFail($zonaId);
         $actores = $zona->involucrados()->get();
 
+        // "Completa" en el mismo sentido que el resto de vistas de
+        // resultados: nada que enseñar con la lista vacía o con algún actor a
+        // medias, porque el instrumento normaliza sobre el conjunto entero.
+        $completa = $actores->isNotEmpty() && $actores->every(fn(Involucrado $a) => $a->estaCompleto());
+
         return view('operativo.involucrados.resultados', [
-            'zona'    => $zona,
-            'actores' => $actores,
-            // "Completa" en el mismo sentido que el resto de vistas de
-            // resultados: nada que enseñar con la lista vacía o con algún
-            // actor a medias, porque el instrumento normaliza sobre el
-            // conjunto entero.
-            'completa' => $actores->isNotEmpty() && $actores->every(fn(Involucrado $a) => $a->estaCompleto()),
+            'zona'      => $zona,
+            'completa'  => $completa,
+            // Igual que index()/create()/edit(): la vista consume la
+            // constante ya resuelta, no alcanza App\Matrices\Involucrados por
+            // su cuenta.
+            'atributos' => Involucrados::ATRIBUTOS,
+            // relevancias() exige que grado() no devuelva null en ningún
+            // actor —su precondición, documentada ahí—: solo se llama con la
+            // lista completa. Con la lista a medias o vacía la vista ni la
+            // toca, así que una colección vacía basta.
+            'filas' => $completa ? Involucrados::relevancias($actores) : collect(),
         ]);
     }
 

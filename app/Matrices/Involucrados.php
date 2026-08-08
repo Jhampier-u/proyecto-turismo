@@ -2,6 +2,9 @@
 
 namespace App\Matrices;
 
+use App\Models\Involucrado;
+use Illuminate\Support\Collection;
+
 /**
  * Matriz de Involucrados Turísticos Territoriales.
  *
@@ -141,5 +144,102 @@ final class Involucrados
             $urgencia                              => 'Exigente',
             default                                => 'No es actor relevante',
         };
+    }
+
+    /**
+     * Normaliza el grado de UN atributo (poder, legitimidad o urgencia) de
+     * cada actor frente al conjunto: (grado del actor / suma de los grados de
+     * todos) × número de actores. Es la mitad "por atributo" de la fórmula de
+     * relevancia; la otra mitad —el producto de los tres normalizados— vive
+     * en relevancias(), que es quien llama a este método tres veces.
+     *
+     * DELIBERADO — no es un fallo que alguien deba "corregir": el resultado
+     * de CADA actor depende de los grados de TODOS los demás, porque se
+     * divide por la suma del conjunto. Dar de alta o de baja un actor
+     * recalcula los normalizados de los que ya estaban, aunque sus propios
+     * criterios no cambien. Está decidido así con el responsable del
+     * proyecto: comparar el normalizado de un actor entre dos listados
+     * distintos no tiene sentido, solo lo tiene dentro del mismo conjunto.
+     * InvolucradosTest fija esta propiedad a propósito con un test que crea
+     * un tercer actor y comprueba que los dos primeros cambian.
+     *
+     * DIVISIÓN POR CERO — "ninguno posee poder" (los siete campos en 0 para
+     * todos los actores) es un caso real del instrumento, no un error de
+     * captura, y ahí la suma da 0. La fórmula de arriba es en el fondo
+     * grado ÷ media(grados) —reescrita para no dividir por partes—, y
+     * mientras la suma no sea 0 la media de los normalizados del conjunto da
+     * SIEMPRE exactamente 1, sea cual sea la distribución de grados (es el
+     * álgebra: la media de (grado_i/suma)×n es n×(suma/suma)/n = 1). Con
+     * todos los actores empatados en 0, la continuación natural de "empatados
+     * en cualquier valor → todos normalizan a 1" sigue siendo 1.0: es el
+     * límite de la fórmula cuando un empate en un valor positivo tiende a
+     * cero. Devolver 0.0 en su lugar sería más intuitivo a primera vista,
+     * pero anularía la relevancia ENTERA de todos los actores —relevancia es
+     * un producto de los tres normalizados—, aunque legitimidad o urgencia sí
+     * los diferenciaran.
+     *
+     * @param Collection<int, Involucrado> $actores
+     * @return array<int, float> en el mismo orden que $actores->values()
+     */
+    private static function normalizarAtributo(Collection $actores, string $atributo): array
+    {
+        // grado() exige que $actor no tenga ningún criterio en null: es la
+        // precondición de relevancias(), documentada ahí. Con un hueco, la
+        // suma en int + null lanzaría un TypeError en el map de más abajo en
+        // vez de mentir con un cálculo a medias.
+        $grados = $actores->values()->map(fn(Involucrado $actor) => $actor->grado($atributo));
+        $n      = $grados->count();
+        $suma   = $grados->sum();
+
+        if ($suma === 0) {
+            return array_fill(0, $n, 1.0);
+        }
+
+        return $grados->map(fn(int $grado) => ($grado / $suma) * $n)->all();
+    }
+
+    /**
+     * Consolida el conjunto de actores para la vista de resultados: por cada
+     * actor, sus tres normalizados y la relevancia —poder × legitimidad ×
+     * urgencia, ya normalizados—, ordenados de mayor a menor relevancia.
+     *
+     * Vive aquí y no en el modelo Involucrado porque es lo único en todo el
+     * instrumento que cruza actores entre sí: grado() y tipo_mitchell son por
+     * actor y el modelo no tiene forma de ver a los demás actores de la zona.
+     * Vive aquí y no en la vista para que se pueda probar sin HTTP, igual que
+     * pide el diseño de la Tarea 4.
+     *
+     * Precondición: asume que Involucrado::grado() no devuelve null para
+     * ningún actor de la colección, es decir que la lista está completa.
+     * Responsabilidad de quien llama —InvolucradosController::resultados()
+     * solo la invoca cuando $completa es true—: normalizar sobre un hueco no
+     * tiene ningún significado, y llamarlo con un actor a medias falla con un
+     * TypeError en vez de devolver un número que parece válido y no lo es.
+     *
+     * @param Collection<int, Involucrado> $actores
+     * @return Collection<int, array{actor: Involucrado, normalizado: array<string, float>, relevancia: float}>
+     */
+    public static function relevancias(Collection $actores): Collection
+    {
+        $normalizadosPorAtributo = [];
+        foreach (array_keys(self::ATRIBUTOS) as $atributo) {
+            $normalizadosPorAtributo[$atributo] = self::normalizarAtributo($actores, $atributo);
+        }
+
+        return $actores->values()
+            ->map(function (Involucrado $actor, int $indice) use ($normalizadosPorAtributo) {
+                $normalizado = [];
+                foreach (array_keys(self::ATRIBUTOS) as $atributo) {
+                    $normalizado[$atributo] = $normalizadosPorAtributo[$atributo][$indice];
+                }
+
+                return [
+                    'actor'       => $actor,
+                    'normalizado' => $normalizado,
+                    'relevancia'  => array_product($normalizado),
+                ];
+            })
+            ->sortByDesc('relevancia')
+            ->values();
     }
 }

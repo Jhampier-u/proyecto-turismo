@@ -637,4 +637,262 @@ class InvolucradosTest extends TestCase
             ->assertSee('Involucrados turísticos')
             ->assertSee('2 actores, 1 sin completar');
     }
+
+    // ── Cálculo de relevancia (Tarea 4) ────────────────────────────────────
+    //
+    // Involucrados::relevancias() es lo único que cruza actores entre sí en
+    // todo el sistema: las siete matrices anteriores puntúan una lista FIJA
+    // de criterios de la zona, así que nada en ellas depende de qué otras
+    // filas existan. Aquí sí, porque la fórmula normaliza dividiendo por la
+    // suma del conjunto. Se prueba aparte de la vista —sin HTTP— porque es
+    // aritmética pura sobre actores ya guardados, no reventa nada del CRUD.
+
+    public function test_normalizar_con_grados_de_poder_10_y_5_da_1_333_y_0_667(): void
+    {
+        // 10 = 3+3+3+1 en cuatro de los siete campos de poder; 5 = 3+2 en dos.
+        // El resto de campos —y los otros dos atributos— se dejan en 0 porque
+        // este test solo mira el normalizado de poder.
+        // Los overrides van a la IZQUIERDA de todosEn(0): "+" conserva el
+        // operando izquierdo cuando la clave se repite (ver el comentario de
+        // test_un_actor_esta_completo_solo_con_sus_once_criterios más arriba),
+        // así que todosEn(0) a la izquierda pisaría en silencio estos valores
+        // con sus propios ceros.
+        $actorA = Involucrado::create([
+            'zona_id'         => $this->zona->id,
+            'nombre'          => 'Actor A',
+            'pod_autoridad'   => 3,
+            'pod_poder'       => 3,
+            'pod_recursos'    => 3,
+            'pod_presupuesto' => 1,
+        ] + $this->todosEn(0));
+        $actorB = Involucrado::create([
+            'zona_id'       => $this->zona->id,
+            'nombre'        => 'Actor B',
+            'pod_autoridad' => 3,
+            'pod_poder'     => 2,
+        ] + $this->todosEn(0));
+
+        $this->assertSame(10, $actorA->grado('poder'));
+        $this->assertSame(5, $actorB->grado('poder'));
+
+        $filas = Involucrados::relevancias(collect([$actorA, $actorB]))
+            ->keyBy(fn(array $fila) => $fila['actor']->id);
+
+        // Suma 15, dos actores: (10/15)*2 = 1.333..., (5/15)*2 = 0.667...
+        $this->assertEqualsWithDelta(1.333, $filas[$actorA->id]['normalizado']['poder'], 0.001);
+        $this->assertEqualsWithDelta(0.667, $filas[$actorB->id]['normalizado']['poder'], 0.001);
+    }
+
+    /**
+     * DELIBERADO, no un fallo: normalizar() divide por la suma del conjunto,
+     * así que el normalizado de CADA actor depende de los grados de TODOS los
+     * demás. Dar de alta un tercer actor recalcula a los dos que ya estaban,
+     * sin que sus propios criterios cambien un ápice. Está decidido con el
+     * responsable del proyecto que se queda así: este test lo fija a
+     * propósito para que nadie lo "corrija" dentro de seis meses pensando que
+     * el normalizado de un actor debería ser estable entre altas.
+     */
+    public function test_anadir_un_actor_cambia_el_normalizado_de_los_que_ya_estaban(): void
+    {
+        $actorA = Involucrado::create([
+            'zona_id'       => $this->zona->id,
+            'nombre'        => 'Actor A',
+            'pod_autoridad' => 2,
+        ] + $this->todosEn(1));
+        $actorB = Involucrado::create([
+            'zona_id'       => $this->zona->id,
+            'nombre'        => 'Actor B',
+            'pod_autoridad' => 0,
+        ] + $this->todosEn(1));
+
+        $antes = Involucrados::relevancias(collect([$actorA, $actorB]))
+            ->keyBy(fn(array $fila) => $fila['actor']->id);
+
+        $actorC = Involucrado::create([
+            'zona_id'       => $this->zona->id,
+            'nombre'        => 'Actor C',
+            'pod_autoridad' => 3,
+        ] + $this->todosEn(1));
+
+        $despues = Involucrados::relevancias(collect([$actorA, $actorB, $actorC]))
+            ->keyBy(fn(array $fila) => $fila['actor']->id);
+
+        $this->assertGreaterThan(
+            0.001,
+            abs($antes[$actorA->id]['normalizado']['poder'] - $despues[$actorA->id]['normalizado']['poder']),
+            'El normalizado de poder del actor A debía cambiar al añadir un tercer actor.'
+        );
+        $this->assertGreaterThan(
+            0.001,
+            abs($antes[$actorB->id]['normalizado']['poder'] - $despues[$actorB->id]['normalizado']['poder']),
+            'El normalizado de poder del actor B debía cambiar al añadir un tercer actor.'
+        );
+    }
+
+    /**
+     * "Ninguno posee poder" —los siete campos en 0 para todos los actores—
+     * es un caso real del instrumento, no un error de captura: la suma del
+     * atributo da 0 y (grado/0) no tiene sentido. Ver el porqué de devolver
+     * 1.0 (y no 0.0) en el docblock de Involucrados::normalizarAtributo().
+     */
+    public function test_normalizar_no_revienta_si_todos_estan_en_cero_en_un_atributo(): void
+    {
+        $actorA = Involucrado::create($this->todosEn(0) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor A',
+        ]);
+        $actorB = Involucrado::create([
+            'zona_id'        => $this->zona->id,
+            'nombre'         => 'Actor B',
+            'leg_territorio' => 3,
+            'leg_sociedad'   => 3,
+        ] + $this->todosEn(0));
+
+        $filas = Involucrados::relevancias(collect([$actorA, $actorB]))
+            ->keyBy(fn(array $fila) => $fila['actor']->id);
+
+        $this->assertSame(1.0, $filas[$actorA->id]['normalizado']['poder']);
+        $this->assertSame(1.0, $filas[$actorB->id]['normalizado']['poder']);
+
+        // La legitimidad sí tiene suma > 0, así que sigue su fórmula normal:
+        // (0/6)*2 = 0 para A, (6/6)*2 = 2 para B.
+        $this->assertEqualsWithDelta(0.0, $filas[$actorA->id]['normalizado']['legitimidad'], 0.0001);
+        $this->assertEqualsWithDelta(2.0, $filas[$actorB->id]['normalizado']['legitimidad'], 0.0001);
+    }
+
+    public function test_relevancia_es_el_producto_de_los_tres_normalizados_y_ordena_descendente(): void
+    {
+        $bajo = Involucrado::create($this->todosEn(0) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Bajo en todo',
+        ]);
+        $alto = Involucrado::create($this->todosEn(3) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Alto en todo',
+        ]);
+
+        $filas = Involucrados::relevancias(collect([$bajo, $alto]));
+
+        // Con solo dos actores y uno en el máximo de los tres atributos y el
+        // otro en el mínimo, el de arriba tiene que quedar primero.
+        $this->assertSame('Alto en todo', $filas->first()['actor']->nombre);
+
+        foreach ($filas as $fila) {
+            $esperado = $fila['normalizado']['poder']
+                * $fila['normalizado']['legitimidad']
+                * $fila['normalizado']['urgencia'];
+
+            $this->assertEqualsWithDelta($esperado, $fila['relevancia'], 0.0001);
+        }
+    }
+
+    // ── Vista de resultados (Tarea 4) ──────────────────────────────────────
+
+    private function urlResultados(): string
+    {
+        return route('operativo.involucrados.resultados', $this->zona->id);
+    }
+
+    public function test_resultados_muestra_los_actores_sus_tipos_y_el_aviso_de_valores_relativos(): void
+    {
+        Involucrado::create($this->todosEn(1) + [
+            'zona_id'     => $this->zona->id,
+            'nombre'      => 'Municipio de prueba',
+            'tiene_poder' => true,
+        ]);
+        Involucrado::create($this->todosEn(1) + [
+            'zona_id'           => $this->zona->id,
+            'nombre'            => 'Operadora turística',
+            'tiene_legitimidad' => true,
+            'tiene_urgencia'    => true,
+        ]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertSee('Municipio de prueba')
+            ->assertSee('Operadora turística')
+            ->assertSee('Adormecido')
+            ->assertSee('Dependiente')
+            // El aviso de que los normalizados son relativos al conjunto:
+            // el punto que el diseño marca como imprescindible.
+            ->assertSee('relativos a este conjunto de actores', false);
+    }
+
+    /**
+     * Con un actor a medias la matriz entera se trata como sin resultados
+     * —igual que estaCompleto()/scopeIncompletos() ya hacen en el resto del
+     * sistema—, así que no debe pintarse ningún normalizado ni relevancia:
+     * calcularlos sobre un conjunto con un hueco no tiene significado, y
+     * Involucrados::relevancias() ni siquiera llega a invocarse (ver la
+     * precondición en su docblock).
+     */
+    public function test_resultados_con_un_actor_incompleto_no_pinta_ningun_numero(): void
+    {
+        Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor completo',
+        ]);
+
+        $incompleto = Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor incompleto',
+        ]);
+        $incompleto->pod_poder = null;
+        $incompleto->save();
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertSee('Involucrados turísticos sin resultados')
+            // Las cabeceras de la tabla de números solo existen en la rama
+            // "completa" de la vista: su ausencia es la prueba de que no se
+            // pintó ningún normalizado ni relevancia.
+            ->assertDontSee('Relevancia')
+            ->assertDontSee('Tipo de Mitchell')
+            ->assertDontSee('(norm.)');
+    }
+
+    /**
+     * Mismo patrón que el resto de matrices (ver
+     * test_el_admin_ve_los_resultados_en_modo_lectura de IrritacionTest):
+     * el admin navega de verdad a resultados, ve el aviso de solo lectura y
+     * no ve el enlace de vuelta al listado editable.
+     */
+    public function test_el_admin_ve_los_resultados_de_involucrados_en_modo_lectura(): void
+    {
+        Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor único',
+        ]);
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertSee('Volver a Zonas')
+            ->assertSee(route('admin.zonas.index'), false)
+            ->assertDontSee(route('operativo.involucrados.index', $this->zona->id), false);
+    }
+
+    /**
+     * Complementa el test anterior: sin este, un arreglo que ocultara el
+     * enlace al listado para todo el mundo (no solo para el admin) pasaría
+     * igual el test de arriba.
+     */
+    public function test_el_jefe_ve_el_enlace_al_listado_en_los_resultados_de_involucrados(): void
+    {
+        Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor único',
+        ]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertSee(route('operativo.involucrados.index', $this->zona->id), false);
+    }
 }
