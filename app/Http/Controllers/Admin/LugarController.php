@@ -9,10 +9,22 @@ use Illuminate\Http\Request;
 
 class LugarController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $lugares = Lugar::with('provincia')->paginate(10);
-        return view('admin.lugares.index', compact('lugares'));
+        $buscar = trim((string) $request->query('buscar', ''));
+
+        $lugares = Lugar::with('provincia')
+            // El contador responde la pregunta útil —¿se puede borrar?— sin una
+            // consulta por fila dentro de la vista.
+            ->withCount('zonas')
+            ->when($buscar !== '', fn($q) => $q->where('nombre', 'like', "%{$buscar}%"))
+            ->orderBy('nombre')
+            ->paginate(10)
+            // Sin esto, pasar de página pierde el filtro y el usuario cree que
+            // la búsqueda no funciona.
+            ->withQueryString();
+
+        return view('admin.lugares.index', compact('lugares', 'buscar'));
     }
 
     public function create()

@@ -29,26 +29,58 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    
+
+                    <form method="GET" action="{{ route('admin.users.index') }}"
+                          class="flex flex-wrap gap-3 mb-6">
+                        <input type="search" name="buscar" value="{{ $buscar }}"
+                               placeholder="Buscar por nombre o correo"
+                               class="flex-1 min-w-64 text-base border-gray-300 rounded-lg shadow-sm
+                                      focus:ring-indigo-500 focus:border-indigo-500">
+
+                        <select name="rol"
+                                class="text-base border-gray-300 rounded-lg shadow-sm
+                                       focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Todos los roles</option>
+                            @foreach($roles as $unRol)
+                                <option value="{{ $unRol->id }}" @selected((string) $rol === (string) $unRol->id)>
+                                    {{ ucfirst(str_replace('_', ' ', $unRol->nombre)) }}
+                                </option>
+                            @endforeach
+                        </select>
+
+                        <button type="submit"
+                                class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-base font-medium hover:bg-indigo-700">
+                            Buscar
+                        </button>
+
+                        @if($buscar !== '' || $rol)
+                            <a href="{{ route('admin.users.index') }}"
+                               class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-base text-gray-700 hover:bg-gray-50">
+                                Limpiar
+                            </a>
+                        @endif
+                    </form>
+
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Nombre</th>
+                                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Email</th>
+                                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Rol</th>
+                                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Teléfono</th>
+                                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Zonas</th>
+                                    <th class="px-6 py-3 text-right text-sm font-medium text-gray-600">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @foreach ($users as $user)
                                 <tr class="hover:bg-gray-50 transition">
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">{{ $user->name }}</div>
+                                        <div class="text-base font-medium text-gray-900">{{ $user->name }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-500">{{ $user->email }}</div>
+                                        <div class="text-base text-gray-600">{{ $user->email }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @if($user->esAdmin())
@@ -61,14 +93,35 @@
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Sin Rol</span>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $user->telefono ?? 'N/A' }}
+                                    <td class="px-6 py-4 whitespace-nowrap text-base text-gray-600">
+                                        {{ $user->telefono ?? '—' }}
                                     </td>
-                                    
+
+                                    <td class="px-6 py-4">
+                                        @php
+                                            // Un usuario es jefe de unas zonas o miembro del equipo de
+                                            // otras, nunca las dos cosas por rol, pero se juntan por si
+                                            // alguna vez cambia de rol conservando asignaciones.
+                                            $suyas = $user->zonasComoJefe->merge($user->zonasComoEquipo);
+                                        @endphp
+
+                                        @if($suyas->isEmpty())
+                                            <span class="text-sm text-gray-400">Sin zonas</span>
+                                        @else
+                                            <div class="flex flex-wrap gap-1">
+                                                @foreach($suyas as $zona)
+                                                    <span class="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                                                        {{ $zona->nombre }}
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </td>
+
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex justify-end items-center gap-2">
                                             
-                                            <a href="{{ route('admin.users.edit', $user) }}" class="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 py-1 px-3 rounded text-xs font-bold transition">
+                                            <a href="{{ route('admin.users.edit', $user) }}" class="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 py-1 px-3 rounded text-sm font-semibold transition">
                                                 Editar
                                             </a>
 
@@ -76,7 +129,7 @@
                                                   class="js-eliminar-usuario" data-nombre="{{ $user->name }}">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="bg-red-100 text-red-700 hover:bg-red-200 py-1 px-3 rounded text-xs font-bold transition">
+                                                <button type="submit" class="bg-red-100 text-red-700 hover:bg-red-200 py-1 px-3 rounded text-sm font-semibold transition">
                                                     Eliminar
                                                 </button>
                                             </form>

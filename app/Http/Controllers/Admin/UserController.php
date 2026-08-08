@@ -13,10 +13,38 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with('role')->paginate(10);
-        return view('admin.users.index', compact('users'));
+        $buscar = trim((string) $request->query('buscar', ''));
+        $rol    = $request->query('rol');
+
+        $users = User::with('role')
+            // Las zonas se cargan por adelantado: la vista las pinta en cada
+            // fila, y sin esto serían dos consultas por usuario listado.
+            //
+            // jefe_user_id va en la lista de columnas aunque no se muestre: al
+            // seleccionar columnas sueltas en un hasMany hay que traer la clave
+            // foránea, o Eloquent no puede emparejar cada zona con su usuario y
+            // la relación vuelve vacía sin dar ningún error.
+            ->with(['zonasComoJefe:id,nombre,jefe_user_id', 'zonasComoEquipo:id,nombre'])
+            ->when($buscar !== '', function ($q) use ($buscar) {
+                // El paréntesis importa: sin él, el orWhere se saldría del
+                // filtro de rol y devolvería usuarios de cualquier rol.
+                $q->where(function ($q) use ($buscar) {
+                    $q->where('name', 'like', "%{$buscar}%")
+                      ->orWhere('email', 'like', "%{$buscar}%");
+                });
+            })
+            ->when($rol, fn($q) => $q->where('role_id', $rol))
+            ->orderBy('name')
+            ->paginate(10)
+            // Sin esto, pasar de página pierde el filtro y el usuario cree que
+            // la búsqueda no funciona.
+            ->withQueryString();
+
+        $roles = Role::orderBy('id')->get();
+
+        return view('admin.users.index', compact('users', 'roles', 'buscar', 'rol'));
     }
 
     public function create()
