@@ -37,8 +37,19 @@ class AdminBusquedasTest extends TestCase
 
     public function test_el_buscador_de_usuarios_filtra_por_nombre(): void
     {
-        User::factory()->create(['name' => 'Ana Pérez', 'role_id' => $this->rol('equipo')]);
-        User::factory()->create(['name' => 'Luis Gómez', 'role_id' => $this->rol('equipo')]);
+        // Los correos van explícitos aunque este test busque por nombre: el
+        // buscador filtra por nombre O correo, y faker reparte correos
+        // derivados de nombres al azar. Un «susana@…» para Luis hacía que la
+        // búsqueda de «Ana» lo encontrara y el test fallara una vez de cada
+        // muchas, con pinta de fallo del entorno y no de test mal escrito.
+        User::factory()->create([
+            'name' => 'Ana Pérez', 'email' => 'ana.perez@ejemplo.test',
+            'role_id' => $this->rol('equipo'),
+        ]);
+        User::factory()->create([
+            'name' => 'Luis Gómez', 'email' => 'luis.gomez@ejemplo.test',
+            'role_id' => $this->rol('equipo'),
+        ]);
 
         $this->actingAs($this->admin)->get('/admin/users?buscar=Ana')
             ->assertOk()
