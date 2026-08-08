@@ -795,6 +795,24 @@ antes de poner `confirmado`; si no, vuelve con el error.
 `RegistroMatricesTest` pasa de 7 a 8 matrices, y `EstadoZonaTest::totalMatrices()`
 igual. El test de la Task 1 que se saltaba ahora se ejecuta de verdad: compruébalo.
 
+**Esos dos números no son cosmética: son lo único que obliga a registrar la
+entrada.** Si esta tarea construyera el CRUD entero —tablas, modelos,
+controlador, rutas, vistas y tests— y se olvidara de
+`Registro::ENTRADAS['involucrados']`, la suite quedaría **entera en verde**: los
+recuentos seguirían dando 7, los tests de integridad recorren `ENTRADAS` y una
+entrada ausente no se comprueba, y el test de la Task 1 se quedaría saltado para
+siempre. Involucrados funcionaría en su URL y sería invisible desde la página de
+zona y desde el progreso.
+
+Eso es exactamente el bug que dejó la Matriz de Paisaje sin enlace en el admin
+durante meses, y es la razón por la que existe el registro. Así que: registra la
+entrada **antes** de escribir el controlador, no después.
+
+Merece además su propio guardián, que no entra en este plan pero conviene
+anotar: un test inverso a `test_todas_las_rutas_declaradas_existen`, que
+compruebe que toda ruta de matriz del grupo operativo pertenece a una entrada
+del registro. Hoy solo se verifica una dirección.
+
 - [ ] **Step 4: Suite completa y commit**
 
 ```bash
