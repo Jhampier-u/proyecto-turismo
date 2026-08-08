@@ -156,7 +156,7 @@ final class Registro
 
         'irritacion' => [
             'nombre'     => 'Irritación turística',
-            'icono'      => 'brujula',
+            'icono'      => 'enfado',
             'grupo'      => 'presion',
             'tipo'       => 'matriz',
             'modelo'     => EvaluacionIrritacion::class,

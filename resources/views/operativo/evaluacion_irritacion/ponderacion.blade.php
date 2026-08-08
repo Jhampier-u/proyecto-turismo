@@ -104,8 +104,8 @@
                      distintas, igual que evita el controlador al no combinarlos
                      en un índice único. --}}
                 @foreach([
-                    ['Encuesta a visitantes', \App\Matrices\Irritacion::VISITANTES],
-                    ['Encuesta a residentes', \App\Matrices\Irritacion::RESIDENTES],
+                    ['Encuesta a visitantes', $visitantes],
+                    ['Encuesta a residentes', $residentes],
                 ] as [$titulo, $campos])
                     <h4 class="font-bold text-gray-700 mt-6 mb-2">{{ $titulo }}</h4>
                     <div class="overflow-x-auto mb-6">
@@ -118,10 +118,15 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                {{-- clasificar() sigue llamándose directo, sin pasar por el
+                                     controlador: no es dato del instrumento —eso ya llega en
+                                     $visitantes/$residentes/$etiquetas—, es una función pura
+                                     sobre el valor de cada fila, igual que ya la invoca
+                                     select-0-10.blade.php por su cuenta. --}}
                                 @foreach($campos as $campo)
-                                    @php $clasificacion = \App\Matrices\Irritacion::clasificar((float) $evaluacion->$campo); @endphp
+                                    @php $clasificacion = \App\Matrices\Irritacion::clasificar($evaluacion->$campo); @endphp
                                     <tr>
-                                        <td class="border border-gray-300 p-2">{{ \App\Matrices\Irritacion::ETIQUETAS[$campo] }}</td>
+                                        <td class="border border-gray-300 p-2">{{ $etiquetas[$campo] }}</td>
                                         <td class="border border-gray-300 p-2 text-center font-bold">{{ $evaluacion->$campo }}</td>
                                         <td class="border border-gray-300 p-2 text-center">
                                             <span class="inline-block px-2 py-1 rounded text-xs font-semibold {{ $coloresClasificacion[$clasificacion] }}">

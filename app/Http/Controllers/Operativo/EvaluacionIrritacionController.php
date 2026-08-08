@@ -73,12 +73,32 @@ class EvaluacionIrritacionController extends MatrizPonderadaController
         return 'Este Índice de Irritación ya fue validado por el Jefe de Zona. No puedes editarlo.';
     }
 
+    /**
+     * Los dos bloques de campos y sus etiquetas, para que la vista consuma
+     * variables en vez de alcanzar App\Matrices\Irritacion por su cuenta.
+     * Igual que EvaluacionValoracionTerritorialController pasa CT/UC o
+     * EvaluacionPaisajeController pasa CATEGORIAS.
+     *
+     * @return array<string, mixed>
+     */
+    private function datosDelInstrumento(): array
+    {
+        return [
+            'visitantes' => Irritacion::VISITANTES,
+            'residentes' => Irritacion::RESIDENTES,
+            'etiquetas'  => Irritacion::ETIQUETAS,
+        ];
+    }
+
     public function edit($zonaId)
     {
         $zona       = Zona::findOrFail($zonaId);
         $evaluacion = EvaluacionIrritacion::firstOrNew(['zona_id' => $zonaId]);
 
-        return view('operativo.evaluacion_irritacion.form', compact('zona', 'evaluacion'));
+        return view(
+            'operativo.evaluacion_irritacion.form',
+            compact('zona', 'evaluacion') + $this->datosDelInstrumento()
+        );
     }
 
     public function ponderacion($zonaId)
@@ -89,6 +109,9 @@ class EvaluacionIrritacionController extends MatrizPonderadaController
         // completar la matriz, y la vista ya contempla ese caso con un aviso.
         $evaluacion = EvaluacionIrritacion::where('zona_id', $zonaId)->first();
 
-        return view('operativo.evaluacion_irritacion.ponderacion', compact('zona', 'evaluacion'));
+        return view(
+            'operativo.evaluacion_irritacion.ponderacion',
+            compact('zona', 'evaluacion') + $this->datosDelInstrumento()
+        );
     }
 }

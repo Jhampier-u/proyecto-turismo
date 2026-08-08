@@ -225,4 +225,62 @@ class IrritacionTest extends TestCase
         $this->assertSame('confirmado', $eval->estado);
         $this->assertSame(4, $eval->vis_congestion);
     }
+
+    public function test_el_admin_no_puede_modificar_la_matriz(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)->post($this->url(), $this->todosEn(4))
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('evaluaciones_irritacion', 0);
+    }
+
+    /**
+     * El middleware deja pasar al admin en cualquier GET, confirmada o no la
+     * matriz: $bloqueado solo miraba el estado de confirmación, así que en
+     * borrador el admin vería los doce desplegables habilitados y "Guardar
+     * Borrador", que terminaría en un 403 crudo al enviarlo.
+     */
+    public function test_el_admin_recibe_el_formulario_bloqueado_aunque_este_en_borrador(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(4))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('borrador', EvaluacionIrritacion::value('estado'));
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $respuesta = $this->actingAs($admin)->get($this->url())->assertOk();
+
+        $respuesta->assertDontSee('Guardar Borrador');
+        // x-select-0-10 solo emite el atributo "disabled" cuando $disabled es
+        // verdadero: en esta página no aparece en ningún otro sitio.
+        $respuesta->assertSee('disabled', false);
+    }
+
+    /**
+     * Navega de verdad a la página de resultados como admin, en vez de solo
+     * comprobar que el panel enlaza a ella: es el fallo que esta rama ya
+     * corrigió en Paisaje y Valoración Territorial, y esta matriz aterrizó
+     * sin la prueba que lo impide.
+     */
+    public function test_el_admin_ve_los_resultados_en_modo_lectura(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(4));
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)->get($this->url('/resultados'))
+            ->assertOk()
+            ->assertSee('Volver a Zonas')
+            ->assertSee(route('admin.zonas.index'), false)
+            ->assertDontSee(route('operativo.evaluacion_irritacion.edit', $this->zona->id), false);
+    }
 }

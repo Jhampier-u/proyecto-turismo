@@ -63,9 +63,9 @@
                     <p class="text-sm text-gray-500 mb-5">Percepción de quien visita el destino.</p>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        @foreach(\App\Matrices\Irritacion::VISITANTES as $campo)
+                        @foreach($visitantes as $campo)
                             <x-select-0-10
-                                :label="\App\Matrices\Irritacion::ETIQUETAS[$campo]"
+                                :label="$etiquetas[$campo]"
                                 :name="$campo"
                                 :val="$evaluacion->$campo"
                                 :disabled="$bloqueado" />
@@ -78,9 +78,9 @@
                     <p class="text-sm text-gray-500 mb-5">Percepción de la localidad receptora.</p>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        @foreach(\App\Matrices\Irritacion::RESIDENTES as $campo)
+                        @foreach($residentes as $campo)
                             <x-select-0-10
-                                :label="\App\Matrices\Irritacion::ETIQUETAS[$campo]"
+                                :label="$etiquetas[$campo]"
                                 :name="$campo"
                                 :val="$evaluacion->$campo"
                                 :disabled="$bloqueado" />
