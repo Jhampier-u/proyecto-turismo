@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Añadir la sexta matriz de evaluación del sistema —el Índice de Irritación Turística— con sus dos bloques de seis atributos, su escala inversa de 0 a 10 y sus dos resultados clasificados.
+**Goal:** Añadir la séptima matriz de evaluación del sistema —el Índice de Irritación Turística— con sus dos bloques de seis atributos, su escala inversa de 0 a 10 y sus dos resultados clasificados.
 
 **Architecture:** Una entrada más en `App\Matrices\Registro` y un controlador que extiende `MatrizPonderadaController`. De ahí salen gratis el guardado parcial, la obligatoriedad al confirmar, el aviso de matriz sin resultados y el recuento de la página de zona. Lo propio de esta matriz son doce nombres de campo, una escala de 0 a 10, dos medias simples y una clasificación derivada por umbrales.
 

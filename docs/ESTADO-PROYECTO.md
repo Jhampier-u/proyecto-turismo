@@ -161,6 +161,29 @@ vista importando un modelo de Eloquent.
 criterios quedan `smallint` nullable sin defecto y los dos promedios `numeric`
 nullable.
 
+Dos cosas que la revisión final dejó anotadas y conviene no perder:
+
+- **Sus dos componentes llevan el instrumento en el nombre a propósito**
+  (`select-irritacion`, `insignia-clasificacion-irritacion`). Se llamaban
+  `select-0-10` e `insignia-clasificacion`, y ese nombre genérico era una
+  trampa: la insignia fija Bajo→verde y Crítico→rojo, que solo es cierto con
+  escala inversa. `EvaluacionPaisaje::lecturaDe()` devuelve `Alto/Medio/Bajo`
+  donde Bajo es el peor resultado, así que la primera reutilización habría
+  pintado de verde lo peor sin que nada saltara. Si aparece otra matriz 0-10
+  —Frecuentación es candidata—, necesita su propio componente o que este reciba
+  el clasificador por parámetro.
+- **`decimal(5, 3)` va justo de dígitos.** 10.000 ocupa exactamente la precisión
+  declarada. Hoy sobra, pero si alguna vez se ensancha la escala, PostgreSQL dará
+  error donde SQLite calla.
+
+### Deuda conocida, no de esta rama
+
+El mensaje de formulario bloqueado dice «Solo el Jefe de Zona puede reabrir o
+editar una matriz validada» **también cuando la matriz no está validada** y el
+bloqueo es por rol —el caso del admin sobre un borrador—. Está igual en los
+formularios de FIT y Percepción desde antes; con Irritación son tres. No es
+grave, pero le dice al admin algo que no es cierto.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
