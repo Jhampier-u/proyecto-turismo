@@ -57,10 +57,16 @@
                     // valoración válida de puros ceros. Un campo sin responder
                     // llega como null y así se queda: (int) null lo volvería 0,
                     // que aquí es una puntuación real y no un hueco.
+                    // old() manda sobre lo guardado: si validar se rechaza por
+                    // un criterio que falta, el formulario tiene que devolver
+                    // los otros veinte tal como estaban, no lo último que se
+                    // llegó a guardar.
                     $inicial = fn($grupo) => collect($grupo)->mapWithKeys(
-                        fn($c, $campo) => [
-                            $campo => $evaluacion->$campo === null ? null : (int) $evaluacion->$campo,
-                        ]
+                        function ($c, $campo) use ($evaluacion) {
+                            $valor = old($campo, $evaluacion->$campo);
+
+                            return [$campo => $valor === null || $valor === '' ? null : (int) $valor];
+                        }
                     );
                     $pesos = fn($grupo) => collect($grupo)->map(fn($c) => $c['peso']);
                 @endphp

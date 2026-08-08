@@ -83,10 +83,17 @@
                         // una puntuación real —«sin gestión»— y no un hueco. Ya
                         // no hace falta distinguir la evaluación nueva: una
                         // recién creada tiene todos los campos en null igual.
+                        //
+                        // old() manda sobre lo guardado: si validar se rechaza
+                        // por un criterio que falta, el formulario tiene que
+                        // devolver los otros treinta y tres tal como estaban, no
+                        // lo último que se llegó a guardar.
                         $inicial = collect($categoria['criterios'])->mapWithKeys(
-                            fn($c, $campo) => [
-                                $campo => $evaluacion->$campo === null ? null : (int) $evaluacion->$campo,
-                            ]
+                            function ($c, $campo) use ($evaluacion) {
+                                $valor = old($campo, $evaluacion->$campo);
+
+                                return [$campo => $valor === null || $valor === '' ? null : (int) $valor];
+                            }
                         );
                     @endphp
 

@@ -1,8 +1,14 @@
 @props(['label', 'name', 'val', 'disabled' => false])
 
 @php
+    // old() gana sobre lo guardado: si la validación rechaza el envío, el
+    // formulario tiene que devolver lo que el usuario acababa de responder y no
+    // lo último que se guardó. Perder diecisiete respuestas por olvidar una es
+    // el mismo dolor que el guardado parcial viene a quitar.
+    $val = old($name, $val);
+
     // De la base llega int o null; de old() llega string. Sin normalizar, la
-    // comparación estricta de @selected fallaría al repintar tras un error.
+    // comparación estricta de @selected fallaría justo al repintar tras el error.
     $val = ($val === null || $val === '') ? null : (int) $val;
 @endphp
 

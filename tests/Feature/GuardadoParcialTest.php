@@ -317,6 +317,38 @@ class GuardadoParcialTest extends TestCase
         }
     }
 
+    /**
+     * Rechazar la validación no puede costarle al usuario lo que acababa de
+     * escribir. Confirmar con un hueco no guarda nada —la validación corta
+     * antes—, así que si el formulario se repinta desde la base, las respuestas
+     * de esa sesión desaparecen. Con 34 criterios en Paisaje y 156 en
+     * Potencialidad, es el mismo dolor que esta rama viene a quitar.
+     *
+     * Encontrado probando la rama en el navegador: 33 respuestas perdidas por
+     * olvidar una.
+     */
+    public function test_un_error_al_validar_no_borra_lo_ya_respondido(): void
+    {
+        $url = "/operativo/zona/{$this->zona->id}/evaluacion-fit";
+
+        $datos = array_fill_keys(self::CAMPOS_FIT, 3) + ['accion_estado' => 'confirmado'];
+        unset($datos['recursos_culturales']);
+
+        $this->actingAs($this->jefe)->from($url)->post($url, $datos)
+            ->assertSessionHasErrors('recursos_culturales');
+
+        $this->assertDatabaseCount('evaluaciones_fit', 0);
+
+        $pagina = $this->actingAs($this->jefe)->get($url)->assertOk();
+
+        // Los 17 respondidos vuelven marcados; el que faltaba, sin responder.
+        $this->assertSame(
+            17,
+            substr_count($pagina->getContent(), '<option value="3" selected>'),
+            'El formulario no devolvió las respuestas que el usuario acababa de escribir.'
+        );
+    }
+
     public function test_el_equipo_tambien_guarda_a_medias(): void
     {
         $equipo = User::factory()->create([
