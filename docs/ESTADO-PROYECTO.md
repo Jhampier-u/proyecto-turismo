@@ -137,6 +137,30 @@ cuando falta algo» es un camino normal, así que ese mensaje pasa a ser
 frecuente. Arreglarlo es traducir `validation.php` entero y poner
 `app.locale = es`; no entraba en esta rama.
 
+### Rama `irritacion-turistica` — séptima matriz, terminada
+
+El **Índice de Irritación Turística**: dos bloques de seis atributos —visitantes
+y localidad receptora—, dos resultados independientes y una clasificación Bajo /
+Moderado / Crítico. Suite: **247 tests**.
+
+Es la primera matriz del sistema con **escala inversa**: va de 0 a 10 y un 10 es
+irritación crítica, no un sobresaliente. Las otras seis van al revés, y eso es lo
+que más fácil se implementa mal. De ahí que tenga control de entrada propio
+—`x-select-0-10`, con la clasificación en el texto de cada opción— en vez de
+reutilizar los componentes de tarjeta y píldora, que colorean por posición dando
+por hecho que más alto es mejor.
+
+La definición del instrumento vive en `app/Matrices/Irritacion.php`: bloques,
+etiquetas, umbrales, escala, tramos, interpretaciones y `clasificar()`. El
+modelo, el controlador y las dos vistas beben de ahí y ninguno importa a los
+otros. Se llegó a esa forma corrigiendo el diseño a mitad de camino: la versión
+inicial descartaba esa clase contando solo los nombres de campo, y acabó con una
+vista importando un modelo de Eloquent.
+
+**Migración verificada contra PostgreSQL 16 real**, no solo SQLite: los doce
+criterios quedan `smallint` nullable sin defecto y los dos promedios `numeric`
+nullable.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -252,6 +276,8 @@ niveles de anidamiento— y ninguno se movió con el cambio.
 | `docs/superpowers/plans/2026-08-07-pagina-de-zona.md` | Plan ejecutado y fusionado |
 | `docs/superpowers/plans/2026-08-07-guardado-parcial.md` | Plan ejecutado entero. Lo que se apartó de él está arriba |
 | `docs/superpowers/plans/2026-08-07-vistas-admin.md` | Plan ejecutado entero, en `main` |
+| `docs/superpowers/specs/2026-08-07-indice-irritacion-turistica-design.md` | Diseño de la séptima matriz |
+| `docs/superpowers/plans/2026-08-07-indice-irritacion-turistica.md` | Su plan, ejecutado en la rama `irritacion-turistica` |
 | `AUDITORIA.md` | Auditoría de seguridad y calidad, con lo ya corregido marcado |
 
 ## 6. Lo que queda, por orden
@@ -265,12 +291,26 @@ niveles de anidamiento— y ninguno se movió con el cambio.
    faltaban. Suite: **222 tests**. Quedan fuera, a propósito, los formularios
    de alta y edición (`users/form`, `lugares/form`, `zonas/form`): comparten
    los defectos de tipografía pero se usan de forma puntual.
-3. **Cuatro matrices sin implementar**: Involucrados Turísticos Territoriales,
-   Índice Espacial de Frecuentación, Índice de Concentración e Índice de
-   Irritación. Los ficheros están en `C:\Users\<usuario>\Downloads\fwdmatrices`
-   —**hay que copiarlos a la máquina nueva**— y no se han analizado. Sospecha:
-   Involucrados será un CRUD de longitud variable, no un formulario de
-   criterios, así que conviene dejarla para el final.
+3. **Tres matrices sin implementar**: Involucrados Turísticos Territoriales,
+   Índice Espacial de Frecuentación e Índice de Concentración. Los ficheros
+   están en `~/Downloads/fwdmatrices` de esta máquina, ya analizados. **Ninguna
+   de las tres es un formulario de criterios**, así que ninguna se resuelve
+   copiando el patrón de las siete existentes:
+
+   - **Involucrados** es un CRUD: hasta diez actores × Poder (7 criterios),
+     Legitimidad (2) y Urgencia, en escala 0-3, más una hoja de consolidación.
+     Modelo de Mitchell. Longitud variable, no formulario fijo.
+   - **Frecuentación** es una lista variable de sitios con dos cifras cada uno;
+     el índice es la suma de sus cocientes. Además su hoja original divide todas
+     las filas por el ST de la *primera*, y tiene una celda «Superficie
+     Territorial = 1» que no usa ninguna fórmula: **hay que aclarar la fórmula
+     con el autor del instrumento antes de implementarla.**
+   - **Concentración** cuenta recursos por categoría/tipo/subtipo. Se solapa con
+     el módulo de Inventario que ya existe: o se profundiza su taxonomía —hoy
+     son dos niveles y ocho categorías, frente a los tres niveles y ~77 subtipos
+     del instrumento— y el índice se calcula solo, o es un formulario aparte que
+     recuenta lo que ya está registrado. **Es una decisión de producto, no
+     técnica.**
 4. **Migrar FIT, FET, Percepción y Potencialidad** a los componentes de criterio
    nuevos (`criterio-escala`, `criterio-pildoras`). Siguen usando desplegables
    mientras Paisaje y Valoración Territorial ya usan tarjetas. Sin plan escrito.
