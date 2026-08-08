@@ -216,23 +216,93 @@ final class EstadoZona
             );
         }
 
+        $respondidos = $this->respondidos($evaluacion);
+
+        // Validar exige la matriz entera: confirmarla a medias la rechaza la
+        // validación del controlador. Antes del guardado parcial un borrador
+        // siempre estaba completo y no había diferencia; ahora ofrecer «lista
+        // para validar» sobre 3 de 34 manda al jefe a un formulario que le
+        // devolverá errores.
+        $completa = $respondidos === $entrada['criterios'];
+
         return new FilaMatriz(
             clave:   $clave,
             nombre:  $entrada['nombre'],
             icono:   $entrada['icono'],
             estado:  'borrador',
-            detalle: 'Borrador' . $firma,
+            detalle: "Borrador · {$respondidos} de {$entrada['criterios']} respondidos" . $firma,
             url:     $esAdmin
                 ? route($entrada['rutas']['ver'], $this->zona->id)
                 : route($entrada['rutas']['editar'], $this->zona->id),
             accion:  $esAdmin ? 'Ver' : 'Continuar',
             // esJefe() ya excluye al admin por construcción (son roles
             // distintos): ! $esAdmin era una condición redundante.
-            puedeValidar:    $this->usuario->esJefe(),
-            avisoValidacion: $this->usuario->esEquipo()
+            puedeValidar:    $completa && $this->usuario->esJefe(),
+            avisoValidacion: $completa && $this->usuario->esEquipo()
                 ? 'Lista para validar — avísale a ' . ($this->zona->jefe?->name ?? 'tu Jefe de Zona')
                 : null,
         );
+    }
+
+    /**
+     * Criterios ya respondidos de una evaluación.
+     *
+     * Cuenta las columnas de criterio que no están en null. El registro sabe
+     * cuántos criterios tiene cada matriz, pero no cuáles: repetir esa lista
+     * aquí sería una segunda fuente de verdad que se desincroniza sola.
+     */
+    private function respondidos(Model $evaluacion): int
+    {
+        return count(array_filter(
+            $evaluacion->getAttributes(),
+            fn($valor, string $columna) => $valor !== null && self::esColumnaDeCriterio($columna),
+            ARRAY_FILTER_USE_BOTH
+        ));
+    }
+
+    /**
+     * ¿Es esta columna un criterio del instrumento, y no control ni cálculo?
+     *
+     * Es una heurística por nombre, y los nombres no siguen un patrón único
+     * entre matrices: FIT guarda `fit_rtt`, `media_rtt` y `fit`; Percepción
+     * guarda `pond_ds`; Potencialidad guarda `val_afluencia`. Un criterio de
+     * verdad excluido, o una columna calculada colada, cambian el «21 de 34»
+     * sin romper nada visible.
+     *
+     * Por eso es pública: EstadoZonaTest la recorre contra el esquema real de
+     * las seis tablas y exige que el número de columnas que sobreviven sea
+     * exactamente el que declara el registro. Sin esa comprobación, esta lista
+     * sería una suposición —y en esta misma rama ya hubo un filtro por prefijo
+     * que capturaba 0 de 16 columnas sin que nada lo detectara.
+     */
+    public static function esColumnaDeCriterio(string $columna): bool
+    {
+        $control = ['id', 'zona_id', 'user_id', 'estado', 'created_at', 'updated_at'];
+
+        if (in_array($columna, $control, true)) {
+            return false;
+        }
+
+        // Los totales de FIT y FET se llaman como la propia matriz.
+        if ($columna === 'fit' || $columna === 'fet') {
+            return false;
+        }
+
+        // Medias, ponderados y totales, con los nombres que usa cada matriz.
+        foreach (['media_', 'pond_', 'val_', 'fit_', 'fet_'] as $prefijo) {
+            if (str_starts_with($columna, $prefijo)) {
+                return false;
+            }
+        }
+
+        foreach (['_promedio', '_total'] as $sufijo) {
+            if (str_ends_with($columna, $sufijo)) {
+                return false;
+            }
+        }
+
+        // Percepción guarda además un campo de texto libre que no se puntúa.
+        return $columna !== 'acciones_mejora';
     }
 
     /** «— Ana Pérez, hace 2 días». Se guarda desde siempre y no se enseñaba. */

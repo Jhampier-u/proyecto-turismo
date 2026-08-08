@@ -38,6 +38,28 @@ class EstadoZonaTest extends TestCase
         ]);
     }
 
+    /**
+     * Un borrador de FIT con sus 18 criterios respondidos.
+     *
+     * Antes bastaba con crear la fila: un borrador estaba completo por
+     * construcción, porque para guardarlo había que responderlo entero. Con el
+     * guardado parcial ya no, y «lista para validar» solo se ofrece cuando de
+     * verdad se puede validar. Las columnas salen del esquema para no repetir
+     * aquí una cuarta copia de la lista de campos.
+     */
+    private function fitCompleta(): EvaluacionFit
+    {
+        $criterios = array_filter(
+            \Illuminate\Support\Facades\Schema::getColumnListing((new EvaluacionFit())->getTable()),
+            fn(string $columna) => EstadoZona::esColumnaDeCriterio($columna)
+        );
+
+        return EvaluacionFit::create(
+            ['zona_id' => $this->zona->id, 'estado' => 'borrador']
+            + array_fill_keys($criterios, 3)
+        );
+    }
+
     private function filas(?User $usuario = null): array
     {
         $estado = new EstadoZona($this->zona, $usuario ?? $this->jefe);
@@ -70,6 +92,78 @@ class EstadoZonaTest extends TestCase
         $this->assertSame('borrador', $fila->estado);
         $this->assertSame('Continuar', $fila->accion);
         $this->assertSame(route('operativo.evaluacion_fit.edit', $this->zona->id), $fila->url);
+    }
+
+    public function test_una_matriz_en_borrador_dice_cuantos_criterios_van(): void
+    {
+        $evaluacion = \App\Models\EvaluacionPaisaje::create([
+            'zona_id' => $this->zona->id,
+            'estado'  => 'borrador',
+        ]);
+
+        foreach (array_slice(array_keys(\App\Matrices\Paisaje::todos()), 0, 21) as $campo) {
+            $evaluacion->$campo = 3;
+        }
+        $evaluacion->save();
+
+        $this->assertStringContainsString('21 de 34', $this->filas()['paisaje']->detalle);
+    }
+
+    /**
+     * La otra cara del guardado parcial: una matriz a medias no se puede
+     * validar —el controlador la rechaza al confirmar—, así que la página no
+     * debe ofrecerlo. Antes daba igual, porque para guardar un borrador había
+     * que responderlo entero.
+     */
+    public function test_una_matriz_a_medias_no_ofrece_validacion(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        EvaluacionFit::create([
+            'zona_id'             => $this->zona->id,
+            'estado'              => 'borrador',
+            'recursos_culturales' => 3,
+        ]);
+
+        $this->assertFalse($this->filas()['fit']->puedeValidar);
+        $this->assertNull($this->filas($equipo)['fit']->avisoValidacion);
+        $this->assertStringContainsString('1 de 18', $this->filas()['fit']->detalle);
+    }
+
+    /**
+     * El recuento se apoya en distinguir, por el nombre de la columna, un
+     * criterio del instrumento de una columna calculada. Es una heurística: los
+     * nombres no siguen un patrón único entre matrices —FIT guarda `fit_rtt`,
+     * `media_rtt` y `fit`; Percepción guarda `pond_ds`— y esta misma rama ya se
+     * tropezó una vez con un filtro por prefijo que capturaba 0 de 16 columnas.
+     *
+     * Este test la ata al esquema real: para cada matriz, las columnas que el
+     * filtro deja pasar tienen que ser exactamente tantas como criterios declara
+     * el registro. Si una columna calculada se cuela, sobra; si se excluye un
+     * criterio de verdad, falta. De paso verifica los números del registro para
+     * FIT, FET, Percepción y Potencialidad, que hasta ahora solo se habían
+     * comprobado a mano.
+     */
+    public function test_el_filtro_de_criterios_cuadra_con_el_esquema_de_las_seis_tablas(): void
+    {
+        foreach (\App\Matrices\Registro::matrices() as $clave => $entrada) {
+            $tabla = (new $entrada['modelo']())->getTable();
+
+            $criterios = array_filter(
+                \Illuminate\Support\Facades\Schema::getColumnListing($tabla),
+                fn(string $columna) => EstadoZona::esColumnaDeCriterio($columna)
+            );
+
+            $this->assertCount(
+                $entrada['criterios'],
+                $criterios,
+                "{$clave}: el filtro deja pasar " . count($criterios) . ' columnas de '
+                . "{$tabla} y el registro declara {$entrada['criterios']} criterios."
+            );
+        }
     }
 
     public function test_una_matriz_validada_lleva_a_los_resultados(): void
@@ -135,7 +229,7 @@ class EstadoZonaTest extends TestCase
 
     public function test_solo_el_jefe_puede_validar(): void
     {
-        EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
+        $this->fitCompleta();
 
         $equipo = User::factory()->create([
             'role_id' => Role::where('nombre', 'equipo')->value('id'),

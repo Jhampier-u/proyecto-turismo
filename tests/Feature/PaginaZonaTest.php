@@ -43,6 +43,28 @@ class PaginaZonaTest extends TestCase
     }
 
     /**
+     * Un borrador de FIT con sus 18 criterios respondidos.
+     *
+     * Antes bastaba con crear la fila: un borrador estaba completo por
+     * construcción, porque para guardarlo había que responderlo entero. Con el
+     * guardado parcial ya no, y la pista de validar solo aparece cuando de
+     * verdad se puede validar. Las columnas salen del esquema para no repetir
+     * aquí la lista de campos.
+     */
+    private function fitCompleta(): EvaluacionFit
+    {
+        $criterios = array_filter(
+            \Illuminate\Support\Facades\Schema::getColumnListing((new EvaluacionFit())->getTable()),
+            fn(string $columna) => \App\Servicios\EstadoZona::esColumnaDeCriterio($columna)
+        );
+
+        return EvaluacionFit::create(
+            ['zona_id' => $this->zona->id, 'estado' => 'borrador']
+            + array_fill_keys($criterios, 3)
+        );
+    }
+
+    /**
      * La pareja del test de integridad del registro: si una matriz se declara
      * pero la página no la pinta, salta aquí. Es lo que faltaba cuando Paisaje
      * quedó sin enlace en el admin.
@@ -127,7 +149,7 @@ class PaginaZonaTest extends TestCase
         ]);
         $this->zona->equipo()->attach($equipo->id);
 
-        EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
+        $this->fitCompleta();
 
         $this->actingAs($equipo)->get($this->url())
             ->assertOk()
@@ -184,7 +206,7 @@ class PaginaZonaTest extends TestCase
         ]);
         $this->zona->equipo()->attach($equipo->id);
 
-        EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
+        $this->fitCompleta();
 
         $paginaJefe = $this->actingAs($this->jefe)->get($this->url())->assertOk();
         $paginaJefe->assertSee('Lista para validar');
