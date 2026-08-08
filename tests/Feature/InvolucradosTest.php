@@ -4,10 +4,12 @@ namespace Tests\Feature;
 
 use App\Matrices\Involucrados;
 use App\Models\Involucrado;
+use App\Models\InvolucradosConfig;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Zona;
 use Database\Seeders\SystemSeeder;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -133,7 +135,16 @@ class InvolucradosTest extends TestCase
 
         $this->assertTrue($ids->contains($incompleto->id));
         $this->assertFalse($ids->contains($completo->id));
-        $this->assertSame(1, Involucrado::incompletos()->count());
+
+        // Filtrado por zona, igual que el test hermano de más abajo: sin el
+        // ->where('zona_id', ...) esta aserción solo la sostiene que la
+        // tabla esté vacía de cualquier otro actor, cosa que hoy da la
+        // transacción de RefreshDatabase pero que un seeder o una ejecución
+        // en paralelo tumbarían con un fallo que se leería como un flake.
+        $this->assertSame(
+            1,
+            Involucrado::where('zona_id', $this->zona->id)->incompletos()->count()
+        );
     }
 
     /**
@@ -165,5 +176,76 @@ class InvolucradosTest extends TestCase
         $incompletosDeEstaZona = Involucrado::where('zona_id', $this->zona->id)->incompletos()->count();
 
         $this->assertSame(0, $incompletosDeEstaZona);
+    }
+
+    /**
+     * El camino real de la tarea 3 es crear el actor y pintar su tipo en la
+     * misma petición, sin pasar por un find() intermedio. Antes de fijar
+     * $attributes en el modelo, tiene_poder llegaba en null justo tras
+     * create() —los default(false) de la migración no los relee Eloquent
+     * tras el insert—, y tipo_mitchell, que exige bool, reventaba con un
+     * TypeError. find() enmascaraba el fallo porque una lectura sí trae los
+     * false de la base, así que este test crea y no vuelve a consultar.
+     */
+    public function test_tipo_mitchell_funciona_sobre_un_actor_recien_creado_sin_find(): void
+    {
+        $actor = Involucrado::create($this->todosEn(0) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor recién creado',
+        ]);
+
+        $this->assertFalse($actor->tiene_poder);
+        $this->assertSame('No es actor relevante', $actor->tipo_mitchell);
+
+        $actor->tiene_poder    = true;
+        $actor->tiene_urgencia = true;
+
+        $this->assertSame('Peligroso', $actor->tipo_mitchell);
+    }
+
+    /** Lo mismo vale para un actor construido con new/make, sin guardar todavía. */
+    public function test_un_actor_sin_guardar_trae_los_tres_atributos_en_false(): void
+    {
+        $actor = new Involucrado();
+
+        $this->assertFalse($actor->tiene_poder);
+        $this->assertFalse($actor->tiene_legitimidad);
+        $this->assertFalse($actor->tiene_urgencia);
+        $this->assertSame('No es actor relevante', $actor->tipo_mitchell);
+    }
+
+    public function test_involucrados_config_se_crea_y_resuelve_sus_relaciones(): void
+    {
+        $config = InvolucradosConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'borrador',
+        ]);
+
+        $this->assertDatabaseHas('involucrados_config', [
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'borrador',
+        ]);
+
+        $this->assertTrue($config->zona->is($this->zona));
+        $this->assertTrue($config->user->is($this->jefe));
+    }
+
+    /**
+     * El unique sobre zona_id es lo que garantiza como mucho una fila de
+     * configuración por zona: EstadoZona::filaActores() la busca con
+     * ->first() y asume que no hay dos, igual que con las siete matrices de
+     * formulario. Sin el índice único, un segundo borrador para la misma
+     * zona pasaría en silencio y ->first() devolvería una de las dos al
+     * azar según el orden físico de la tabla.
+     */
+    public function test_solo_puede_haber_una_configuracion_por_zona(): void
+    {
+        InvolucradosConfig::create(['zona_id' => $this->zona->id]);
+
+        $this->expectException(QueryException::class);
+
+        InvolucradosConfig::create(['zona_id' => $this->zona->id]);
     }
 }

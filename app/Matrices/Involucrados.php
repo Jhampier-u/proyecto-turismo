@@ -27,16 +27,21 @@ final class Involucrados
      * @var array<string, array{titulo: string, campos: array<string, string>}>
      */
     public const ATRIBUTOS = [
+        // El instrumento separa los siete criterios de poder en dos familias
+        // de medios: coercitivos (autoridad, poder) y utilitarios (los otros
+        // cinco). El calificador va en los siete y no en dos sueltos: dejarlo
+        // a medias es peor que no ponerlo, porque sugiere que solo esos dos
+        // tienen una naturaleza y los otros cinco no tienen ninguna.
         'poder' => [
             'titulo' => 'Grado de poder',
             'campos' => [
                 'pod_autoridad'     => 'Autoridad (medios coercitivos)',
                 'pod_poder'         => 'Poder (medios coercitivos)',
-                'pod_recursos'      => 'Recursos y atractivos',
-                'pod_presupuesto'   => 'Presupuesto',
-                'pod_tecnologicos'  => 'Medios tecnológicos',
-                'pod_cadena_valor'  => 'Cadena de valor',
-                'pod_intelectuales' => 'Medios intelectuales',
+                'pod_recursos'      => 'Recursos y atractivos (medios utilitarios)',
+                'pod_presupuesto'   => 'Presupuesto (medios utilitarios)',
+                'pod_tecnologicos'  => 'Medios tecnológicos (medios utilitarios)',
+                'pod_cadena_valor'  => 'Cadena de valor (medios utilitarios)',
+                'pod_intelectuales' => 'Medios intelectuales (medios utilitarios)',
             ],
         ],
         'legitimidad' => [
@@ -64,15 +69,12 @@ final class Involucrados
      */
     public static function campos(): array
     {
-        // array_values() antes del spread: ATRIBUTOS tiene claves de cadena
-        // ('poder', 'legitimidad', 'urgencia') y array_map() las conserva, así
-        // que sin esto el "..." las pasaría a array_merge() como argumentos
-        // con nombre —cosa que esa función no acepta— en vez de como una
-        // lista posicional de arrays a fusionar.
-        return array_merge(...array_values(array_map(
+        // array_values(): ATRIBUTOS tiene claves de cadena, y array_merge()
+        // no acepta argumentos con nombre.
+        return array_merge(...array_map(
             fn(array $atributo) => array_keys($atributo['campos']),
-            self::ATRIBUTOS
-        )));
+            array_values(self::ATRIBUTOS)
+        ));
     }
 
     /**

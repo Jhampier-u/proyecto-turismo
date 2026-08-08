@@ -17,6 +17,22 @@ class Involucrado extends Model
     protected $fillable = [];
 
     /**
+     * Los tres atributos empiezan en false, igual que su default(false) en la
+     * migración —puesto aquí también porque es donde alguien los ve—. Hace
+     * falta el doble: Eloquent no relee los defaults de la base tras un
+     * insert, así que sin esto un actor recién creado (o un `new
+     * Involucrado()` sin guardar) trae tiene_poder en null, y tipo_mitchell,
+     * que exige bool, revienta con un TypeError antes del primer find().
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'tiene_poder'       => false,
+        'tiene_legitimidad' => false,
+        'tiene_urgencia'    => false,
+    ];
+
+    /**
      * Los once criterios se declaran una sola vez, en la definición del
      * instrumento (Involucrados::campos()); repetirlos aquí a mano sería una
      * segunda fuente de verdad. Un spread de un método —a diferencia de un
