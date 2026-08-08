@@ -45,23 +45,18 @@ class IrritacionTest extends TestCase
 
         $html = (string) $this->blade('<x-select-0-10 label="Congestión" name="c" :val="null" />');
 
-        $this->assertStringContainsString('<option value="" selected>', $html);
         $this->assertStringContainsString('0 — Bajo', $html);
         $this->assertStringContainsString('2 — Bajo', $html);
         $this->assertStringContainsString('3 — Moderado', $html);
         $this->assertStringContainsString('6 — Moderado', $html);
         $this->assertStringContainsString('7 — Crítico', $html);
         $this->assertStringContainsString('10 — Crítico', $html);
-    }
 
-    /** Mismo contrato que los demás desplegables: el hueco no es un cero. */
-    public function test_el_desplegable_distingue_el_hueco_del_cero(): void
-    {
-        $this->withViewErrors([]);
-
-        $conCero = (string) $this->blade('<x-select-0-10 label="C" name="c" :val="0" />');
-
-        $this->assertStringContainsString('<option value="0" selected>', $conCero);
-        $this->assertStringNotContainsString('<option value="" selected>', $conCero);
+        // Un "<=" mal escrito en el bucle del componente pasaría igual las
+        // aserciones de arriba (contains, no cuenta); esto lo delata. Once
+        // valores más el hueco, ni uno más: el servidor validará 0..10 y una
+        // opción de sobra dejaría elegir algo que el backend rechazaría sin
+        // explicar por qué.
+        $this->assertSame(12, substr_count($html, '<option '), 'La escala no tiene once valores más el hueco.');
     }
 }

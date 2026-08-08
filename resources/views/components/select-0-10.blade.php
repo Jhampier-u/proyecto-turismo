@@ -4,6 +4,9 @@
     // old() gana sobre lo guardado: si la validación rechaza el envío, el
     // formulario tiene que devolver lo que el usuario acababa de responder.
     $val = old($name, $val);
+
+    // De la base llega int o null; de old() llega string. Sin normalizar, la
+    // comparación estricta de @selected fallaría justo al repintar tras el error.
     $val = ($val === null || $val === '') ? null : (int) $val;
 
     // La escala es INVERSA: 0 es el mejor caso y 10 el peor. Los umbrales son
@@ -28,6 +31,6 @@
         @endfor
     </select>
     @error($name)
-        <span class="text-xs text-red-500">{{ $message }}</span>
+        <span class="text-sm text-red-600">{{ $message }}</span>
     @enderror
 </div>
