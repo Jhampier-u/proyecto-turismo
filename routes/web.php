@@ -19,8 +19,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => view('index'));
 
+// Reparte según el rol, con el mismo predicado que usa el middleware IsAdmin.
+// Antes comparaba role_id con un 1 literal: una segunda definición de «es
+// admin», suelta en las rutas, que podía contradecir a la del modelo sin que
+// nada lo detectara.
 Route::get('/dashboard', function () {
-    return Auth::user()->role_id === 1
+    return Auth::user()->esAdmin()
         ? redirect()->route('admin.dashboard')
         : redirect()->route('operativo.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
