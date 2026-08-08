@@ -45,7 +45,7 @@ class IrritacionTest extends TestCase
     {
         $this->withViewErrors([]);
 
-        $html = (string) $this->blade('<x-select-0-10 label="Congestión" name="c" :val="null" />');
+        $html = (string) $this->blade('<x-select-irritacion label="Congestión" name="c" :val="null" />');
 
         $this->assertStringContainsString('0 — Bajo', $html);
         $this->assertStringContainsString('2 — Bajo', $html);
@@ -117,8 +117,8 @@ class IrritacionTest extends TestCase
     /**
      * Nada ata las claves de TRAMOS a lo que devuelve clasificar(): la vista
      * de resultados indexa Irritacion::TRAMOS (a través de
-     * <x-insignia-clasificacion>) con la clasificación de cada bloque sin
-     * "??", así que renombrar una clave rompería con un error de clave
+     * <x-insignia-clasificacion-irritacion>) con la clasificación de cada
+     * bloque sin "??", así que renombrar una clave rompería con un error de clave
      * inexistente cualquier zona 'Bajo' o 'Crítico' sin que ningún test lo
      * note: todosEn(4) —el único dato que abre esa página en el resto de la
      * suite— solo ejercita 'Moderado'.
@@ -145,17 +145,37 @@ class IrritacionTest extends TestCase
     public function test_el_rango_declarado_concuerda_con_los_umbrales(): void
     {
         $this->assertSame(
-            Irritacion::ESCALA_MIN . ' a ' . (Irritacion::UMBRAL_MODERADO - 1),
+            'menos de ' . Irritacion::UMBRAL_MODERADO,
             Irritacion::TRAMOS['Bajo']['rango']
         );
         $this->assertSame(
-            Irritacion::UMBRAL_MODERADO . ' a ' . (Irritacion::UMBRAL_CRITICO - 1),
+            'de ' . Irritacion::UMBRAL_MODERADO . ' a menos de ' . Irritacion::UMBRAL_CRITICO,
             Irritacion::TRAMOS['Moderado']['rango']
         );
         $this->assertSame(
-            Irritacion::UMBRAL_CRITICO . ' a ' . Irritacion::ESCALA_MAX,
+            Irritacion::UMBRAL_CRITICO . ' o más',
             Irritacion::TRAMOS['Crítico']['rango']
         );
+    }
+
+    /**
+     * ETIQUETAS y BLOQUES describen los mismos doce campos por dos caminos
+     * distintos —uno por etiqueta suelta, otro agrupado en bloques— y nada lo
+     * comprobaba. Las vistas hacen $etiquetas[$campo] para cada campo de cada
+     * bloque sin "??": si un campo apareciera en uno y no en el otro, la
+     * página revienta con un error de índice inexistente, y ningún otro test
+     * lo detectaría porque todos ejercitan siempre el conjunto completo de
+     * los doce.
+     */
+    public function test_etiquetas_y_bloques_declaran_los_mismos_campos(): void
+    {
+        $camposDeEtiquetas = array_keys(Irritacion::ETIQUETAS);
+        $camposDeBloques   = array_merge(...array_column(Irritacion::BLOQUES, 'campos'));
+
+        sort($camposDeEtiquetas);
+        sort($camposDeBloques);
+
+        $this->assertSame($camposDeEtiquetas, $camposDeBloques);
     }
 
     /**
@@ -324,16 +344,25 @@ class IrritacionTest extends TestCase
 
         $respuesta->assertDontSee('Guardar Borrador');
 
-        // select-0-10.blade.php lleva "disabled:bg-gray-100 disabled:text-gray-500"
-        // en la clase de forma incondicional, así que la subcadena "disabled" a
-        // secas aparece igual con el formulario abierto de par en par: no prueba
-        // nada. "disabled>" sí es inequívoco, porque solo lo emite
-        // {{ $disabled ? 'disabled' : '' }} pegado al cierre de la etiqueta, y la
-        // lista de clases siempre termina en comilla antes de esa posición.
-        $html = $respuesta->getContent();
+        // select-irritacion.blade.php lleva "disabled:bg-gray-100
+        // disabled:text-gray-500" en la clase de forma incondicional, así que
+        // la subcadena "disabled" a secas aparece igual con el formulario
+        // abierto de par en par: no prueba nada. "disabled>" sí es inequívoco,
+        // porque solo lo emite {{ $disabled ? 'disabled' : '' }} pegado al
+        // cierre de la etiqueta — pero contarlo sobre el HTML entero se
+        // rompería el día que cualquier otro control de la página (por
+        // ejemplo en la barra de navegación) también llegue deshabilitado. Se
+        // aíslan primero las etiquetas <select ...> una a una y solo entonces
+        // se mira cuántas terminan en "disabled>".
+        preg_match_all('/<select\b[^>]*>/s', $respuesta->getContent(), $selects);
+        $selectsDeshabilitados = count(array_filter(
+            $selects[0],
+            fn(string $tag) => str_ends_with(rtrim($tag), 'disabled>')
+        ));
+
         $this->assertSame(
             count(Irritacion::ETIQUETAS),
-            substr_count($html, 'disabled>'),
+            $selectsDeshabilitados,
             'Los doce <select> deberían llegar deshabilitados al admin.'
         );
     }
@@ -372,11 +401,18 @@ class IrritacionTest extends TestCase
             'role_id' => Role::where('nombre', 'admin')->value('id'),
         ]);
 
+        // route(...edit) es "/operativo/zona/{id}/irritacion" y route(...ponderacion)
+        // —la propia página que se está pidiendo— es ese mismo prefijo más
+        // "/resultados": comprobar la URL de edición suelta, sin anclar,
+        // fallaría el día que esta página se enlace a sí misma, porque su
+        // propia URL la contiene como subcadena. Anclada al atributo href de
+        // un enlace sigue vigilando lo mismo —que no haya enlace de vuelta al
+        // formulario— sin ese falso positivo.
         $this->actingAs($admin)->get($this->url('/resultados'))
             ->assertOk()
             ->assertSee('Volver a Zonas')
             ->assertSee(route('admin.zonas.index'), false)
-            ->assertDontSee(route('operativo.evaluacion_irritacion.edit', $this->zona->id), false);
+            ->assertDontSee('href="' . route('operativo.evaluacion_irritacion.edit', $this->zona->id) . '"', false);
     }
 
     /**

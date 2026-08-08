@@ -1,3 +1,14 @@
+{{--
+    Antes se llamaba select-0-10, por su escala. Pero a diferencia de sus
+    hermanos (select-0-3, select-0-2, select-percepcion, todos autónomos), este
+    desplegable llama a Irritacion::ESCALA_MIN/MAX y clasificar(): pinta «7 —
+    Crítico», no un 7 suelto. Esa clasificación es semántica del instrumento
+    —qué valor es bueno, qué significa cada número—, no de la escala 0-10 en
+    abstracto. La próxima matriz que también vaya de 0 a 10 no tiene por qué
+    compartir esa lectura, así que el nombre lleva "irritacion" para que nadie
+    la reutilice pensando que "0 a 10" ya implica "escala inversa de
+    Irritación".
+--}}
 @props(['label', 'name', 'val', 'disabled' => false])
 
 @php

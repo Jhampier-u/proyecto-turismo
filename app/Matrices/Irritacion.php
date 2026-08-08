@@ -30,22 +30,25 @@ final class Irritacion
      *
      * El rango es solo para el humano que lee la leyenda o la tabla: quien
      * decide de verdad la clasificación es clasificar(), con estos mismos
-     * umbrales. Por eso se deriva de ESCALA_MIN/UMBRAL_MODERADO/
-     * UMBRAL_CRITICO/ESCALA_MAX en vez de escribirse a mano: mover un umbral
-     * sin tocar esto dejaría la leyenda mintiendo con la suite en verde.
+     * umbrales. Se redacta en abierto —"menos de 3", "7 o más"— y no como
+     * "0 a 2" o "7 a 10": clasificar() acepta promedios con decimales (un
+     * 2.50 cae en 'Bajo'), y un rango que solo nombra enteros mentiría sobre
+     * dónde cae ese 2.50. Se deriva de UMBRAL_MODERADO/UMBRAL_CRITICO en vez
+     * de escribirse a mano: mover un umbral sin tocar esto dejaría la
+     * leyenda mintiendo con la suite en verde.
      *
      * Sin color: el color de cada tramo es una decisión de presentación, no
      * vocabulario del instrumento, y vive en el componente Blade
-     * <x-insignia-clasificacion>, no aquí. Esta clase no tiene ninguna clase
-     * de Tailwind, así que app/Matrices ya no necesita estar en el content de
-     * tailwind.config.js.
+     * <x-insignia-clasificacion-irritacion>, no aquí. Esta clase no tiene
+     * ninguna clase de Tailwind, así que app/Matrices ya no necesita estar en
+     * el content de tailwind.config.js.
      *
      * @var array<string, array{rango: string}>
      */
     public const TRAMOS = [
-        'Bajo'     => ['rango' => self::ESCALA_MIN . ' a ' . (self::UMBRAL_MODERADO - 1)],
-        'Moderado' => ['rango' => self::UMBRAL_MODERADO . ' a ' . (self::UMBRAL_CRITICO - 1)],
-        'Crítico'  => ['rango' => self::UMBRAL_CRITICO . ' a ' . self::ESCALA_MAX],
+        'Bajo'     => ['rango' => 'menos de ' . self::UMBRAL_MODERADO],
+        'Moderado' => ['rango' => 'de ' . self::UMBRAL_MODERADO . ' a menos de ' . self::UMBRAL_CRITICO],
+        'Crítico'  => ['rango' => self::UMBRAL_CRITICO . ' o más'],
     ];
 
     /** Bloque de visitantes — 6 atributos. */
@@ -127,6 +130,19 @@ final class Irritacion
             'Crítico'  => 'Los residentes se encuentran en un estado de insatisfacción con la dinámica turística del sitio.',
         ],
     ];
+
+    /**
+     * Los doce campos con su etiqueta, aplanados igual que Paisaje::todos() o
+     * ValoracionTerritorial::todos(): es lo que RegistroMatricesTest usa para
+     * comprobar que 'criterios' => 12 en Registro::ENTRADAS concuerda con el
+     * instrumento y no solo con el esquema de la tabla.
+     *
+     * @return array<string, string>
+     */
+    public static function todos(): array
+    {
+        return self::ETIQUETAS;
+    }
 
     /**
      * Clasifica un valor de la escala, sea un atributo suelto o el promedio de

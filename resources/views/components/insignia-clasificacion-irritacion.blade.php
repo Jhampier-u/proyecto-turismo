@@ -1,6 +1,17 @@
 @props(['valor'])
 
 {{--
+    Antes se llamaba insignia-clasificacion, a secas, como si "Bajo" fuera
+    siempre verde y "Crítico" siempre rojo. Eso solo es cierto en una escala
+    INVERSA como la de Irritación, donde 0 es el mejor resultado: en las otras
+    seis matrices del sistema (por ejemplo EvaluacionPaisaje::lecturaDe(), que
+    devuelve 'Alto'/'Medio'/'Bajo' con Bajo como el peor caso) reutilizar este
+    componente pintaría de verde el peor resultado sin que ningún test lo
+    note, porque la paleta de abajo es la lectura de Irritación, no un mapa de
+    colores universal para cualquier clasificación de tres tramos. El nombre
+    lleva "irritacion" para que la próxima matriz con escala normal no lo
+    herede en silencio.
+
     Insignia que pinta una clasificación (Bajo / Moderado / Crítico) con su
     color. La usan hoy la leyenda y los resultados del Índice de Irritación
     —dos vistas distintas que antes repetían la misma paleta cada una por su

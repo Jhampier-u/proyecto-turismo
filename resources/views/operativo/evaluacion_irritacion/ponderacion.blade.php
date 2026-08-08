@@ -44,9 +44,9 @@
                         <p class="text-4xl font-black text-sky-700 mt-1">
                             {{ number_format($evaluacion->visitantes_promedio, 2) }}
                         </p>
-                        <x-insignia-clasificacion :valor="$evaluacion->clasificacion_visitantes" class="mt-2" />
+                        <x-insignia-clasificacion-irritacion :valor="$evaluacion->clasificacion_visitantes" class="mt-2" />
                         <p class="text-sm text-gray-600 mt-3">
-                            {{ \App\Matrices\Irritacion::INTERPRETACIONES['visitantes'][$evaluacion->clasificacion_visitantes] }}
+                            {{ $interpretaciones['visitantes'][$evaluacion->clasificacion_visitantes] }}
                         </p>
                     </div>
                     <div class="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
@@ -54,9 +54,9 @@
                         <p class="text-4xl font-black text-amber-700 mt-1">
                             {{ number_format($evaluacion->residentes_promedio, 2) }}
                         </p>
-                        <x-insignia-clasificacion :valor="$evaluacion->clasificacion_residentes" class="mt-2" />
+                        <x-insignia-clasificacion-irritacion :valor="$evaluacion->clasificacion_residentes" class="mt-2" />
                         <p class="text-sm text-gray-600 mt-3">
-                            {{ \App\Matrices\Irritacion::INTERPRETACIONES['residentes'][$evaluacion->clasificacion_residentes] }}
+                            {{ $interpretaciones['residentes'][$evaluacion->clasificacion_residentes] }}
                         </p>
                     </div>
                 </div>
@@ -64,10 +64,11 @@
                 {{-- Detalle por bloque, cada uno con sus propios seis atributos:
                      cruzarlos en una sola tabla mezclaría dos poblaciones
                      distintas, igual que evita el controlador al no combinarlos
-                     en un índice único. Un solo bucle sobre Irritacion::BLOQUES
-                     en vez de un array literal de pares: el conjunto de bloques
-                     ya vive declarado una sola vez en el instrumento. --}}
-                @foreach(\App\Matrices\Irritacion::BLOQUES as $bloque)
+                     en un índice único. Un solo bucle sobre $bloques
+                     (Irritacion::BLOQUES, que pasa el controlador) en vez de un
+                     array literal de pares: el conjunto de bloques ya vive
+                     declarado una sola vez en el instrumento. --}}
+                @foreach($bloques as $bloque)
                     <h4 class="font-bold text-gray-700 mt-6 mb-2">{{ $bloque['titulo'] }}</h4>
                     <div class="overflow-x-auto mb-6">
                         <table class="min-w-full text-sm border-collapse border border-gray-300">
@@ -79,18 +80,19 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {{-- clasificar() sigue llamándose directo, sin pasar por el
-                                     controlador: no es dato del instrumento —eso ya llega en
-                                     $etiquetas y en los campos del bloque—, es una función pura
-                                     sobre el valor de cada fila, igual que ya la invoca
-                                     select-0-10.blade.php por su cuenta. --}}
+                                {{-- clasificacionDe() vive en el modelo, no aquí: es la
+                                     misma razón por la que $etiquetas y $bloques llegan
+                                     por el controlador y no por App\Matrices\Irritacion
+                                     directo. El único sitio que sigue llamando a
+                                     Irritacion::clasificar() por su cuenta es
+                                     select-irritacion.blade.php, que no tiene
+                                     controlador detrás. --}}
                                 @foreach($bloque['campos'] as $campo)
-                                    @php $clasificacion = \App\Matrices\Irritacion::clasificar($evaluacion->$campo); @endphp
                                     <tr>
                                         <td class="border border-gray-300 p-2">{{ $etiquetas[$campo] }}</td>
                                         <td class="border border-gray-300 p-2 text-center font-bold">{{ $evaluacion->$campo }}</td>
                                         <td class="border border-gray-300 p-2 text-center">
-                                            <x-insignia-clasificacion :valor="$clasificacion" />
+                                            <x-insignia-clasificacion-irritacion :valor="$evaluacion->clasificacionDe($campo)" />
                                         </td>
                                     </tr>
                                 @endforeach

@@ -37,8 +37,7 @@ class EvaluacionIrritacion extends Model
     /**
      * Clasifica el promedio de cada bloque llamando directamente a
      * App\Matrices\Irritacion: la definición del instrumento —criterios,
-     * etiquetas y umbrales— vive ahí, y no hace falta una segunda puerta
-     * pública en el modelo para una función que ya es pura y estática.
+     * etiquetas y umbrales— vive ahí.
      */
     public function getClasificacionVisitantesAttribute(): ?string
     {
@@ -48,6 +47,21 @@ class EvaluacionIrritacion extends Model
     public function getClasificacionResidentesAttribute(): ?string
     {
         return Irritacion::clasificar($this->residentes_promedio);
+    }
+
+    /**
+     * Clasifica un atributo suelto, no el promedio de un bloque: la vista de
+     * resultados la usa fila a fila en la tabla de detalle. Sí hace falta esta
+     * puerta pública, a diferencia de los dos accesorios de arriba, porque la
+     * vista solo conoce el nombre del campo en tiempo de bucle
+     * ($bloque['campos']): sin este método tendría que llamar a
+     * App\Matrices\Irritacion::clasificar($evaluacion->$campo) por su cuenta,
+     * que es justo la referencia directa que el resto de la vista ya dejó de
+     * hacer.
+     */
+    public function clasificacionDe(string $campo): ?string
+    {
+        return Irritacion::clasificar($this->$campo);
     }
 
     public function zona()

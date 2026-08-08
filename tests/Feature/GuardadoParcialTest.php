@@ -288,7 +288,7 @@ class GuardadoParcialTest extends TestCase
         // llevan @error.
         $this->withViewErrors([]);
 
-        foreach (['select-0-3', 'select-0-2', 'select-percepcion', 'select-0-10'] as $componente) {
+        foreach (['select-0-3', 'select-0-2', 'select-percepcion', 'select-irritacion'] as $componente) {
             $sinResponder = (string) $this->blade(
                 "<x-{$componente} label=\"Criterio\" name=\"c\" :val=\"null\" />"
             );
@@ -308,7 +308,7 @@ class GuardadoParcialTest extends TestCase
 
         // El caso que de verdad importa, y solo lo tienen las dos escalas que
         // empiezan en 0: un cero guardado tiene que volver marcado como cero.
-        foreach (['select-0-3', 'select-0-2', 'select-0-10'] as $componente) {
+        foreach (['select-0-3', 'select-0-2', 'select-irritacion'] as $componente) {
             $this->assertStringContainsString(
                 '<option value="0" selected>',
                 (string) $this->blade("<x-{$componente} label=\"C\" name=\"c\" :val=\"0\" />"),

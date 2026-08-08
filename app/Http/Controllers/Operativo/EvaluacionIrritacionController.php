@@ -76,30 +76,25 @@ class EvaluacionIrritacionController extends MatrizPonderadaController
     }
 
     /**
-     * Las etiquetas de los doce campos. No evita que la vista alcance
-     * App\Matrices\Irritacion por su cuenta —lo hace, para BLOQUES, TRAMOS e
-     * INTERPRETACIONES, igual que ya hacía antes de esta cesta—: solo ahorra
-     * repetir aquí el texto de ETIQUETAS, que es largo y no cambia según el
-     * bloque.
-     *
-     * @return array<string, mixed>
+     * Cada vista recibe solo lo que consume, igual que EvaluacionPaisajeController
+     * pasa 'categorias' o EvaluacionValoracionTerritorialController pasa 'ct' y
+     * 'uc': el formulario no necesita INTERPRETACIONES y los resultados no
+     * necesitan TRAMOS, así que ninguno de los dos se pasa donde no hace falta.
+     * Las vistas ya no referencian App\Matrices\Irritacion por su cuenta —salvo
+     * el componente <x-select-irritacion>, que no tiene controlador detrás—.
      */
-    private function datosDelInstrumento(): array
-    {
-        return [
-            'etiquetas' => Irritacion::ETIQUETAS,
-        ];
-    }
-
     public function edit($zonaId)
     {
         $zona       = Zona::findOrFail($zonaId);
         $evaluacion = EvaluacionIrritacion::firstOrNew(['zona_id' => $zonaId]);
 
-        return view(
-            'operativo.evaluacion_irritacion.form',
-            compact('zona', 'evaluacion') + $this->datosDelInstrumento()
-        );
+        return view('operativo.evaluacion_irritacion.form', [
+            'zona'       => $zona,
+            'evaluacion' => $evaluacion,
+            'etiquetas'  => Irritacion::ETIQUETAS,
+            'bloques'    => Irritacion::BLOQUES,
+            'tramos'     => Irritacion::TRAMOS,
+        ]);
     }
 
     public function ponderacion($zonaId)
@@ -110,9 +105,12 @@ class EvaluacionIrritacionController extends MatrizPonderadaController
         // completar la matriz, y la vista ya contempla ese caso con un aviso.
         $evaluacion = EvaluacionIrritacion::where('zona_id', $zonaId)->first();
 
-        return view(
-            'operativo.evaluacion_irritacion.ponderacion',
-            compact('zona', 'evaluacion') + $this->datosDelInstrumento()
-        );
+        return view('operativo.evaluacion_irritacion.ponderacion', [
+            'zona'             => $zona,
+            'evaluacion'       => $evaluacion,
+            'etiquetas'        => Irritacion::ETIQUETAS,
+            'bloques'          => Irritacion::BLOQUES,
+            'interpretaciones' => Irritacion::INTERPRETACIONES,
+        ]);
     }
 }

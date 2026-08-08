@@ -103,6 +103,7 @@ class RegistroMatricesTest extends TestCase
         $verificables = [
             'paisaje'                => \App\Matrices\Paisaje::class,
             'valoracion_territorial' => \App\Matrices\ValoracionTerritorial::class,
+            'irritacion'             => \App\Matrices\Irritacion::class,
         ];
 
         foreach ($verificables as $clave => $matriz) {

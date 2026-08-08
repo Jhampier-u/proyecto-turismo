@@ -55,13 +55,15 @@
                     bloque promedia por igual sus seis atributos.
                 </p>
                 {{-- Los tres tramos y su rango viven en el instrumento
-                     (Irritacion::TRAMOS), no aquí: son los mismos que
+                     (Irritacion::TRAMOS) y llegan aquí como $tramos, ya
+                     resueltos por el controlador: son los mismos que
                      clasifican la tabla de resultados, y duplicarlos dejaría
                      dos sitios que corregir el día que el instrumento cambie
-                     uno. El color es aparte, en <x-insignia-clasificacion>. --}}
+                     uno. El color es aparte, en
+                     <x-insignia-clasificacion-irritacion>. --}}
                 <div class="flex flex-wrap gap-2">
-                    @foreach(\App\Matrices\Irritacion::TRAMOS as $clasificacion => $tramo)
-                        <x-insignia-clasificacion :valor="$clasificacion">{{ $tramo['rango'] }}: {{ $clasificacion }}</x-insignia-clasificacion>
+                    @foreach($tramos as $clasificacion => $tramo)
+                        <x-insignia-clasificacion-irritacion :valor="$clasificacion">{{ $tramo['rango'] }}: {{ $clasificacion }}</x-insignia-clasificacion-irritacion>
                     @endforeach
                 </div>
             </div>
@@ -80,18 +82,19 @@
             <form method="POST" action="{{ route('operativo.evaluacion_irritacion.update', $zona->id) }}">
                 @csrf
 
-                {{-- Un solo bucle sobre Irritacion::BLOQUES para las dos
-                     secciones: antes cada una se desenrollaba a mano y un
-                     bloque nuevo —o un título corregido— había que tocarlo
-                     dos veces sin que nada avisara si se olvidaba una. --}}
-                @foreach(\App\Matrices\Irritacion::BLOQUES as $clave => $bloque)
+                {{-- Un solo bucle sobre $bloques (Irritacion::BLOQUES, que pasa
+                     el controlador) para las dos secciones: antes cada una se
+                     desenrollaba a mano y un bloque nuevo —o un título
+                     corregido— había que tocarlo dos veces sin que nada
+                     avisara si se olvidaba una. --}}
+                @foreach($bloques as $clave => $bloque)
                     <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $bordesPorBloque[$clave] }}">
                         <h3 class="text-xl font-bold text-gray-900 mb-1">{{ $bloque['titulo'] }}</h3>
                         <p class="text-sm text-gray-500 mb-5">{{ $bloque['subtitulo'] }}</p>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             @foreach($bloque['campos'] as $campo)
-                                <x-select-0-10
+                                <x-select-irritacion
                                     :label="$etiquetas[$campo]"
                                     :name="$campo"
                                     :val="$evaluacion->$campo"
