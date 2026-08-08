@@ -62,6 +62,21 @@
                      hoja original—, así que esto no es una cuarta puntuación,
                      es el juicio de quien evalúa. De aquí sale el tipo de
                      Mitchell del actor. --}}
+                @php
+                    // old('tiene_poder', $actor->tiene_poder) no basta: una
+                    // casilla desmarcada no viaja en la petición, así que si
+                    // el usuario la destildó y OTRO campo falla la
+                    // validación, old() no encuentra la clave y cae al
+                    // valor guardado —marcándola nuevamente sin que nadie lo
+                    // pidiera—. session()->hasOldInput() sin clave dice si
+                    // esto es un repintado tras un error (y entonces manda
+                    // exactamente lo enviado, con ausencia = false) o una
+                    // carga normal del formulario (y entonces manda el
+                    // valor ya guardado del actor).
+                    $marcado = fn(string $campo) => session()->hasOldInput()
+                        ? old($campo, false)
+                        : $actor->$campo;
+                @endphp
                 <section class="bg-indigo-50 border-l-4 border-indigo-500 shadow-sm sm:rounded-lg p-6 mb-6">
                     <h3 class="text-lg font-bold text-gray-900 mb-1">¿Qué atributos posee este actor?</h3>
                     <p class="text-sm text-indigo-800 mb-4">
@@ -73,19 +88,19 @@
                     <div class="flex flex-col sm:flex-row gap-6">
                         <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
                             <input type="checkbox" name="tiene_poder" value="1"
-                                   @checked(old('tiene_poder', $actor->tiene_poder))
+                                   @checked($marcado('tiene_poder'))
                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
                             Tiene poder
                         </label>
                         <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
                             <input type="checkbox" name="tiene_legitimidad" value="1"
-                                   @checked(old('tiene_legitimidad', $actor->tiene_legitimidad))
+                                   @checked($marcado('tiene_legitimidad'))
                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
                             Tiene legitimidad
                         </label>
                         <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
                             <input type="checkbox" name="tiene_urgencia" value="1"
-                                   @checked(old('tiene_urgencia', $actor->tiene_urgencia))
+                                   @checked($marcado('tiene_urgencia'))
                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
                             Tiene urgencia
                         </label>

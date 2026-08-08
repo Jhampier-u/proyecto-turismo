@@ -300,6 +300,48 @@ class InvolucradosTest extends TestCase
     }
 
     /**
+     * old('tiene_poder', $actor->tiene_poder) parecía razonable pero no lo
+     * es: una casilla que el usuario acaba de desmarcar no viaja en la
+     * petición, así que si OTRO campo falla la validación, old() no
+     * encuentra la clave, cae al valor guardado del actor y la casilla
+     * reaparece marcada en el formulario repintado sin que nadie la haya
+     * vuelto a marcar. El formulario tiene que distinguir "no venía en la
+     * petición porque es la primera carga" de "no venía porque se desmarcó".
+     */
+    public function test_al_repintar_tras_un_error_una_casilla_desmarcada_no_vuelve_a_marcarse(): void
+    {
+        $actor = Involucrado::create($this->todosEn(1) + [
+            'zona_id'     => $this->zona->id,
+            'nombre'      => 'Actor con poder',
+            'tiene_poder' => true,
+        ]);
+
+        $editUrl = "{$this->urlIndex($this->zona)}/{$actor->id}/editar";
+
+        // pod_poder fuera de escala fuerza el error de validación; tiene_poder
+        // se omite a propósito, como lo haría el navegador con la casilla
+        // desmarcada.
+        $this->actingAs($this->jefe)
+            ->from($editUrl)
+            ->put("{$this->urlIndex($this->zona)}/{$actor->id}", [
+                'nombre'    => 'Actor con poder',
+                'pod_poder' => 99,
+            ])
+            ->assertSessionHasErrors('pod_poder');
+
+        $pagina = $this->actingAs($this->jefe)->get($editUrl)->assertOk();
+
+        preg_match('/<input[^>]*name="tiene_poder"[^>]*>/', $pagina->getContent(), $etiqueta);
+        $this->assertNotEmpty($etiqueta, 'No se encontró la casilla tiene_poder en el formulario.');
+        $this->assertStringNotContainsString('checked', $etiqueta[0]);
+
+        // Y el valor guardado del actor —que sigue en true, porque el
+        // envío falló y nunca se guardó— no debe ser lo que decide el
+        // repintado.
+        $this->assertTrue($actor->fresh()->tiene_poder);
+    }
+
+    /**
      * Mismo patrón que AutorizacionZonaTest para los inventarios: el
      * middleware deja pasar la petición porque la URL pertenece a la zona
      * propia, pero el actor de verdad es de otra zona, y el where('zona_id', ...)
