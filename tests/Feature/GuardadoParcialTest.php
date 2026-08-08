@@ -215,6 +215,14 @@ class GuardadoParcialTest extends TestCase
 
         $this->actingAs($this->jefe)->post($this->url(), $datos)
             ->assertSessionHas('success', fn(string $m) => str_contains($m, '32 de 34'));
+
+        // Que esté en la sesión no basta, y esta segunda mitad falta por algo:
+        // ninguna vista de formulario de matriz pintaba session('success'), así
+        // que el mensaje se generaba, viajaba y no lo veía nadie. Comprobado en
+        // el navegador antes de añadir esto.
+        $this->actingAs($this->jefe)->get($this->url())
+            ->assertOk()
+            ->assertSee('32 de 34');
     }
 
     /** Un borrador incompleto vuelve al formulario, no a unos resultados vacíos. */
@@ -265,6 +273,47 @@ class GuardadoParcialTest extends TestCase
                 ->assertOk()
                 ->assertDontSee('0.00')
                 ->assertDontSee('0,00');
+        }
+    }
+
+    /**
+     * El formulario tiene que repintar la diferencia, no solo guardarla: un 0
+     * que vuelve como «sin responder» se pierde en cuanto el usuario guarda
+     * otra vez, y un hueco que vuelve como 0 se convierte en una puntuación que
+     * nadie eligió. Es el paso que el plan dejaba en verificación manual.
+     */
+    public function test_los_desplegables_distinguen_el_hueco_del_cero(): void
+    {
+        // El bag de errores no existe fuera de una petición y los componentes
+        // llevan @error.
+        $this->withViewErrors([]);
+
+        foreach (['select-0-3', 'select-0-2', 'select-percepcion'] as $componente) {
+            $sinResponder = (string) $this->blade(
+                "<x-{$componente} label=\"Criterio\" name=\"c\" :val=\"null\" />"
+            );
+            $conValor = (string) $this->blade(
+                "<x-{$componente} label=\"Criterio\" name=\"c\" :val=\"\$val\" />",
+                // Percepción no tiene 0 en su escala; su valor bajo es el 1.
+                ['val' => $componente === 'select-percepcion' ? 1 : 0]
+            );
+
+            $this->assertStringContainsString(
+                '<option value="" selected>', $sinResponder, "{$componente}: el hueco no se marca"
+            );
+            $this->assertStringNotContainsString(
+                '<option value="" selected>', $conValor, "{$componente}: un valor se repinta como hueco"
+            );
+        }
+
+        // El caso que de verdad importa, y solo lo tienen las dos escalas que
+        // empiezan en 0: un cero guardado tiene que volver marcado como cero.
+        foreach (['select-0-3', 'select-0-2'] as $componente) {
+            $this->assertStringContainsString(
+                '<option value="0" selected>',
+                (string) $this->blade("<x-{$componente} label=\"C\" name=\"c\" :val=\"0\" />"),
+                "{$componente}: un cero guardado no vuelve marcado"
+            );
         }
     }
 

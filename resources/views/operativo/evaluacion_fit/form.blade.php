@@ -13,6 +13,9 @@
                 Regresar
             </a>
 
+            <x-flash-exito />
+
+
             <form method="POST" action="{{ route('operativo.evaluacion_fit.update', $zona->id) }}">
                 @csrf
 

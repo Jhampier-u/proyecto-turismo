@@ -20,7 +20,6 @@
                 // sin este predicado, $bloqueado solo miraba la confirmación y
                 // el admin veía el formulario abierto de par en par.
                 $bloqueado      = ! auth()->user()->puedeEditarEvaluaciones() || ($estaConfirmado && !$esJefe);
-                $esNueva        = ! $evaluacion->exists;
 
                 // Cabecera del instrumento, derivada de la propia zona.
                 $lugar     = $zona->lugar;
@@ -71,25 +70,39 @@
 
             <x-leyenda-escala :niveles="[0 => 'Desfavorable', 3 => 'Intermedio', 5 => 'Favorable']" />
 
+            <x-flash-exito />
+
+
             <form method="POST" action="{{ route('operativo.evaluacion_paisaje.update', $zona->id) }}">
                 @csrf
 
                 @foreach($categorias as $clave => $categoria)
                     @php
-                        // Sin preseleccionar en una evaluación nueva: si llegara
-                        // con todo en 0, el formulario podría enviarse sin leer
-                        // nada y quedaría como una valoración válida.
+                        // Un campo sin responder llega como null y así tiene que
+                        // quedarse: (int) null lo convertiría en 0, que aquí es
+                        // una puntuación real —«sin gestión»— y no un hueco. Ya
+                        // no hace falta distinguir la evaluación nueva: una
+                        // recién creada tiene todos los campos en null igual.
                         $inicial = collect($categoria['criterios'])->mapWithKeys(
-                            fn($c, $campo) => [$campo => $esNueva ? null : (int) $evaluacion->$campo]
+                            fn($c, $campo) => [
+                                $campo => $evaluacion->$campo === null ? null : (int) $evaluacion->$campo,
+                            ]
                         );
                     @endphp
 
                     <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
                              x-data="{
                                 valores: @js($inicial),
+                                // Con la categoría a medias no hay promedio que
+                                // enseñar: dividir entre el total daba un número
+                                // bajo que se lee como una nota mala cuando lo
+                                // único que dice es que falta rellenar. Es el
+                                // mismo criterio que en los resultados.
                                 get promedio() {
-                                    const v = Object.values(this.valores).filter(x => x !== null);
-                                    return v.length ? v.reduce((t, x) => t + x, 0) / Object.keys(this.valores).length : 0;
+                                    const v = Object.values(this.valores);
+                                    return v.some(x => x === null)
+                                        ? null
+                                        : v.reduce((t, x) => t + x, 0) / v.length;
                                 },
                                 get respondidos() {
                                     return Object.values(this.valores).filter(v => v !== null).length;
@@ -107,7 +120,7 @@
                                 </span>
                                 <span class="text-base font-bold text-indigo-700">
                                     Promedio
-                                    <span x-text="promedio.toFixed(2)"></span>
+                                    <span x-text="promedio === null ? '—' : promedio.toFixed(2)"></span>
                                     <span class="text-gray-400 font-normal">/ 5.00</span>
                                 </span>
                             </div>

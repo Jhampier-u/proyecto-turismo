@@ -19,6 +19,9 @@
                 </div>
             @endif
 
+            <x-flash-exito />
+
+
             <form method="POST" action="{{ route('operativo.evaluacion_percepcion.update', $zona->id) }}">
                 @csrf
 

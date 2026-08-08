@@ -43,20 +43,24 @@
                 </div>
             @endif
 
+            <x-flash-exito />
+
+
             <form method="POST" action="{{ route('operativo.evaluacion_valoracion_territorial.update', $zona->id) }}">
                 @csrf
 
                 <x-leyenda-escala />
 
                 @php
-                    // En una evaluación nueva no se pre-selecciona nada: con todo
-                    // en 0 se podía enviar el formulario sin leer un solo criterio
-                    // y quedaba como una valoración válida de puros ceros. Al
-                    // dejarlos vacíos, la regla `required` obliga a responder.
-                    $esNueva = ! $evaluacion->exists;
-
+                    // Nada preseleccionado: con todo en 0 se podía enviar el
+                    // formulario sin leer un solo criterio y quedaba como una
+                    // valoración válida de puros ceros. Un campo sin responder
+                    // llega como null y así se queda: (int) null lo volvería 0,
+                    // que aquí es una puntuación real y no un hueco.
                     $inicial = fn($grupo) => collect($grupo)->mapWithKeys(
-                        fn($c, $campo) => [$campo => $esNueva ? null : (int) $evaluacion->$campo]
+                        fn($c, $campo) => [
+                            $campo => $evaluacion->$campo === null ? null : (int) $evaluacion->$campo,
+                        ]
                     );
                     $pesos = fn($grupo) => collect($grupo)->map(fn($c) => $c['peso']);
                 @endphp
@@ -65,9 +69,15 @@
                          x-data="{
                             valores: @js($inicial($ct)),
                             pesos: @js($pesos($ct)),
+                            // Con la dimensión a medias no hay subtotal que
+                            // enseñar: contar los huecos como 0 daba una cifra
+                            // baja que se lee como el resultado y solo dice que
+                            // falta rellenar. Mismo criterio que en resultados.
                             get subtotal() {
-                                return Object.entries(this.valores)
-                                    .reduce((t, [k, v]) => t + (v ?? 0) * this.pesos[k], 0);
+                                const entradas = Object.entries(this.valores);
+                                return entradas.some(([, v]) => v === null)
+                                    ? null
+                                    : entradas.reduce((t, [k, v]) => t + v * this.pesos[k], 0);
                             },
                             get respondidos() {
                                 return Object.values(this.valores).filter(v => v !== null).length;
@@ -82,7 +92,7 @@
                             </span>
                             <span class="text-base font-bold text-indigo-700">
                                 Subtotal
-                                <span x-text="subtotal.toFixed(3)"></span>
+                                <span x-text="subtotal === null ? '—' : subtotal.toFixed(3)"></span>
                                 <span class="text-gray-400 font-normal">/ 2.000</span>
                             </span>
                         </div>
@@ -102,9 +112,15 @@
                          x-data="{
                             valores: @js($inicial($uc)),
                             pesos: @js($pesos($uc)),
+                            // Con la dimensión a medias no hay subtotal que
+                            // enseñar: contar los huecos como 0 daba una cifra
+                            // baja que se lee como el resultado y solo dice que
+                            // falta rellenar. Mismo criterio que en resultados.
                             get subtotal() {
-                                return Object.entries(this.valores)
-                                    .reduce((t, [k, v]) => t + (v ?? 0) * this.pesos[k], 0);
+                                const entradas = Object.entries(this.valores);
+                                return entradas.some(([, v]) => v === null)
+                                    ? null
+                                    : entradas.reduce((t, [k, v]) => t + v * this.pesos[k], 0);
                             },
                             get respondidos() {
                                 return Object.values(this.valores).filter(v => v !== null).length;
@@ -119,7 +135,7 @@
                             </span>
                             <span class="text-base font-bold text-indigo-700">
                                 Subtotal
-                                <span x-text="subtotal.toFixed(3)"></span>
+                                <span x-text="subtotal === null ? '—' : subtotal.toFixed(3)"></span>
                                 <span class="text-gray-400 font-normal">/ 2.000</span>
                             </span>
                         </div>

@@ -49,6 +49,19 @@
                 <span class="text-sm">{{ $etiqueta }}</span>
             </label>
         @endforeach
+
+        {{-- Un grupo de radios no se puede desmarcar por sí solo. Sin esto,
+             «sin responder» sería un estado del que se sale una vez y al que no
+             se puede volver. Va dentro del flex, alineado con las píldoras,
+             para no añadir una fila más a una lista de 34 criterios. --}}
+        @unless($bloqueado)
+            <button type="button"
+                    x-show="valores['{{ $campo }}'] !== null"
+                    @click="valores['{{ $campo }}'] = null"
+                    class="inline-flex items-center px-2 text-sm text-gray-500 underline hover:text-gray-700">
+                Borrar respuesta
+            </button>
+        @endunless
     </div>
 
     @error($campo)

@@ -88,6 +88,21 @@
         @endforeach
     </div>
 
+    {{-- Un grupo de radios no se puede desmarcar por sí solo. Sin este botón,
+         «sin responder» sería un estado del que se sale una vez y al que no se
+         puede volver: quien marque un nivel por error se queda con él. Al no
+         quedar ningún radio marcado el campo no viaja en el POST, y ahí lo
+         recoge prepararDatos(), que guarda lo ausente como null. --}}
+    @unless($bloqueado)
+        <div class="mt-2" x-show="valores['{{ $campo }}'] !== null">
+            <button type="button"
+                    @click="valores['{{ $campo }}'] = null"
+                    class="text-sm text-gray-500 underline hover:text-gray-700">
+                Borrar respuesta
+            </button>
+        </div>
+    @endunless
+
     @error($campo)
         <p class="text-sm text-red-600 mt-3 font-medium">{{ $message }}</p>
     @enderror
