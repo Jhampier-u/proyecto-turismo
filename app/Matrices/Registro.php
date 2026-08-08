@@ -9,6 +9,7 @@ use App\Models\EvaluacionPaisaje;
 use App\Models\EvaluacionPercepcion;
 use App\Models\EvaluacionPotencialidad;
 use App\Models\EvaluacionValoracionTerritorial;
+use App\Models\InvolucradosConfig;
 
 /**
  * Única lista de matrices del sistema.
@@ -165,6 +166,20 @@ final class Registro
             'rutas'      => [
                 'editar' => 'operativo.evaluacion_irritacion.edit',
                 'ver'    => 'operativo.evaluacion_irritacion.ponderacion',
+            ],
+            'depende_de' => [],
+        ],
+
+        'involucrados' => [
+            'nombre'     => 'Involucrados turísticos',
+            'icono'      => 'usuarios',
+            'grupo'      => 'social',
+            'tipo'       => 'actores',
+            'modelo'     => InvolucradosConfig::class,
+            'criterios'  => null,
+            'rutas'      => [
+                'editar' => 'operativo.involucrados.index',
+                'ver'    => 'operativo.involucrados.resultados',
             ],
             'depende_de' => [],
         ],

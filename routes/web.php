@@ -12,6 +12,7 @@ use App\Http\Controllers\Operativo\EvaluacionPercepcionController;
 use App\Http\Controllers\Operativo\EvaluacionPotencialidadController;
 use App\Http\Controllers\Operativo\EvaluacionValoracionTerritorialController;
 use App\Http\Controllers\Operativo\InventarioController;
+use App\Http\Controllers\Operativo\InvolucradosController;
 use App\Http\Controllers\Operativo\VttController;
 use App\Http\Controllers\Operativo\ZonaPanelController;
 use App\Http\Controllers\ProfileController;
@@ -93,6 +94,22 @@ Route::middleware(['auth', 'personal'])->group(function () {
         Route::get('/irritacion',            [EvaluacionIrritacionController::class, 'edit'])->name('evaluacion_irritacion.edit');
         Route::post('/irritacion',           [EvaluacionIrritacionController::class, 'update'])->name('evaluacion_irritacion.update');
         Route::get('/irritacion/resultados', [EvaluacionIrritacionController::class, 'ponderacion'])->name('evaluacion_irritacion.ponderacion');
+
+        // Matriz de Involucrados Turísticos Territoriales
+        //
+        // 'nuevo', 'validar' y 'resultados' van ANTES que '{actor}/editar':
+        // con {actor} declarada primero, una petición a /involucrados/validar
+        // encajaría en ese patrón con actor='validar' y nunca llegaría a la
+        // ruta pensada para validar. Laravel resuelve por orden de
+        // declaración, no por especificidad.
+        Route::get('/involucrados',                 [InvolucradosController::class, 'index'])->name('involucrados.index');
+        Route::get('/involucrados/nuevo',           [InvolucradosController::class, 'create'])->name('involucrados.create');
+        Route::post('/involucrados',                [InvolucradosController::class, 'store'])->name('involucrados.store');
+        Route::post('/involucrados/validar',        [InvolucradosController::class, 'validar'])->name('involucrados.validar');
+        Route::get('/involucrados/resultados',      [InvolucradosController::class, 'resultados'])->name('involucrados.resultados');
+        Route::get('/involucrados/{actor}/editar',  [InvolucradosController::class, 'edit'])->name('involucrados.edit');
+        Route::put('/involucrados/{actor}',         [InvolucradosController::class, 'update'])->name('involucrados.update');
+        Route::delete('/involucrados/{actor}',      [InvolucradosController::class, 'destroy'])->name('involucrados.destroy');
     });
 });
 

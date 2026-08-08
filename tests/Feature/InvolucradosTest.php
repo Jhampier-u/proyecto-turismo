@@ -248,4 +248,235 @@ class InvolucradosTest extends TestCase
 
         InvolucradosConfig::create(['zona_id' => $this->zona->id]);
     }
+
+    // ── CRUD por HTTP (Tarea 3) ─────────────────────────────────────────────
+
+    private function urlIndex(Zona $zona): string
+    {
+        return "/operativo/zona/{$zona->id}/involucrados";
+    }
+
+    public function test_se_puede_crear_editar_y_borrar_un_actor(): void
+    {
+        $this->actingAs($this->jefe)
+            ->post($this->urlIndex($this->zona), [
+                'nombre' => 'Municipio de prueba',
+            ] + $this->todosEn(2) + ['tiene_poder' => '1'])
+            ->assertRedirect($this->urlIndex($this->zona))
+            ->assertSessionHas('success');
+
+        $actor = Involucrado::where('zona_id', $this->zona->id)->firstOrFail();
+        $this->assertSame('Municipio de prueba', $actor->nombre);
+        $this->assertSame(2, $actor->pod_poder);
+        $this->assertTrue($actor->tiene_poder);
+        $this->assertFalse($actor->tiene_legitimidad);
+
+        $this->actingAs($this->jefe)
+            ->get("{$this->urlIndex($this->zona)}/{$actor->id}/editar")
+            ->assertOk()
+            ->assertSee('Municipio de prueba');
+
+        // Sin el checkbox 'tiene_poder' en el envío: una casilla que se
+        // desmarca no llega en la petición, y eso tiene que traducirse en
+        // false, no en "se queda como estaba" — es justo el motivo por el
+        // que el controlador usa request()->boolean() y no $request->only().
+        $this->actingAs($this->jefe)
+            ->put("{$this->urlIndex($this->zona)}/{$actor->id}", [
+                'nombre' => 'Municipio renombrado',
+            ] + $this->todosEn(3))
+            ->assertRedirect($this->urlIndex($this->zona))
+            ->assertSessionHas('success');
+
+        $actor->refresh();
+        $this->assertSame('Municipio renombrado', $actor->nombre);
+        $this->assertSame(3, $actor->pod_poder);
+        $this->assertFalse($actor->tiene_poder);
+
+        $this->actingAs($this->jefe)
+            ->delete("{$this->urlIndex($this->zona)}/{$actor->id}")
+            ->assertRedirect($this->urlIndex($this->zona));
+
+        $this->assertDatabaseMissing('involucrados', ['id' => $actor->id]);
+    }
+
+    /**
+     * Mismo patrón que AutorizacionZonaTest para los inventarios: el
+     * middleware deja pasar la petición porque la URL pertenece a la zona
+     * propia, pero el actor de verdad es de otra zona, y el where('zona_id', ...)
+     * del controlador tiene que impedir tocarlo.
+     */
+    public function test_no_se_puede_tocar_un_actor_de_otra_zona(): void
+    {
+        $estudiante = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($estudiante->id);
+
+        $ajena = Zona::create([
+            'lugar_id'     => DB::table('lugares')->value('id'),
+            'jefe_user_id' => $this->jefe->id,
+            'nombre'       => 'Zona ajena',
+        ]);
+
+        $actorAjeno = Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $ajena->id,
+            'nombre'  => 'Actor de otra zona',
+        ]);
+
+        $this->actingAs($estudiante)
+            ->get("{$this->urlIndex($this->zona)}/{$actorAjeno->id}/editar")
+            ->assertNotFound();
+
+        $this->actingAs($estudiante)
+            ->put("{$this->urlIndex($this->zona)}/{$actorAjeno->id}", [
+                'nombre' => 'Secuestrado',
+            ] + $this->todosEn(1))
+            ->assertNotFound();
+
+        $this->actingAs($estudiante)
+            ->delete("{$this->urlIndex($this->zona)}/{$actorAjeno->id}")
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('involucrados', [
+            'id'     => $actorAjeno->id,
+            'nombre' => 'Actor de otra zona',
+        ]);
+    }
+
+    /**
+     * El equipo edita libremente en borrador; en cuanto la lista se
+     * confirma, la escritura se cierra para él con un mensaje —no un
+     * 403—, igual que EvaluacionZonaController::update() con las siete
+     * matrices de formulario.
+     */
+    public function test_el_equipo_puede_editar_en_borrador_y_no_cuando_esta_confirmada(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $actor = Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor en borrador',
+        ]);
+
+        $this->actingAs($equipo)
+            ->put("{$this->urlIndex($this->zona)}/{$actor->id}", [
+                'nombre' => 'Editado en borrador',
+            ] + $this->todosEn(1))
+            ->assertRedirect($this->urlIndex($this->zona))
+            ->assertSessionHas('success');
+
+        $this->assertSame('Editado en borrador', $actor->fresh()->nombre);
+
+        InvolucradosConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'confirmado',
+        ]);
+
+        $this->actingAs($equipo)
+            ->from($this->urlIndex($this->zona))
+            ->put("{$this->urlIndex($this->zona)}/{$actor->id}", [
+                'nombre' => 'Intento tras validar',
+            ] + $this->todosEn(1))
+            ->assertRedirect($this->urlIndex($this->zona))
+            ->assertSessionHas('error', fn(string $m) => str_contains($m, 'ya fue validada'));
+
+        // El nombre no cambió: el bloqueo actuó antes de tocar la base.
+        $this->assertSame('Editado en borrador', $actor->fresh()->nombre);
+
+        $this->actingAs($equipo)
+            ->from($this->urlIndex($this->zona))
+            ->post($this->urlIndex($this->zona), [
+                'nombre' => 'Actor nuevo tras validar',
+            ] + $this->todosEn(1))
+            ->assertSessionHas('error', fn(string $m) => str_contains($m, 'ya fue validada'));
+
+        $this->assertDatabaseMissing('involucrados', ['nombre' => 'Actor nuevo tras validar']);
+    }
+
+    public function test_validar_exige_al_menos_un_actor_y_ninguno_incompleto(): void
+    {
+        $this->actingAs($this->jefe)
+            ->from($this->urlIndex($this->zona))
+            ->post("{$this->urlIndex($this->zona)}/validar")
+            ->assertSessionHas('error', fn(string $m) => str_contains($m, 'al menos un actor'));
+
+        $this->assertDatabaseMissing('involucrados_config', ['zona_id' => $this->zona->id]);
+
+        $incompleto = Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'A medias',
+        ]);
+        $incompleto->pod_poder = null;
+        $incompleto->save();
+
+        $this->actingAs($this->jefe)
+            ->from($this->urlIndex($this->zona))
+            ->post("{$this->urlIndex($this->zona)}/validar")
+            ->assertSessionHas('error', fn(string $m) => str_contains($m, 'sin responder'));
+
+        $this->assertDatabaseMissing('involucrados_config', ['zona_id' => $this->zona->id]);
+
+        $incompleto->pod_poder = 1;
+        $incompleto->save();
+
+        $this->actingAs($this->jefe)
+            ->post("{$this->urlIndex($this->zona)}/validar")
+            ->assertRedirect(route('operativo.involucrados.resultados', $this->zona->id))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('involucrados_config', [
+            'zona_id' => $this->zona->id,
+            'estado'  => 'confirmado',
+        ]);
+    }
+
+    public function test_solo_el_jefe_puede_validar(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor completo',
+        ]);
+
+        $this->actingAs($equipo)
+            ->post("{$this->urlIndex($this->zona)}/validar")
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('involucrados_config', ['zona_id' => $this->zona->id]);
+    }
+
+    /**
+     * Pareja de EstadoZonaTest::test_una_entrada_de_actores_sin_empezar_lo_dice,
+     * pero por HTTP y con actores de verdad: cubre que la página de zona
+     * conoce la entrada 'involucrados' y pinta su recuento real, no solo que
+     * el mecanismo genérico de filaActores() funcione en abstracto.
+     */
+    public function test_la_pagina_de_zona_muestra_la_fila_de_involucrados_con_su_recuento(): void
+    {
+        Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Completo',
+        ]);
+
+        $incompleto = Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Incompleto',
+        ]);
+        $incompleto->urg_criticidad = null;
+        $incompleto->save();
+
+        $this->actingAs($this->jefe)
+            ->get(route('operativo.zona.panel', $this->zona->id))
+            ->assertOk()
+            ->assertSee('Involucrados turísticos')
+            ->assertSee('2 actores, 1 sin completar');
+    }
 }
