@@ -12,4 +12,9 @@ class Zona extends Model {
     }
     public function inventarios() { return $this->hasMany(Inventario::class); }
     public function camposActivos() { return $this->hasOne(PotencialidadCamposActivos::class); }
+
+    public function involucrados()
+    {
+        return $this->hasMany(Involucrado::class)->orderBy('orden')->orderBy('id');
+    }
 }
