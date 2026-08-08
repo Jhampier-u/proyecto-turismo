@@ -184,6 +184,43 @@ bloqueo es por rol —el caso del admin sobre un borrador—. Está igual en los
 formularios de FIT y Percepción desde antes; con Irritación son tres. No es
 grave, pero le dice al admin algo que no es cierto.
 
+### Rama `involucrados` — octava matriz, terminada
+
+La **Matriz de Involucrados Turísticos Territoriales**, y la primera que **no es
+un formulario de criterios**: puntúa una lista variable de actores, cada uno con
+once criterios en tres atributos —poder, legitimidad y urgencia— y tres casillas
+que marcan si los **posee**. De esas casillas sale su tipo de Mitchell. Suite:
+**291 tests**.
+
+**Obligó a ensanchar el registro con un cuarto tipo de entrada.** Hasta ahora
+había `matriz` (estado sin lista), `inventario` (lista sin estado) y `resultado`
+(derivado). Esta es una lista **con** estado, así que existe `actores` y
+`EstadoZona` tiene una rama propia: su detalle es «5 actores, 2 sin completar»,
+no «21 de 34 respondidos», porque no hay denominador fijo. Ese ensanchamiento se
+hizo primero y solo, con la suite en verde antes de tocar la matriz.
+
+**Dos propiedades que no tiene ninguna otra matriz, y que no hay que
+«arreglar»:**
+
+- **La normalización es relativa al conjunto.** Cada grado se divide por la suma
+  de todos los actores, así que **añadir un actor cambia el resultado de los
+  demás**. Es del instrumento y está decidido a conciencia; hay un test que fija
+  esa propiedad a propósito para que nadie la corrija de buena fe.
+- **Tocar una lista ya validada la devuelve a borrador.** Las otras siete
+  recalculan el estado en cada guardado, así que reabren solas; aquí el CRUD de
+  un actor no tocaba la configuración, y una lista «cerrada» que se movió
+  invalida todos los valores normalizados.
+
+**Migraciones verificadas contra PostgreSQL 16 real**: los once criterios quedan
+`smallint` nullable sin defecto y los tres booleanos `not null` con `false`.
+
+**Una decisión que conviene entender antes de tocarla:** cuando ningún actor
+posee un atributo, la fórmula divide por cero y se devuelve `1.0`, que es el
+neutro del producto —devolver `0.0` pondría la relevancia de todos a cero y
+colapsaría el ranking entero—. Como `1.00` es también un valor legítimo («justo
+en la media»), la pantalla marca esos atributos como que no diferencian, en vez
+de pintar un número que parecería una medida.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -314,15 +351,11 @@ niveles de anidamiento— y ninguno se movió con el cambio.
    faltaban. Suite: **222 tests**. Quedan fuera, a propósito, los formularios
    de alta y edición (`users/form`, `lugares/form`, `zonas/form`): comparten
    los defectos de tipografía pero se usan de forma puntual.
-3. **Tres matrices sin implementar**: Involucrados Turísticos Territoriales,
-   Índice Espacial de Frecuentación e Índice de Concentración. Los ficheros
-   están en `~/Downloads/fwdmatrices` de esta máquina, ya analizados. **Ninguna
-   de las tres es un formulario de criterios**, así que ninguna se resuelve
-   copiando el patrón de las siete existentes:
+3. **Dos matrices sin implementar**: Índice Espacial de Frecuentación e Índice
+   de Concentración. Los ficheros están en `~/Downloads/fwdmatrices` de esta
+   máquina, ya analizados. **Ninguna de las dos es un formulario de criterios**,
+   y las dos están bloqueadas por algo que no es técnico:
 
-   - **Involucrados** es un CRUD: hasta diez actores × Poder (7 criterios),
-     Legitimidad (2) y Urgencia, en escala 0-3, más una hoja de consolidación.
-     Modelo de Mitchell. Longitud variable, no formulario fijo.
    - **Frecuentación** es una lista variable de sitios con dos cifras cada uno;
      el índice es la suma de sus cocientes. Además su hoja original divide todas
      las filas por el ST de la *primera*, y tiene una celda «Superficie
