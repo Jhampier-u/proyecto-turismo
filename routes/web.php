@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\Admin\LugarController;
+use App\Http\Controllers\Admin\PanelController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ZonaController;
 use App\Http\Controllers\Operativo\DashboardController;
@@ -32,7 +33,7 @@ Route::middleware('auth')->group(function () {
 
 // ── ADMIN ────────────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
+    Route::get('/dashboard', [PanelController::class, 'index'])->name('dashboard');
 
     Route::resource('users',   UserController::class);
     Route::resource('lugares', LugarController::class);
