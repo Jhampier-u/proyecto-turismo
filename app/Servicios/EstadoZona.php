@@ -121,6 +121,7 @@ final class EstadoZona
         return match ($entrada['tipo']) {
             'inventario' => $this->filaInventario($clave, $entrada),
             'resultado'  => $this->filaResultado($clave, $entrada),
+            'actores'    => $this->filaActores($clave, $entrada),
             default      => $this->filaMatriz($clave, $entrada),
         };
     }
@@ -239,6 +240,70 @@ final class EstadoZona
             // distintos): ! $esAdmin era una condición redundante.
             puedeValidar:    $completa && $this->usuario->esJefe(),
             avisoValidacion: $completa && $this->usuario->esEquipo()
+                ? 'Lista para validar — avísale a ' . ($this->zona->jefe?->name ?? 'tu Jefe de Zona')
+                : null,
+        );
+    }
+
+    /**
+     * Una lista de actores no tiene denominador fijo: son «cinco actores, dos a
+     * medias», no «21 de 34 respondidos». Por eso no reutiliza filaMatriz().
+     *
+     * El modelo de la entrada es la configuración por zona —la que lleva el
+     * estado—, no la de cada actor.
+     */
+    private function filaActores(string $clave, array $entrada): FilaMatriz
+    {
+        $config  = $this->evaluaciones[$clave];
+        $esAdmin = $this->usuario->esAdmin();
+
+        $cuantos = $this->zona->involucrados()->count();
+
+        if ($cuantos === 0) {
+            return new FilaMatriz(
+                clave:   $clave,
+                nombre:  $entrada['nombre'],
+                icono:   $entrada['icono'],
+                estado:  'sin_empezar',
+                detalle: 'Todavía sin actores registrados',
+                url:     $esAdmin ? null : route($entrada['rutas']['editar'], $this->zona->id),
+                accion:  $esAdmin ? null : 'Empezar',
+            );
+        }
+
+        $validada = $config?->estado === 'confirmado';
+        $firma    = $config ? $this->firma($config) : '';
+
+        if ($validada) {
+            return new FilaMatriz(
+                clave:   $clave,
+                nombre:  $entrada['nombre'],
+                icono:   $entrada['icono'],
+                estado:  'validada',
+                detalle: "Validada · {$cuantos} actores" . $firma,
+                url:     route($entrada['rutas']['ver'], $this->zona->id),
+                accion:  'Ver',
+            );
+        }
+
+        $incompletos = $this->zona->involucrados()->incompletos()->count();
+
+        $detalle = $incompletos === 0
+            ? "Borrador · {$cuantos} actores, todos completos"
+            : "Borrador · {$cuantos} actores, {$incompletos} sin completar";
+
+        return new FilaMatriz(
+            clave:   $clave,
+            nombre:  $entrada['nombre'],
+            icono:   $entrada['icono'],
+            estado:  'borrador',
+            detalle: $detalle . $firma,
+            url:     $esAdmin
+                ? route($entrada['rutas']['ver'], $this->zona->id)
+                : route($entrada['rutas']['editar'], $this->zona->id),
+            accion:  $esAdmin ? 'Ver' : 'Continuar',
+            puedeValidar:    $incompletos === 0 && $this->usuario->esJefe(),
+            avisoValidacion: $incompletos === 0 && $this->usuario->esEquipo()
                 ? 'Lista para validar — avísale a ' . ($this->zona->jefe?->name ?? 'tu Jefe de Zona')
                 : null,
         );

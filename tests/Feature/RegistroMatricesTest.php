@@ -73,7 +73,7 @@ class RegistroMatricesTest extends TestCase
         $this->assertCount(7, Registro::matrices());
 
         foreach (Registro::matrices() as $clave => $entrada) {
-            $this->assertSame('matriz', $entrada['tipo'], $clave);
+            $this->assertContains($entrada['tipo'], Registro::TIPOS_VALIDABLES, $clave);
             $this->assertNotNull($entrada['modelo'], $clave);
         }
 

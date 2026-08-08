@@ -46,6 +46,7 @@ final class Registro
      *   'matriz'    — tiene estado borrador/confirmado y cuenta para el progreso
      *   'inventario'— CRUD de recursos, sin estado
      *   'resultado' — derivado de otras entradas, no se rellena
+     *   'actores'   — lista variable de actores con estado; cuenta para el progreso
      */
     public const ENTRADAS = [
         'inventario' => [
@@ -178,12 +179,19 @@ final class Registro
         );
     }
 
-    /** Solo las matrices validables: las que cuentan para el progreso de la zona. */
+    /**
+     * Tipos de entrada que se validan y por tanto cuentan para el progreso de
+     * la zona. `inventario` no está porque no tiene estado, y `resultado`
+     * porque es derivado: contarlos haría que el denominador mintiera.
+     */
+    public const TIPOS_VALIDABLES = ['matriz', 'actores'];
+
+    /** Solo las entradas validables: las que cuentan para el progreso. */
     public static function matrices(): array
     {
         return array_filter(
             self::ENTRADAS,
-            fn(array $entrada) => $entrada['tipo'] === 'matriz'
+            fn(array $entrada) => in_array($entrada['tipo'], self::TIPOS_VALIDABLES, true)
         );
     }
 }

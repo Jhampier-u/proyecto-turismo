@@ -335,4 +335,30 @@ class EstadoZonaTest extends TestCase
 
         $this->assertSame(array_keys(\App\Matrices\Registro::GRUPOS), array_keys($grupos));
     }
+
+    /**
+     * El cuarto tipo de entrada: un CRUD con estado. `inventario` es CRUD sin
+     * estado y `matriz` es estado sin lista, así que ninguno servía.
+     *
+     * Este test usa una entrada declarada de verdad en el registro. Si algún
+     * día no hay ninguna de tipo 'actores', se salta en vez de fallar: no es
+     * este test quien debe vigilar que exista.
+     */
+    public function test_una_entrada_de_actores_sin_empezar_lo_dice(): void
+    {
+        $deActores = array_filter(
+            \App\Matrices\Registro::ENTRADAS,
+            fn(array $e) => $e['tipo'] === 'actores'
+        );
+
+        if ($deActores === []) {
+            $this->markTestSkipped('No hay ninguna entrada de tipo actores.');
+        }
+
+        $clave = array_key_first($deActores);
+        $fila  = $this->filas()[$clave];
+
+        $this->assertSame('sin_empezar', $fila->estado);
+        $this->assertStringContainsString('sin actores', $fila->detalle);
+    }
 }
