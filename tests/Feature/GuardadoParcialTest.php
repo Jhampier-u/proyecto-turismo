@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Matrices\Paisaje;
+use App\Models\EvaluacionFit;
 use App\Models\EvaluacionPaisaje;
 use App\Models\Role;
 use App\Models\User;
@@ -46,6 +47,21 @@ class GuardadoParcialTest extends TestCase
         return array_fill_keys(array_keys(Paisaje::todos()), $valor);
     }
 
+    /**
+     * Los 18 criterios de FIT, para comprobar que el guardado parcial vive en
+     * la clase base y no solo en Paisaje.
+     */
+    private const CAMPOS_FIT = [
+        'recursos_culturales', 'recursos_naturales',
+        'atractivos_manifestaciones', 'atractivos_sitios',
+        'prestadores_alojamiento', 'prestadores_restauracion', 'prestadores_guianza',
+        'productos_territoriales',
+        'infraestructura_basica', 'infraestructura_apoyo',
+        'facilidades_senaletica', 'facilidades_recepcion', 'facilidades_interpretacion',
+        'facilidades_senderos', 'facilidades_estacionamientos', 'facilidades_campamentos',
+        'facilidades_miradores', 'facilidades_sanitarios',
+    ];
+
     public function test_se_guarda_un_borrador_con_criterios_en_blanco(): void
     {
         $datos = $this->todosEn(3);
@@ -79,6 +95,52 @@ class GuardadoParcialTest extends TestCase
 
         $this->assertSame(0, (int) $eval->pn_geologia);
         $this->assertNull($eval->cp_conurbaciones);
+    }
+
+    /**
+     * El hueco real no llega como clave ausente: un <select> vacío del
+     * formulario envía la cadena vacía. Que eso acabe en null y no en 0
+     * depende del middleware ConvertEmptyStringsToNull, que nadie de este
+     * repositorio configura y cualquiera podría desactivar al tocar
+     * bootstrap/app.php. Si se rompe, un criterio sin mirar volvería a
+     * puntuar como «0» y sería exactamente el fallo que esta rama arregla,
+     * así que conviene tenerlo fijado por test y no por costumbre.
+     */
+    public function test_un_criterio_vacio_del_formulario_es_un_hueco_no_un_cero(): void
+    {
+        $datos = $this->todosEn(3);
+        $datos['pn_geologia'] = '';
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos)
+            ->assertSessionHasNoErrors();
+
+        $eval = EvaluacionPaisaje::firstOrFail();
+
+        $this->assertNull($eval->pn_geologia);
+        $this->assertNull($eval->paisaje_total);
+    }
+
+    /**
+     * Las otras cuatro matrices ponderadas comparten la clase base, pero solo
+     * Paisaje se ejercitaba por este camino. FIT lo recorre entero: criterio
+     * en blanco, media de bloque y total sin calcular.
+     */
+    public function test_el_guardado_parcial_tambien_funciona_en_fit(): void
+    {
+        $datos = array_fill_keys(self::CAMPOS_FIT, 3);
+        unset($datos['recursos_culturales']);
+
+        $this->actingAs($this->jefe)
+            ->post("/operativo/zona/{$this->zona->id}/evaluacion-fit", $datos)
+            ->assertSessionHasNoErrors();
+
+        $fit = EvaluacionFit::firstOrFail();
+
+        $this->assertSame('borrador', $fit->estado);
+        $this->assertNull($fit->recursos_culturales);
+        $this->assertSame(3, (int) $fit->recursos_naturales);
+        $this->assertNull($fit->media_rtt);
+        $this->assertNull($fit->fit);
     }
 
     public function test_con_criterios_pendientes_no_hay_resultado(): void
