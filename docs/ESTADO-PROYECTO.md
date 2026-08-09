@@ -1,6 +1,6 @@
 # Estado del proyecto — traspaso entre máquinas
 
-**Fecha:** 7 de agosto de 2026 (actualizado al terminar `guardado-parcial`)
+**Fecha:** 9 de agosto de 2026 (actualizado al terminar `concentracion`)
 **Para:** continuar en otro ordenador sin perder contexto.
 
 Este documento reemplaza a `ESTADO-MATRICES.md`, que quedó desfasado.
@@ -16,7 +16,10 @@ solo consulta.
 
 Cada matriz es un instrumento de un estudio de planificación turística: decenas
 o centenares de criterios puntuados en una escala, agrupados por categoría y
-ponderados hasta un resultado.
+ponderados hasta un resultado. **Hay nueve, y las dos últimas ya no encajan en
+esa frase**: Involucrados puntúa una lista variable de actores en vez de un
+formulario fijo, y Concentración cuenta cantidades sin escala acotada. Conviene
+saberlo antes de suponer que la décima será igual que las siete primeras.
 
 ## 2. Entorno
 
@@ -221,6 +224,58 @@ colapsaría el ranking entero—. Como `1.00` es también un valor legítimo («
 en la media»), la pantalla marca esos atributos como que no diferencian, en vez
 de pintar un número que parecería una medida.
 
+### Rama `concentracion` — novena matriz, terminada
+
+El **Índice de Concentración Turística**, y la primera que **cuenta cosas** en vez
+de puntuar criterios en una escala acotada: 113 cantidades en dos bloques —77
+atractivos, entre culturales y naturales, y 36 subcategorías de planta turística
+repartidas en 10 sectores—. Suite: **337 tests**.
+
+**Los 113 nombres se generan desde el Excel**, no se teclean:
+`database/matrices/generar_concentracion.py` escribe `App\Matrices\Concentracion`.
+Un nombre mal copiado no rompe ningún test, solo desvía un conteo en silencio.
+El generador **aborta** si dos filas producen el mismo nombre —«Cuevas» aparece
+en litoral y en montaña— o si alguno pasa de **63 bytes**, que es el límite de
+identificador de PostgreSQL: cuatro lo pasaban, el más largo medía 82, y Postgres
+los habría truncado **sin avisar**. Las abreviaturas que los acortan están a la
+vista en un diccionario del propio generador.
+
+**El cálculo vive aparte, en `App\Matrices\ConcentracionCalculo`**, y no es
+manía de orden: `Concentracion.php` lo reescribe entero el generador, así que un
+cálculo escrito dentro no sobreviviría a una regeneración.
+
+**Tres cosas propias que no hay que «arreglar»:**
+
+- **La escala no tiene tope.** Una zona puede tener tres hoteles o cuatrocientos,
+  así que el controlador sobreescribe `reglaValor()` a `integer|min:0`. `escala()`
+  existe porque es abstracto y **no se usa**; está dicho en su comentario.
+- **`Pi = 100/√Sia` baja cuando el sector crece.** Un sector con más
+  establecimientos tiene un `Pi` **menor**. Es del instrumento, es
+  contraintuitivo, y la pantalla lo explica al pie para que nadie lo lea como un
+  error.
+- **`Pi` no existe para un sector vacío**, no vale cero: la pantalla lo marca
+  como que no aplica. El `ICT` de ese sector sí vale 0, y ese 0 es correcto —«no
+  aporta nada al reparto»—. Lo normal es que una zona rural tenga varios sectores
+  a cero.
+
+**Es la primera matriz sin ninguna columna calculada.** Porcentajes, `Sia`, `Pi`
+e `ICT` se derivan siempre; guardarlos sería una segunda fuente de verdad. Un
+`calcular()` que devuelve `[]` no incomoda a la clase base.
+
+**Los atractivos no se derivan del Inventario, y no es por coste.** El
+denominador del índice es *todo lo que tiene el territorio*; el del inventario es
+*lo que el equipo ha llegado a registrar*. Derivar uno del otro convertiría
+«cuánto trabajo de campo llevamos» en «qué hay», en silencio. Lo que lo haría
+correcto: que un inventario pudiera declararse **cerrado por zona**, como
+Involucrados cierra su lista de actores. Ese día merece la pena; el diseño no
+cierra la puerta.
+
+**Verificado contra PostgreSQL 16 real**: la migración corre, las 113 columnas
+quedan `integer` nullable y sin defecto —un defecto de 0 convertiría «no lo he
+contado» en «no hay ninguno»—, los nombres coinciden byte a byte con
+`Concentracion::campos()`, y la suite entera da los mismos 337 verdes que en
+SQLite.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -379,22 +434,21 @@ niveles de anidamiento— y ninguno se movió con el cambio.
    faltaban. Suite: **222 tests**. Quedan fuera, a propósito, los formularios
    de alta y edición (`users/form`, `lugares/form`, `zonas/form`): comparten
    los defectos de tipografía pero se usan de forma puntual.
-3. **Dos matrices sin implementar**: Índice Espacial de Frecuentación e Índice
-   de Concentración. Los ficheros están en `~/Downloads/fwdmatrices` de esta
-   máquina, ya analizados. **Ninguna de las dos es un formulario de criterios**,
-   y las dos están bloqueadas por algo que no es técnico:
+3. **Una matriz sin implementar**: el **Índice Espacial de Frecuentación**, la
+   última. Su fichero está en `~/Downloads/fwdmatrices` de esta máquina, ya
+   analizado. Es una lista variable de sitios con dos cifras cada uno y el índice
+   es la suma de sus cocientes, así que se parecería a Involucrados más que a un
+   formulario de criterios. **Está bloqueada por algo que no es técnico:** su
+   hoja original divide todas las filas por el ST de la *primera*, y tiene una
+   celda «Superficie Territorial = 1» que no usa ninguna fórmula. La hoja se
+   contradice a sí misma; **hay que aclarar la fórmula con el autor del
+   instrumento antes de implementarla**, y ninguna interpretación que elijamos
+   por nuestra cuenta sería defendible.
 
-   - **Frecuentación** es una lista variable de sitios con dos cifras cada uno;
-     el índice es la suma de sus cocientes. Además su hoja original divide todas
-     las filas por el ST de la *primera*, y tiene una celda «Superficie
-     Territorial = 1» que no usa ninguna fórmula: **hay que aclarar la fórmula
-     con el autor del instrumento antes de implementarla.**
-   - **Concentración** cuenta recursos por categoría/tipo/subtipo. Se solapa con
-     el módulo de Inventario que ya existe: o se profundiza su taxonomía —hoy
-     son dos niveles y ocho categorías, frente a los tres niveles y ~77 subtipos
-     del instrumento— y el índice se calcula solo, o es un formulario aparte que
-     recuenta lo que ya está registrado. **Es una decisión de producto, no
-     técnica.**
+   El **Índice de Concentración** ya está hecho —ver la rama `concentracion`—.
+   El solapamiento con el módulo de Inventario, que era la duda que lo tenía
+   parado, se resolvió a propósito **no** derivando uno del otro; el motivo está
+   arriba y en el diseño.
 4. **Migrar FIT, FET, Percepción y Potencialidad** a los componentes de criterio
    nuevos (`criterio-escala`, `criterio-pildoras`). Siguen usando desplegables
    mientras Paisaje y Valoración Territorial ya usan tarjetas. Sin plan escrito.
