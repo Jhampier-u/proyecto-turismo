@@ -2,7 +2,7 @@
 desde el instrumento original, para evitar errores de transcripción.
 
 A diferencia de las otras matrices generadas, esta no puntúa criterios en una
-escala: cuenta cosas. El instrumento trae ~113 subtipos/subcategorías y el
+escala: cuenta cosas. El instrumento trae 113 subtipos/subcategorías y el
 riesgo no es la lógica sino los nombres: un nombre de campo mal copiado no
 rompe ningún test, solo desvía un conteo en silencio. Por eso se generan desde
 el Excel en vez de escribirse a mano, igual que se hizo con Valoración
@@ -30,14 +30,58 @@ def limpiar(t):
     return " ".join(str(t).split()) if t else ""
 
 
+# PostgreSQL trunca en silencio cualquier identificador de más de 63 bytes
+# (NAMEDATALEN): dos columnas que solo difieren después del byte 63
+# quedarían indistinguibles en producción aunque en SQLite (desarrollo y
+# tests) convivan sin problema -exactamente el patrón de fallo que este
+# proyecto ya sufrió por partida doble: la suite en verde y la base real
+# haciendo otra cosa-. Por eso el límite se aplica aquí, al construir el
+# nombre, y no se deja como algo que un test descubra más tarde.
+#
+# Este mapa recoge las palabras largas y recurrentes de la taxonomía del
+# instrumento -"realizaciones", "explotaciones", "acontecimientos"...-, para
+# que el generador pueda acortar un nombre sin inventar una abreviatura
+# distinta cada vez. Es una decisión legible a propósito: si el instrumento
+# cambia y aparece una palabra nueva que empuja algún nombre por encima de
+# 63 bytes, `registrar_en_mapa` aborta señalando cuál, y quien lo vea sabrá
+# que la solución es añadir una entrada aquí, no tocar el límite.
+LIMITE_IDENTIFICADOR_POSTGRES = 63
+
+ABREVIATURAS = {
+    "realizaciones": "realizac",
+    "tecnicas": "tec",
+    "cientificas": "cientif",
+    "explotaciones": "explotac",
+    "agropecuarias": "agropec",
+    "pesqueras": "pesq",
+    "exhibicion": "exhib",
+    "acontecimientos": "aconteci",
+    "programados": "program",
+    "convenciones": "convenc",
+    "artesanales": "artesan",
+    "congresos": "congr",
+    "industriales": "industr",
+    "religiosas": "relig",
+    "tradicionales": "tradic",
+    "creencias": "creenc",
+    "populares": "popul",
+}
+
+
 def slug(t):
     """Nombre de campo a partir de un texto del instrumento: minúsculas, sin
-    acentos, sin puntuación. `unicodedata` + encode/decode ascii es más
-    robusto que una tabla de reemplazos á->a manual porque cubre cualquier
-    acento o diéresis sin tener que enumerarlos."""
+    acentos, sin puntuación, con las palabras largas de ABREVIATURAS ya
+    acortadas. `unicodedata` + encode/decode ascii es más robusto que una
+    tabla de reemplazos á->a manual porque cubre cualquier acento o diéresis
+    sin tener que enumerarlos.
+
+    Se abrevia palabra por palabra -no el nombre completo- para que el mismo
+    término se acorte siempre igual sin importar en qué campo aparezca."""
     t = limpiar(t).lower()
     t = unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode("ascii")
-    return re.sub(r"[^a-z0-9]+", "_", t).strip("_")
+    palabras = re.findall(r"[a-z0-9]+", t)
+    palabras = [ABREVIATURAS.get(p, p) for p in palabras]
+    return "_".join(palabras)
 
 
 def leer_atractivos(hoja, col_cat, col_tipo, col_subtipo, fila_ini, fila_fin_esperada, bloque_sigla, vistos):
@@ -45,6 +89,11 @@ def leer_atractivos(hoja, col_cat, col_tipo, col_subtipo, fila_ini, fila_fin_esp
     culturales o atractivos naturales). CATEGORÍA y TIPO están en celdas
     combinadas -solo traen valor en la fila donde empieza el grupo-, así que
     se arrastran hacia abajo.
+
+    El árbol resultante es categoría -> tipo -> {campo: subtipo}: el tipo
+    (Arquitectura, Montaña, Folklore...) es el nivel de agrupación útil para
+    una interfaz -entre 3 y 8 subtipos por tipo-, mientras que la categoría
+    por sí sola metería 22 o 55 campos seguidos en una sola sección.
 
     El final de la tabla se detecta por contenido (la fila cuya columna de
     categoría empieza con 'TOTAL'), no por un número de fila fijo: los rangos
@@ -55,7 +104,7 @@ def leer_atractivos(hoja, col_cat, col_tipo, col_subtipo, fila_ini, fila_fin_esp
     """
     categoria_actual = None
     tipo_actual = None
-    grupo = {}  # categoría -> {campo: etiqueta}, en orden de aparición
+    grupo = {}  # categoría -> tipo -> {campo: etiqueta}, en orden de aparición
     fila = fila_ini
     while True:
         v_cat = hoja.cell(fila, col_cat).value
@@ -78,15 +127,17 @@ def leer_atractivos(hoja, col_cat, col_tipo, col_subtipo, fila_ini, fila_fin_esp
             raise ValueError(f"'{hoja.title}' fila {fila}: subtipo vacío (categoría={categoria_actual!r})")
 
         campo = f"at_{bloque_sigla}_{slug(tipo_actual)}_{slug(subtipo)}"
-        etiqueta = f"{tipo_actual} · {subtipo}"
         contexto = f"'{hoja.title}' fila {fila} ({categoria_actual} / {tipo_actual} / {subtipo})"
 
         # Título con capitalización de presentación: el instrumento trae la
         # categoría en mayúsculas sostenidas ('MANIFESTACIONES CULTURALES'),
-        # que aquí se usa como clave de sección en la interfaz.
+        # que aquí se usa como bloque de primer nivel en la interfaz.
         titulo_categoria = categoria_actual.title()
         grupo.setdefault(titulo_categoria, {})
-        registrar_en_mapa(grupo[titulo_categoria], campo, etiqueta, vistos, contexto)
+        grupo[titulo_categoria].setdefault(tipo_actual, {})
+        # La etiqueta es solo el subtipo: el tipo ya es la clave del nivel
+        # que lo contiene, repetirlo en cada etiqueta sería ruido.
+        registrar_en_mapa(grupo[titulo_categoria][tipo_actual], campo, subtipo, vistos, contexto)
         fila += 1
 
     fila_fin_detectada = fila - 1
@@ -100,6 +151,29 @@ def leer_atractivos(hoja, col_cat, col_tipo, col_subtipo, fila_ini, fila_fin_esp
 
 
 def registrar_en_mapa(mapa_campo_etiqueta, campo, etiqueta, vistos, contexto):
+    """Añade `campo` -> `etiqueta` a `mapa_campo_etiqueta`, o aborta.
+
+    Dos invariantes, en este orden:
+
+    1. El nombre cabe en un identificador de PostgreSQL. Abreviar acerca
+       nombres que antes eran bien distintos, así que esta comprobación
+       importa más que antes de que existiera ABREVIATURAS: hay que saber
+       si sigue haciendo falta una abreviatura más, no descubrirlo en
+       producción.
+    2. El nombre no se repite. Es el fallo más probable de esta taxonomía
+       -algún subtipo se repite bajo dos tipos distintos, o el acortamiento
+       de la invariante anterior hace coincidir a dos que antes diferían-,
+       y hay que pararlo aquí, no resolverlo por su cuenta: dos filas con el
+       mismo campo escribirían en la misma columna y una pisaría a la otra
+       en silencio.
+    """
+    if len(campo) > LIMITE_IDENTIFICADOR_POSTGRES:
+        raise ValueError(
+            f"nombre de campo de {len(campo)} caracteres, por encima del límite de "
+            f"{LIMITE_IDENTIFICADOR_POSTGRES} de PostgreSQL: {campo!r}\n"
+            f"  producido por: {contexto}\n"
+            "  añade una abreviatura para su(s) palabra(s) larga(s) al mapa ABREVIATURAS."
+        )
     if campo in vistos:
         raise ValueError(
             f"nombre de campo repetido: {campo!r}\n"
@@ -187,14 +261,19 @@ planta = leer_planta(
     fila_ini=8, fila_fin_esperada=43, vistos=vistos,
 )
 
-n_mc = sum(len(m) for m in manifestaciones.values())
-n_nat = sum(len(m) for m in naturales.values())
-n_pt = sum(len(m) for m in planta.values())
+
+# manifestaciones/naturales son categoría -> tipo -> {campo: etiqueta}
+# (dos niveles antes del mapa hoja); planta es sector -> {campo: etiqueta}
+# (uno solo). Se cuenta cada forma explícitamente en vez de con una función
+# genérica que adivine la profundidad del árbol.
+n_mc = sum(len(mapa) for tipos in manifestaciones.values() for mapa in tipos.values())
+n_nat = sum(len(mapa) for tipos in naturales.values() for mapa in tipos.values())
+n_pt = sum(len(mapa) for mapa in planta.values())
 print(f"// Manifestaciones culturales: {n_mc} subtipos")
 print(f"// Atractivos naturales: {n_nat} subtipos")
 print(f"// Atractivos (total): {n_mc + n_nat} subtipos")
 print(f"// Planta turística: {n_pt} subcategorías en {len(planta)} sectores")
-print(f"// Total general: {n_mc + n_nat + n_pt} campos")
+print(f"// Total general: {n_mc + n_nat + n_pt} campos, todos de {LIMITE_IDENTIFICADOR_POSTGRES} caracteres o menos")
 
 
 def php_str(s):
@@ -230,17 +309,28 @@ lineas = [
     "{",
     "    /**",
     "     * Atractivos turísticos: dos tablas paralelas del instrumento,",
-    "     * manifestaciones culturales y atractivos naturales, cada una agrupada",
-    "     * por su categoría. Dentro de cada categoría, campo => etiqueta con el",
-    "     * tipo y el subtipo del instrumento ('Arquitectura · Museos').",
+    "     * manifestaciones culturales y atractivos naturales. El bloque de",
+    "     * primer nivel es la categoría -la que separa las dos tablas y sus dos",
+    "     * porcentajes-; dentro, agrupado por tipo (Arquitectura, Montaña,",
+    "     * Folklore...), campo => etiqueta con el subtipo del instrumento.",
     "     *",
-    "     * @var array<string, array<string, string>>",
+    "     * Algunos campos abrevian una palabra larga y recurrente del",
+    "     * instrumento ('realizac' por 'realizaciones', 'aconteci' por",
+    "     * 'acontecimientos'...) para no pasar el límite de 63 caracteres de un",
+    "     * identificador de PostgreSQL -ver ABREVIATURAS en el generador-. Las",
+    "     * etiquetas siempre llevan la palabra completa: la abreviatura es del",
+    "     * nombre de columna, no del texto que ve el evaluador.",
+    "     *",
+    "     * @var array<string, array<string, array<string, string>>>",
     "     */",
     "    public const ATRACTIVOS = [",
 ]
-for categoria, mapa in atractivos.items():
+for categoria, tipos in atractivos.items():
     lineas.append(f"        {php_str(categoria)} => [")
-    lineas += php_mapa(mapa, 12)
+    for tipo, mapa in tipos.items():
+        lineas.append(f"            {php_str(tipo)} => [")
+        lineas += php_mapa(mapa, 16)
+        lineas.append("            ],")
     lineas.append("        ],")
 lineas += [
     "    ];",
@@ -266,8 +356,10 @@ lineas += [
     "    public static function campos(): array",
     "    {",
     "        $campos = [];",
-    "        foreach (self::ATRACTIVOS as $mapa) {",
-    "            $campos = array_merge($campos, array_keys($mapa));",
+    "        foreach (self::ATRACTIVOS as $tipos) {",
+    "            foreach ($tipos as $mapa) {",
+    "                $campos = array_merge($campos, array_keys($mapa));",
+    "            }",
     "        }",
     "        foreach (self::PLANTA as $mapa) {",
     "            $campos = array_merge($campos, array_keys($mapa));",

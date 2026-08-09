@@ -18,93 +18,131 @@ final class Concentracion
 {
     /**
      * Atractivos turísticos: dos tablas paralelas del instrumento,
-     * manifestaciones culturales y atractivos naturales, cada una agrupada
-     * por su categoría. Dentro de cada categoría, campo => etiqueta con el
-     * tipo y el subtipo del instrumento ('Arquitectura · Museos').
+     * manifestaciones culturales y atractivos naturales. El bloque de
+     * primer nivel es la categoría -la que separa las dos tablas y sus dos
+     * porcentajes-; dentro, agrupado por tipo (Arquitectura, Montaña,
+     * Folklore...), campo => etiqueta con el subtipo del instrumento.
      *
-     * @var array<string, array<string, string>>
+     * Algunos campos abrevian una palabra larga y recurrente del
+     * instrumento ('realizac' por 'realizaciones', 'aconteci' por
+     * 'acontecimientos'...) para no pasar el límite de 63 caracteres de un
+     * identificador de PostgreSQL -ver ABREVIATURAS en el generador-. Las
+     * etiquetas siempre llevan la palabra completa: la abreviatura es del
+     * nombre de columna, no del texto que ve el evaluador.
+     *
+     * @var array<string, array<string, array<string, string>>>
      */
     public const ATRACTIVOS = [
         'Manifestaciones Culturales' => [
-            'at_mc_arquitectura_historia_civil_religiosa_militar_vernacula' => 'Arquitectura · Historia (civíl, religiosa, militar, vernácula)',
-            'at_mc_arquitectura_museos' => 'Arquitectura · Museos',
-            'at_mc_arquitectura_ciudad_historica_y_o_patrimonial' => 'Arquitectura · Ciudad Histórica y/o Patrimonial',
-            'at_mc_arquitectura_area_historica' => 'Arquitectura · Área Histórica',
-            'at_mc_arquitectura_area_patrimonial_y_o_arqueologica' => 'Arquitectura · Área Patrimonial y/o Arqueológica',
-            'at_mc_arquitectura_monumentos' => 'Arquitectura · Monumentos',
-            'at_mc_arquitectura_espacio_publico' => 'Arquitectura · Espacio Público',
-            'at_mc_folklore_pueblo_y_o_nacionalidad_etnografia' => 'Folklore · Pueblo y/o nacionalidad (etnografía)',
-            'at_mc_folklore_fiestas_religiosas_tradicionales_y_creencias_populares' => 'Folklore · Fiestas religiosas, tradicionales y creencias populares',
-            'at_mc_folklore_artesanias_y_artes' => 'Folklore · Artesanías y artes',
-            'at_mc_folklore_medicina_ancestral' => 'Folklore · Medicina Ancestral',
-            'at_mc_folklore_ferias_y_mercados' => 'Folklore · Ferias y mercados',
-            'at_mc_folklore_musica_y_danza' => 'Folklore · Música y danza',
-            'at_mc_folklore_gastronomia' => 'Folklore · Gastronomía',
-            'at_mc_realizaciones_tecnicas_y_cientificas_obras_de_ingenieria' => 'Realizaciones Técnicas y Científicas · Obras de Ingeniería',
-            'at_mc_realizaciones_tecnicas_y_cientificas_centros_de_exhibicion_de_flora_y_fauna' => 'Realizaciones Técnicas y Científicas · Centros de exhibición de flora y fauna',
-            'at_mc_realizaciones_tecnicas_y_cientificas_explotaciones_agropecuarias_y_pesqueras' => 'Realizaciones Técnicas y Científicas · Explotaciones agropecuarias y pesqueras',
-            'at_mc_realizaciones_tecnicas_y_cientificas_explotaciones_industriales' => 'Realizaciones Técnicas y Científicas · Explotaciones Industriales',
-            'at_mc_acontecimientos_programados_eventos_artisticos' => 'Acontecimientos Programados · Eventos Artísticos',
-            'at_mc_acontecimientos_programados_convenciones_ferias_no_artesanales_y_congresos' => 'Acontecimientos Programados · Convenciones, ferias (no artesanales) y congresos',
-            'at_mc_acontecimientos_programados_eventos_deportivos' => 'Acontecimientos Programados · Eventos deportivos',
-            'at_mc_acontecimientos_programados_eventos_gastronomicos' => 'Acontecimientos Programados · Eventos Gastronómicos',
+            'Arquitectura' => [
+                'at_mc_arquitectura_historia_civil_religiosa_militar_vernacula' => 'Historia (civíl, religiosa, militar, vernácula)',
+                'at_mc_arquitectura_museos' => 'Museos',
+                'at_mc_arquitectura_ciudad_historica_y_o_patrimonial' => 'Ciudad Histórica y/o Patrimonial',
+                'at_mc_arquitectura_area_historica' => 'Área Histórica',
+                'at_mc_arquitectura_area_patrimonial_y_o_arqueologica' => 'Área Patrimonial y/o Arqueológica',
+                'at_mc_arquitectura_monumentos' => 'Monumentos',
+                'at_mc_arquitectura_espacio_publico' => 'Espacio Público',
+            ],
+            'Folklore' => [
+                'at_mc_folklore_pueblo_y_o_nacionalidad_etnografia' => 'Pueblo y/o nacionalidad (etnografía)',
+                'at_mc_folklore_fiestas_relig_tradic_y_creenc_popul' => 'Fiestas religiosas, tradicionales y creencias populares',
+                'at_mc_folklore_artesanias_y_artes' => 'Artesanías y artes',
+                'at_mc_folklore_medicina_ancestral' => 'Medicina Ancestral',
+                'at_mc_folklore_ferias_y_mercados' => 'Ferias y mercados',
+                'at_mc_folklore_musica_y_danza' => 'Música y danza',
+                'at_mc_folklore_gastronomia' => 'Gastronomía',
+            ],
+            'Realizaciones Técnicas y Científicas' => [
+                'at_mc_realizac_tec_y_cientif_obras_de_ingenieria' => 'Obras de Ingeniería',
+                'at_mc_realizac_tec_y_cientif_centros_de_exhib_de_flora_y_fauna' => 'Centros de exhibición de flora y fauna',
+                'at_mc_realizac_tec_y_cientif_explotac_agropec_y_pesq' => 'Explotaciones agropecuarias y pesqueras',
+                'at_mc_realizac_tec_y_cientif_explotac_industr' => 'Explotaciones Industriales',
+            ],
+            'Acontecimientos Programados' => [
+                'at_mc_aconteci_program_eventos_artisticos' => 'Eventos Artísticos',
+                'at_mc_aconteci_program_convenc_ferias_no_artesan_y_congr' => 'Convenciones, ferias (no artesanales) y congresos',
+                'at_mc_aconteci_program_eventos_deportivos' => 'Eventos deportivos',
+                'at_mc_aconteci_program_eventos_gastronomicos' => 'Eventos Gastronómicos',
+            ],
         ],
         'Atractivos Naturales' => [
-            'at_nat_montana_alta_montana' => 'Montaña · Alta Montaña',
-            'at_nat_montana_media_montana' => 'Montaña · Media Montaña',
-            'at_nat_montana_baja_montana' => 'Montaña · Baja Montaña',
-            'at_nat_planicies_llanura' => 'Planicies · Llanura',
-            'at_nat_planicies_salitre' => 'Planicies · Salitre',
-            'at_nat_planicies_valle' => 'Planicies · Valle',
-            'at_nat_planicies_meseta' => 'Planicies · Meseta',
-            'at_nat_desiertos_costero' => 'Desiertos · Costero',
-            'at_nat_desiertos_del_interior' => 'Desiertos · Del Interior',
-            'at_nat_ambientes_lacustres_lago' => 'Ambientes Lacústres · Lago',
-            'at_nat_ambientes_lacustres_laguna' => 'Ambientes Lacústres · Laguna',
-            'at_nat_ambientes_lacustres_pantano' => 'Ambientes Lacústres · Pantano',
-            'at_nat_ambientes_lacustres_poza' => 'Ambientes Lacústres · Poza',
-            'at_nat_ambientes_lacustres_humedal' => 'Ambientes Lacústres · Humedal',
-            'at_nat_ambientes_lacustres_vado' => 'Ambientes Lacústres · Vado',
-            'at_nat_ambientes_lacustres_playa_de_laguna' => 'Ambientes Lacústres · Playa de Laguna',
-            'at_nat_rios_rio' => 'Ríos · Río',
-            'at_nat_rios_riachuelo' => 'Ríos · Riachuelo',
-            'at_nat_rios_rapido' => 'Ríos · Rápido',
-            'at_nat_rios_cascada' => 'Ríos · Cascada',
-            'at_nat_rios_ribera' => 'Ríos · Ribera',
-            'at_nat_rios_playa_de_rio' => 'Ríos · Playa de Río',
-            'at_nat_rios_delta' => 'Ríos · Delta',
-            'at_nat_bosques_paramo' => 'Bósques · Páramo',
-            'at_nat_bosques_ceja_de_selva' => 'Bósques · Ceja de Selva',
-            'at_nat_bosques_nublado' => 'Bósques · Nublado',
-            'at_nat_bosques_montano_bajo' => 'Bósques · Montano Bajo',
-            'at_nat_bosques_humedo' => 'Bósques · Húmedo',
-            'at_nat_bosques_manglar' => 'Bósques · Manglar',
-            'at_nat_bosques_seco' => 'Bósques · Seco',
-            'at_nat_bosques_petrificado' => 'Bósques · Petrificado',
-            'at_nat_aguas_subterraneas_manantial_agua_mineral' => 'Aguas Subterráneas · Manantial Agua Mineral',
-            'at_nat_aguas_subterraneas_manantial_agua_termal' => 'Aguas Subterráneas · Manantial Agua Termal',
-            'at_nat_fenomenos_espeleologicos_cueva_o_caverna' => 'Fenómenos Espeleológicos · Cueva o Caverna',
-            'at_nat_fenomenos_espeleologicos_rio_subterraneo' => 'Fenómenos Espeleológicos · Río Subterráneo',
-            'at_nat_fenomenos_espeleologicos_flujo_de_lava' => 'Fenómenos Espeleológicos · Flujo de Lava',
-            'at_nat_fenomenos_espeleologicos_tubo_de_lava' => 'Fenómenos Espeleológicos · Tubo de Lava',
-            'at_nat_fenomenos_espeleologicos_escarpa_de_falla' => 'Fenómenos Espeleológicos · Escarpa de Falla',
-            'at_nat_fenomenos_espeleologicos_canon' => 'Fenómenos Espeleológicos · Cañón',
-            'at_nat_fenomenos_espeleologicos_quebrada' => 'Fenómenos Espeleológicos · Quebrada',
-            'at_nat_costas_o_litorales_playa' => 'Costas o Litorales · Playa',
-            'at_nat_costas_o_litorales_acantilado' => 'Costas o Litorales · Acantilado',
-            'at_nat_costas_o_litorales_golfo' => 'Costas o Litorales · Golfo',
-            'at_nat_costas_o_litorales_bahia' => 'Costas o Litorales · Bahía',
-            'at_nat_costas_o_litorales_ensenada' => 'Costas o Litorales · Ensenada',
-            'at_nat_costas_o_litorales_canal' => 'Costas o Litorales · Canal',
-            'at_nat_costas_o_litorales_estuario' => 'Costas o Litorales · Estuario',
-            'at_nat_costas_o_litorales_estero' => 'Costas o Litorales · Estero',
-            'at_nat_ambientes_marinos_arrecife_de_coral' => 'Ambientes Marinos · Arrecife de Coral',
-            'at_nat_ambientes_marinos_cueva_o_caverna' => 'Ambientes Marinos · Cueva o Caverna',
-            'at_nat_ambientes_marinos_crater' => 'Ambientes Marinos · Cráter',
-            'at_nat_tierras_insulares_isla_continental' => 'Tierras Insulares · Isla Continental',
-            'at_nat_tierras_insulares_isla_oceanica' => 'Tierras Insulares · Isla Oceánica',
-            'at_nat_tierras_insulares_islote' => 'Tierras Insulares · Islote',
-            'at_nat_tierras_insulares_roca' => 'Tierras Insulares · Roca',
+            'Montaña' => [
+                'at_nat_montana_alta_montana' => 'Alta Montaña',
+                'at_nat_montana_media_montana' => 'Media Montaña',
+                'at_nat_montana_baja_montana' => 'Baja Montaña',
+            ],
+            'Planicies' => [
+                'at_nat_planicies_llanura' => 'Llanura',
+                'at_nat_planicies_salitre' => 'Salitre',
+                'at_nat_planicies_valle' => 'Valle',
+                'at_nat_planicies_meseta' => 'Meseta',
+            ],
+            'Desiertos' => [
+                'at_nat_desiertos_costero' => 'Costero',
+                'at_nat_desiertos_del_interior' => 'Del Interior',
+            ],
+            'Ambientes Lacústres' => [
+                'at_nat_ambientes_lacustres_lago' => 'Lago',
+                'at_nat_ambientes_lacustres_laguna' => 'Laguna',
+                'at_nat_ambientes_lacustres_pantano' => 'Pantano',
+                'at_nat_ambientes_lacustres_poza' => 'Poza',
+                'at_nat_ambientes_lacustres_humedal' => 'Humedal',
+                'at_nat_ambientes_lacustres_vado' => 'Vado',
+                'at_nat_ambientes_lacustres_playa_de_laguna' => 'Playa de Laguna',
+            ],
+            'Ríos' => [
+                'at_nat_rios_rio' => 'Río',
+                'at_nat_rios_riachuelo' => 'Riachuelo',
+                'at_nat_rios_rapido' => 'Rápido',
+                'at_nat_rios_cascada' => 'Cascada',
+                'at_nat_rios_ribera' => 'Ribera',
+                'at_nat_rios_playa_de_rio' => 'Playa de Río',
+                'at_nat_rios_delta' => 'Delta',
+            ],
+            'Bósques' => [
+                'at_nat_bosques_paramo' => 'Páramo',
+                'at_nat_bosques_ceja_de_selva' => 'Ceja de Selva',
+                'at_nat_bosques_nublado' => 'Nublado',
+                'at_nat_bosques_montano_bajo' => 'Montano Bajo',
+                'at_nat_bosques_humedo' => 'Húmedo',
+                'at_nat_bosques_manglar' => 'Manglar',
+                'at_nat_bosques_seco' => 'Seco',
+                'at_nat_bosques_petrificado' => 'Petrificado',
+            ],
+            'Aguas Subterráneas' => [
+                'at_nat_aguas_subterraneas_manantial_agua_mineral' => 'Manantial Agua Mineral',
+                'at_nat_aguas_subterraneas_manantial_agua_termal' => 'Manantial Agua Termal',
+            ],
+            'Fenómenos Espeleológicos' => [
+                'at_nat_fenomenos_espeleologicos_cueva_o_caverna' => 'Cueva o Caverna',
+                'at_nat_fenomenos_espeleologicos_rio_subterraneo' => 'Río Subterráneo',
+                'at_nat_fenomenos_espeleologicos_flujo_de_lava' => 'Flujo de Lava',
+                'at_nat_fenomenos_espeleologicos_tubo_de_lava' => 'Tubo de Lava',
+                'at_nat_fenomenos_espeleologicos_escarpa_de_falla' => 'Escarpa de Falla',
+                'at_nat_fenomenos_espeleologicos_canon' => 'Cañón',
+                'at_nat_fenomenos_espeleologicos_quebrada' => 'Quebrada',
+            ],
+            'Costas o Litorales' => [
+                'at_nat_costas_o_litorales_playa' => 'Playa',
+                'at_nat_costas_o_litorales_acantilado' => 'Acantilado',
+                'at_nat_costas_o_litorales_golfo' => 'Golfo',
+                'at_nat_costas_o_litorales_bahia' => 'Bahía',
+                'at_nat_costas_o_litorales_ensenada' => 'Ensenada',
+                'at_nat_costas_o_litorales_canal' => 'Canal',
+                'at_nat_costas_o_litorales_estuario' => 'Estuario',
+                'at_nat_costas_o_litorales_estero' => 'Estero',
+            ],
+            'Ambientes Marinos' => [
+                'at_nat_ambientes_marinos_arrecife_de_coral' => 'Arrecife de Coral',
+                'at_nat_ambientes_marinos_cueva_o_caverna' => 'Cueva o Caverna',
+                'at_nat_ambientes_marinos_crater' => 'Cráter',
+            ],
+            'Tierras Insulares' => [
+                'at_nat_tierras_insulares_isla_continental' => 'Isla Continental',
+                'at_nat_tierras_insulares_isla_oceanica' => 'Isla Oceánica',
+                'at_nat_tierras_insulares_islote' => 'Islote',
+                'at_nat_tierras_insulares_roca' => 'Roca',
+            ],
         ],
     ];
 
@@ -157,7 +195,7 @@ final class Concentracion
             'pt_oe_organizadores_de_eventos_registrados' => 'Organizadores de eventos registrados',
         ],
         'Centros de convenciones, salas de recepciones y salas de banquetes (CC).' => [
-            'pt_cc_centros_de_convenciones' => 'Centros de Convenciones',
+            'pt_cc_centros_de_convenc' => 'Centros de Convenciones',
             'pt_cc_sala_de_recepciones' => 'Sala de Recepciones',
             'pt_cc_salas_de_banquetes' => 'Salas de Banquetes',
         ],
@@ -179,8 +217,10 @@ final class Concentracion
     public static function campos(): array
     {
         $campos = [];
-        foreach (self::ATRACTIVOS as $mapa) {
-            $campos = array_merge($campos, array_keys($mapa));
+        foreach (self::ATRACTIVOS as $tipos) {
+            foreach ($tipos as $mapa) {
+                $campos = array_merge($campos, array_keys($mapa));
+            }
         }
         foreach (self::PLANTA as $mapa) {
             $campos = array_merge($campos, array_keys($mapa));
