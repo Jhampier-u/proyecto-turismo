@@ -103,28 +103,14 @@
                                      ya es único en las 113 columnas, así que
                                      no hace falta derivar ni comprobar otra
                                      cosa. --}}
-                                @php $grupoId = 'gr-at-' . array_key_first($campos); @endphp
-
-                                <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                    <div class="flex justify-between items-center mb-3">
-                                        <h5 class="font-semibold text-gray-800">{{ $tipo }}</h5>
-                                        <span class="text-sm font-bold text-emerald-700">
-                                            Subtotal: <span id="subtotal-{{ $grupoId }}">0</span>
-                                        </span>
-                                    </div>
-
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        @foreach($campos as $campo => $etiqueta)
-                                            <x-input-concentracion
-                                                :label="$etiqueta"
-                                                :name="$campo"
-                                                :val="$evaluacion->$campo"
-                                                :disabled="$bloqueado"
-                                                :grupo="$grupoId"
-                                                seccion="atractivos" />
-                                        @endforeach
-                                    </div>
-                                </div>
+                                <x-tarjeta-grupo-concentracion
+                                    :titulo="$tipo"
+                                    :campos="$campos"
+                                    :grupo-id="'gr-at-' . array_key_first($campos)"
+                                    seccion="atractivos"
+                                    :evaluacion="$evaluacion"
+                                    :disabled="$bloqueado"
+                                    color-texto="text-emerald-700" />
                             @endforeach
                         </div>
                     @endforeach
@@ -142,28 +128,14 @@
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         @foreach($planta as $sector => $campos)
-                            @php $grupoId = 'gr-pt-' . array_key_first($campos); @endphp
-
-                            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                <div class="flex justify-between items-center mb-3">
-                                    <h5 class="font-semibold text-gray-800">{{ $sector }}</h5>
-                                    <span class="text-sm font-bold text-blue-700">
-                                        Subtotal: <span id="subtotal-{{ $grupoId }}">0</span>
-                                    </span>
-                                </div>
-
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    @foreach($campos as $campo => $etiqueta)
-                                        <x-input-concentracion
-                                            :label="$etiqueta"
-                                            :name="$campo"
-                                            :val="$evaluacion->$campo"
-                                            :disabled="$bloqueado"
-                                            :grupo="$grupoId"
-                                            seccion="planta" />
-                                    @endforeach
-                                </div>
-                            </div>
+                            <x-tarjeta-grupo-concentracion
+                                :titulo="$sector"
+                                :campos="$campos"
+                                :grupo-id="'gr-pt-' . array_key_first($campos)"
+                                seccion="planta"
+                                :evaluacion="$evaluacion"
+                                :disabled="$bloqueado"
+                                color-texto="text-blue-700" />
                         @endforeach
                     </div>
                 </section>
