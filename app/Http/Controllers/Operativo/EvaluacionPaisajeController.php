@@ -40,6 +40,15 @@ class EvaluacionPaisajeController extends MatrizPonderadaController
     }
 
     /**
+     * Las 34 etiquetas del instrumento, tomadas de Paisaje::todos() y no
+     * copiadas: cada criterio trae su 'nombre' ya escrito allí.
+     */
+    protected function etiquetas(): array
+    {
+        return array_map(fn(array $criterio) => $criterio['nombre'], Paisaje::todos());
+    }
+
+    /**
      * Cada categoría promedia sus criterios y ese promedio se pondera. Los
      * pesos suman 1, así que el total queda en la misma escala 0-5.
      */

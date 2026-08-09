@@ -213,6 +213,19 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
             ->all();
     }
 
+    /**
+     * campo => etiqueta de los 156 campos, aplanando self::$secciones -que ya
+     * es "Título de sección" => [campo => etiqueta]-. No copia nada nuevo:
+     * es la misma estructura que ya usan getAllCampos(), edit() y
+     * ponderacion() para pintar el formulario y los resultados.
+     *
+     * @return array<string, string>
+     */
+    private function etiquetas(): array
+    {
+        return array_merge(...array_values(self::$secciones));
+    }
+
     // ── Vista combinada (selección + calificación en una sola página) ─────────
     public function edit($zonaId)
     {
@@ -296,7 +309,12 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
         foreach ($camposActivos as $campo) {
             $reglas[$campo] = "{$obligatoriedad}|integer|min:0|max:2";
         }
-        $request->validate($reglas);
+        // Tercer argumento, no una entrada por campo en lang/es/validation.php:
+        // con 156 criterios esa lista se desincronizaría de self::$secciones en
+        // cuanto alguien renombrara una etiqueta ahí. Ver el mismo razonamiento
+        // en MatrizPonderadaController::etiquetas(), que esta clase no hereda
+        // -Potencialidad no es una MatrizPonderadaController- pero sigue igual.
+        $request->validate($reglas, [], $this->etiquetas());
 
         // Todo validado: recién ahora se persiste la configuración, para que un
         // error de validación no deje la selección de campos ya modificada.

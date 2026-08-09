@@ -98,12 +98,29 @@ class EvaluacionPercepcionController extends MatrizPonderadaController
         return $criterios;
     }
 
+    /**
+     * Las 16 etiquetas del instrumento, tomadas de self::$categorias y no
+     * copiadas: cada 'items' de ahí ya es campo => texto tal como lo declaran
+     * las categorías DS/PL/PE/NO.
+     */
+    protected function etiquetas(): array
+    {
+        return array_merge(...array_map(
+            fn(array $cat) => $cat['items'],
+            array_values(self::$categorias)
+        ));
+    }
+
     /** Añade el campo de texto libre, que no es un criterio puntuable. */
     protected function prepararDatos(Request $request, $zonaId, ?Model $actual, string $estado): array
     {
         $datos = parent::prepararDatos($request, $zonaId, $actual, $estado);
 
-        $extra = $request->validate(['acciones_mejora' => 'nullable|string|max:5000']);
+        $extra = $request->validate(
+            ['acciones_mejora' => 'nullable|string|max:5000'],
+            [],
+            ['acciones_mejora' => 'Acciones de mejora']
+        );
 
         return $datos + $extra;
     }

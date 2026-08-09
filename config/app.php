@@ -78,8 +78,17 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    // Fijo, no env('APP_LOCALE', ...): el .env no viaja entre máquinas ni a
+    // Render, y toda la interfaz ya está en castellano -ver lang/es/validation.php-,
+    // así que no tiene sentido que el idioma dependa de una variable que
+    // cada entorno puede tener o no. Si algún día hiciera falta multi-idioma
+    // de verdad, esto vuelve a leer de env() a propósito, no por descuido.
+    'locale' => 'es',
 
+    // Sí en inglés a propósito: es el idioma que trae completo el propio
+    // framework (vendor/laravel/framework/.../lang/en), así que una clave
+    // que lang/es/validation.php no traduzca cae aquí en vez de romper. El
+    // hueco se nota -texto en inglés-, no desaparece en silencio.
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
