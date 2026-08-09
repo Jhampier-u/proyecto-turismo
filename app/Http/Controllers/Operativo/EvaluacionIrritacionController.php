@@ -42,6 +42,12 @@ class EvaluacionIrritacionController extends MatrizPonderadaController
         return array_map(fn(array $bloque) => $bloque['campos'], Irritacion::BLOQUES);
     }
 
+    /** Las doce etiquetas del instrumento: Irritacion::ETIQUETAS ya es campo => texto. */
+    protected function etiquetas(): array
+    {
+        return Irritacion::ETIQUETAS;
+    }
+
     /**
      * Media simple de cada bloque. Sin pesos: el instrumento no los tiene.
      *

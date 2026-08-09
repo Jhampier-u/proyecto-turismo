@@ -130,15 +130,13 @@ tenerlos presentes al revisar lo que venga:
    verde sin distinguir «no hay resultado» de «el resultado es cero» — la
    distinción entera de esta rama. Ahora afirma `assertNull`.
 
-#### Un aviso pendiente, sin arreglar
+#### Un aviso que quedó pendiente aquí y se arregló después
 
-Los mensajes de validación salen **en inglés y con el nombre de columna crudo**:
-«The ep cambios tiempo field is required». Es de siempre —Laravel no trae
-traducciones y la app no define `lang/es`—, pero antes casi no se veía: el
-formulario mandaba todos los campos y el error era raro. Ahora «confirmar
-cuando falta algo» es un camino normal, así que ese mensaje pasa a ser
-frecuente. Arreglarlo es traducir `validation.php` entero y poner
-`app.locale = es`; no entraba en esta rama.
+Los mensajes de validación salían **en inglés y con el nombre de columna crudo**:
+«The ep cambios tiempo field is required». Antes casi no se veía —el formulario
+mandaba todos los campos y un error era raro—, pero con el guardado parcial
+«confirmar cuando falta algo» pasó a ser un camino normal. Resuelto en la rama
+`mensajes-validacion`; ver más abajo.
 
 ### Rama `irritacion-turistica` — séptima matriz, terminada
 
@@ -275,6 +273,40 @@ quedan `integer` nullable y sin defecto —un defecto de 0 convertiría «no lo 
 contado» en «no hay ninguno»—, los nombres coinciden byte a byte con
 `Concentracion::campos()`, y la suite entera da los mismos 337 verdes que en
 SQLite.
+
+### Rama `mensajes-validacion` — terminada
+
+Los errores de validación ya salen **en castellano y nombrando el campo como lo
+ve el evaluador**, no como columna. Suite: **347 tests**.
+
+**La decisión que importa:** las etiquetas **no se copian** a
+`lang/es/validation.php`. Serían centenares de campos duplicados, y en cuanto
+alguien cambiara una etiqueta en su instrumento el mensaje de error seguiría
+diciendo la vieja **sin que nada fallara** — el mismo patrón de segunda fuente de
+verdad que este proyecto lleva meses quitando. En su lugar,
+`MatrizPonderadaController` tiene un hook `etiquetas()` que cada matriz
+sobreescribe apuntando a donde sus etiquetas **ya viven**, y se pasa como tercer
+argumento de `validate()`.
+
+`app.locale` se fija **en la configuración, no en `.env`**: el `.env` no viaja a
+Render. El `fallback_locale` se deja en inglés a propósito, para que una regla sin
+traducir se note en vez de romper.
+
+**Siete de las nueve matrices** dan la etiqueta del instrumento. **FIT y FET no**,
+y no es un olvido: sus controladores solo declaran `dimensión => [campos]`, sin
+texto, y los nombres que ve el evaluador existen **únicamente como literales
+sueltos en sus dos vistas Blade**. Derivarlos exigiría copiarlos a mano —la
+segunda fuente de verdad que este cambio evita— o refactorizar dos formularios en
+producción. Se quedan con el mensaje en castellano y el campo legible
+(«recursos culturales»), y su turno es la tarea de migrar FIT y FET a los
+componentes de criterio nuevos.
+
+**Una limitación del lenguaje, no del diseño:** el test ideal cambiaría una
+etiqueta del instrumento y comprobaría que el mensaje cambia con ella. Cinco de
+las siete las declaran como `public const`, que PHP no deja reasignar ni por
+Reflection. Para esas, el test **lee** la etiqueta vigente y construye el mensaje
+esperado con ella; detecta la deriva, que es el riesgo real. Percepción sí las
+tiene en una propiedad estática, y ahí el test hace la mutación de verdad.
 
 ## 4. Lo que hay que saber para continuar
 

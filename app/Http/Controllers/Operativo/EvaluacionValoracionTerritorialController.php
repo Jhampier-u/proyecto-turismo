@@ -32,6 +32,15 @@ class EvaluacionValoracionTerritorialController extends MatrizPonderadaControlle
     }
 
     /**
+     * Las 21 etiquetas del instrumento, tomadas de ValoracionTerritorial::todos()
+     * y no copiadas: cada criterio trae su 'nombre' ya escrito allí.
+     */
+    protected function etiquetas(): array
+    {
+        return array_map(fn(array $criterio) => $criterio['nombre'], ValoracionTerritorial::todos());
+    }
+
+    /**
      * Suma ponderada por dimensión, con los pesos del instrumento original.
      * Como cada dimensión suma 1 y la escala es 0-2, cada total va de 0 a 2.
      */

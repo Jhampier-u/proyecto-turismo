@@ -72,6 +72,12 @@ class EvaluacionConcentracionController extends MatrizPonderadaController
         return array_merge($atractivos, $planta);
     }
 
+    /** Las 113 etiquetas del instrumento, sin copiarlas: ver Concentracion::etiquetas(). */
+    protected function etiquetas(): array
+    {
+        return Concentracion::etiquetas();
+    }
+
     /**
      * Nada que calcular: porcentajes, Sia, Pi e ICT se derivan siempre a
      * partir de los conteos guardados (ver App\Matrices\ConcentracionCalculo);

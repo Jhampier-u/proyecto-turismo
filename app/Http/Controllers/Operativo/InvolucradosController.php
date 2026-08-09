@@ -82,7 +82,7 @@ class InvolucradosController extends Controller
             return $bloqueo;
         }
 
-        $request->validate($this->reglas());
+        $request->validate($this->reglas(), [], $this->etiquetas());
 
         // Alta y reapertura en la misma transacción: si reabrirSiConfirmada()
         // fallara a mitad de camino, un rollback a medias dejaría el actor
@@ -124,7 +124,7 @@ class InvolucradosController extends Controller
             return $bloqueo;
         }
 
-        $request->validate($this->reglas());
+        $request->validate($this->reglas(), [], $this->etiquetas());
 
         // Misma transacción que store(): la actualización y la reapertura
         // tienen que caer juntas o ninguna, por el mismo motivo.
@@ -422,6 +422,24 @@ class InvolucradosController extends Controller
             'nombre' => 'required|string|max:200',
             ...array_fill_keys(Involucrados::campos(), 'nullable|integer|min:0|max:3'),
         ];
+    }
+
+    /**
+     * campo => etiqueta de los once criterios, aplanando Involucrados::ATRIBUTOS
+     * -que ya es 'poder'/'legitimidad'/'urgencia' => [titulo, campos]-, más
+     * 'nombre': el único campo de este formulario que no es un criterio de
+     * puntuación. No copia nada nuevo: ATRIBUTOS es la misma fuente que ya
+     * consumen index(), create() y relevanciasDe() para lo que sabe el
+     * instrumento sobre sus once campos.
+     *
+     * @return array<string, string>
+     */
+    private function etiquetas(): array
+    {
+        return ['nombre' => 'Nombre del actor'] + array_merge(...array_map(
+            fn(array $atributo) => $atributo['campos'],
+            array_values(Involucrados::ATRIBUTOS)
+        ));
     }
 
     /**

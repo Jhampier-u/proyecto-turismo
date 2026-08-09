@@ -109,6 +109,31 @@ abstract class MatrizPonderadaController extends EvaluacionZonaController
         return array_fill_keys(array_keys($this->calcular($ceros)), null);
     }
 
+    /**
+     * Nombre humano de cada campo, tal como lo ve el evaluador -no el nombre
+     * de columna-, para que "El campo :attribute es obligatorio" diga algo
+     * reconocible en vez de "the ep cambios tiempo field is required".
+     *
+     * Por defecto ninguno: sin etiqueta, Laravel usa el nombre de columna
+     * humanizado (guiones bajos por espacios), que sigue sin ser el texto del
+     * instrumento pero al menos es legible -es la matriz sin etiquetas
+     * accesibles del reporte de esta rama, ver EvaluacionFitController y
+     * EvaluacionFetController-.
+     *
+     * Cada matriz que SÍ tenga sus etiquetas en algún sitio accesible las
+     * expone aquí apuntando a esa fuente -su propia clase en App\Matrices o
+     * el mapa que ya declara su controlador-, nunca copiándolas: una copia se
+     * desincroniza en cuanto alguien cambia una etiqueta en el instrumento y
+     * ningún test lo vería, que es justo la segunda fuente de verdad que este
+     * proyecto lleva meses quitando.
+     *
+     * @return array<string, string> campo => etiqueta
+     */
+    protected function etiquetas(): array
+    {
+        return [];
+    }
+
     protected function prepararDatos(Request $request, $zonaId, ?Model $actual, string $estado): array
     {
         $regla = $this->reglaCriterio($estado);
@@ -118,7 +143,11 @@ abstract class MatrizPonderadaController extends EvaluacionZonaController
             $reglas[$campo] = $regla;
         }
 
-        $request->validate($reglas);
+        // Tercer argumento de validate(), no una entrada por campo en
+        // lang/es/validation.php: eso escalaría a centenares de líneas para
+        // Concentración y se desincronizaría de sus propias etiquetas en
+        // cuanto alguien tocara App\Matrices\Concentracion.
+        $request->validate($reglas, [], $this->etiquetas());
 
         // validate() no devuelve las claves ausentes, y aquí hacen falta todas:
         // un campo que el usuario borró tiene que llegar como null a la base

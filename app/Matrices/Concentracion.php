@@ -228,4 +228,30 @@ final class Concentracion
 
         return $campos;
     }
+
+    /**
+     * campo => etiqueta de los 113 campos, aplanando ATRACTIVOS y PLANTA.
+     *
+     * Es lo que EvaluacionConcentracionController expone como etiquetas() de
+     * validación (ver MatrizPonderadaController::etiquetas()): así un mensaje
+     * de "campo obligatorio" nombra "Cascada", no `at_nat_rios_cascada`, sin
+     * copiar el texto a ningún otro sitio -se deriva de ATRACTIVOS y PLANTA
+     * en cada llamada, igual que campos()-.
+     *
+     * @return array<string, string>
+     */
+    public static function etiquetas(): array
+    {
+        $etiquetas = [];
+        foreach (self::ATRACTIVOS as $tipos) {
+            foreach ($tipos as $mapa) {
+                $etiquetas += $mapa;
+            }
+        }
+        foreach (self::PLANTA as $mapa) {
+            $etiquetas += $mapa;
+        }
+
+        return $etiquetas;
+    }
 }
