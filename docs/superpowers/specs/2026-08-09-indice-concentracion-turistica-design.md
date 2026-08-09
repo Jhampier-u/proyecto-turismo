@@ -15,12 +15,12 @@ Cómo se reparte la oferta turística del territorio entre sus categorías. Son 
 índices en un mismo instrumento, con la misma mecánica y sin combinarse:
 
 **Atractivos turísticos** — dos tablas paralelas, manifestaciones culturales
-(unos 22 subtipos: arquitectura, folklore, realizaciones técnicas,
-acontecimientos programados) y atractivos naturales (unos 55: montañas,
+(22 subtipos: arquitectura, folklore, realizaciones técnicas,
+acontecimientos programados) y atractivos naturales (55: montañas,
 planicies, ambientes lacustres, ríos, bosques, costas). Por cada subtipo, una
 **cantidad**, y su porcentaje sobre el total de su tabla.
 
-**Planta turística** — diez sectores con unas 40 subcategorías: alojamiento,
+**Planta turística** — diez sectores con 36 subcategorías: alojamiento,
 restauración, intermediación, transportación, guianza, organizadores de eventos,
 centros de convenciones, turismo comunitario, parques temáticos y balnearios.
 Por cada subcategoría, una **cantidad de establecimientos**. Por sector:
@@ -105,7 +105,7 @@ clase base.
 Tabla `evaluaciones_concentracion`, con la forma de las demás: `zona_id` único,
 `user_id`, `estado`, marcas de tiempo.
 
-Unas **117 columnas de conteo**, `unsignedInteger` nullable sin defecto, con el
+Las **113 columnas de conteo**, `unsignedInteger` nullable sin defecto, con el
 prefijo de su bloque y su categoría —`at_mc_museos`, `at_nat_montana_volcanes`,
 `pt_al_hotel`, `pt_rs_cafeteria`—. Nullable por lo de siempre: un subtipo sin
 contar no es un cero, y aquí el 0 significa «no hay ninguno», que es un dato.
@@ -115,14 +115,18 @@ contar no es un cero, y aquí el 0 significa «no hay ninguno», que es un dato.
 **Nada calculado se guarda.** Porcentajes, `Sia`, `Pi` e `ICT` se derivan
 siempre: son función directa de los conteos y guardarlos sería una segunda
 fuente de verdad. Es la primera matriz sin ninguna columna calculada, así que
-la clase base recibirá un `calcular()` que devuelve un array vacío — conviene
-comprobar que eso no la incomoda antes de dar el diseño por bueno.
+la clase base recibirá un `calcular()` que devuelve un array vacío.
+**Comprobado:** `columnasCalculadasVacias()` da `[]` y su unión con los valores
+es inocua, así que no hay que tocar nada compartido.
 
-**El número de columnas es el riesgo de esta matriz.** Son más que las 156 de
-Potencialidad solo en cantidad de tecleo, pero aquí no hay generador desde el
-Excel: la lista hay que escribirla. Conviene generarla con un script como se
-hizo con Valoración Territorial, precisamente para que un nombre mal copiado no
-pase inadvertido.
+**El número de columnas es el riesgo de esta matriz**, y por eso los nombres se
+generan desde el Excel con un script, como se hizo con Valoración Territorial:
+un nombre mal copiado no rompe ningún test, solo desvía un conteo en silencio.
+
+El generador garantiza además que ningún nombre pase de **63 bytes**, que es el
+límite de identificador de PostgreSQL. Cuatro los pasaban —el más largo medía
+82— y Postgres los habría truncado **en silencio**: el mismo patrón de «SQLite
+pasa, Postgres hace otra cosa» que este proyecto ya se ha comido dos veces.
 
 ---
 

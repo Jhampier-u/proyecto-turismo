@@ -4,7 +4,7 @@
 
 **Goal:** Añadir la novena matriz —el Índice de Concentración Turística—, que cuenta la oferta del territorio por categoría en dos bloques: atractivos y planta turística.
 
-**Architecture:** Un controlador más sobre `MatrizPonderadaController`, como las siete matrices de formulario. Lo propio de esta son unas 117 columnas de conteo, una escala sin tope y ninguna columna calculada.
+**Architecture:** Un controlador más sobre `MatrizPonderadaController`, como las siete matrices de formulario. Lo propio de esta son 113 columnas de conteo, una escala sin tope y ninguna columna calculada.
 
 **Tech Stack:** Laravel 12, PHP 8.2, Blade, Tailwind CSS 3, SQLite en desarrollo y tests, PostgreSQL 16 en producción, PHPUnit 11, Python 3.14 con openpyxl para el generador.
 
@@ -38,7 +38,7 @@
 
 ### Task 1: El generador y la definición del instrumento
 
-**El riesgo de esta matriz no es la lógica, son los 117 nombres.** Escribirlos a
+**El riesgo de esta matriz no es la lógica, son los 113 nombres.** Escribirlos a
 mano no rompe ningún test si uno se copia mal: solo desvía un conteo en
 silencio. Por eso se generan desde el Excel, como se hizo con Valoración
 Territorial.
@@ -91,7 +91,7 @@ las filas de subtotal: úsala como prefijo del campo: `pt_al_hotel`,
 
 - `ATRACTIVOS` y `PLANTA`: el árbol de cada bloque, con sus categorías o
   sectores y, dentro, el mapa campo → etiqueta.
-- `campos()`: los 117 nombres en orden.
+- `campos()`: los 113 nombres en orden.
 - Una cabecera que diga de qué fichero se generó y que se regenere en vez de
   editarse, como la de `ValoracionTerritorial`.
 
@@ -101,10 +101,11 @@ En `tests/Unit/ConcentracionCalculoTest.php`, un test que afirme cuántos campos
 tiene cada bloque y que no hay ninguno repetido. Es lo que convierte un error
 del generador en un fallo ruidoso.
 
-**Aviso:** el número exacto de subtipos hay que leerlo del Excel, no darlo por
-supuesto — este plan dice «unos 22», «unos 55» y «unas 40» porque son
-aproximaciones de una inspección, no un recuento verificado. **Cuenta tú y pon
-el número real.**
+**Los números, ya verificados por el generador:** 22 subtipos culturales en 4
+tipos, 55 naturales en 11 tipos —77 atractivos— y 36 subcategorías de planta en
+10 sectores. **113 campos en total.** Las cifras que este plan traía antes
+(«unas 40» de planta, «117» en total) eran estimaciones mías de una inspección a
+ojo, y las dos estaban mal: por eso se genera en vez de teclear.
 
 - [ ] **Step 6: Commit**
 
@@ -151,7 +152,7 @@ Es la parte rodada: sigue a `EvaluacionIrritacionController` paso por paso.
 
 **Lo propio de esta matriz:**
 
-- La migración declara las 117 columnas como `unsignedInteger` **nullable y sin
+- La migración declara las 113 columnas como `unsignedInteger` **nullable y sin
   defecto**. Derívalas de `Concentracion::campos()` **en el momento de escribir
   la migración**, pero **escríbelas literalmente en el fichero**: una migración
   no debe importar código de `app/`, y menos código generado. Es la lección de
@@ -179,10 +180,10 @@ Dos secciones, y dentro una subsección por categoría o sector, con un campo
 numérico por subtipo. **Sin desplegables: son cantidades, no puntuaciones.**
 
 Cada sector muestra su subtotal en vivo, que es lo que el evaluador necesita
-para saber si va bien. Con 117 campos, un contador de respondidos por sección
+para saber si va bien. Con 113 campos, un contador de respondidos por sección
 también ayuda.
 
-Tests: que se pintan los 117 campos, que el admin lo recibe bloqueado —con la
+Tests: que se pintan los 113 campos, que el admin lo recibe bloqueado —con la
 aserción **contando** los campos deshabilitados, no buscando la cadena
 `disabled`, que las clases de Tailwind satisfacen por su cuenta—.
 
@@ -207,7 +208,7 @@ ya se coló dos veces en esta serie—, y que un sector vacío dice que no aplic
 - [ ] Suite y `npm run build` en verde.
 - [ ] **La migración contra PostgreSQL real**, con un contenedor desechable
       (`docker run --rm`, parada por nombre explícito, sin `prune` de nada).
-      Comprobar que las 117 columnas quedan nullable y sin defecto. Ojo: es la
+      Comprobar que las 113 columnas quedan nullable y sin defecto. Ojo: es la
       tabla más ancha del proyecto; PostgreSQL admite 1600 columnas, así que no
       hay problema, pero conviene verlo.
 - [ ] **La suite entera contra PostgreSQL**, que desde el arreglo del

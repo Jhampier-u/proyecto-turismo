@@ -1,0 +1,223 @@
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            Índice de Concentración Turística — {{ $zona->nombre }}
+        </h2>
+    </x-slot>
+
+    <div class="py-12">
+        <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
+
+            <a href="{{ url()->previous() }}"
+                class="inline-flex items-center px-4 py-2 mb-4 bg-blue-300 hover:bg-blue-500 text-black-700 font-bold rounded-lg shadow-sm">
+                Regresar
+            </a>
+
+            @php
+                $esJefe         = auth()->user()->esJefe();
+                $estaConfirmado = $evaluacion->estado === 'confirmado';
+                // El admin nunca edita evaluaciones, aunque estén en borrador:
+                // sin este predicado, $bloqueado solo miraría la confirmación
+                // y el admin vería el formulario abierto de par en par.
+                $bloqueado      = ! auth()->user()->puedeEditarEvaluaciones() || ($estaConfirmado && !$esJefe);
+
+                // Total de campos por sección, derivado de las mismas
+                // estructuras que ya recorre el formulario más abajo -no un
+                // 77 y un 36 sueltos que alguien tendría que corregir a mano
+                // si el instrumento ganara o perdiera un subtipo-.
+                $totalAtractivos = array_sum(array_map(
+                    fn(array $tipos) => array_sum(array_map('count', $tipos)),
+                    $atractivos
+                ));
+                $totalPlanta = array_sum(array_map('count', $planta));
+            @endphp
+
+            @if($estaConfirmado)
+                <div class="mb-6 bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <strong class="font-bold text-lg">✓ Índice de Concentración Validado</strong>
+                            <p>Esta evaluación ha sido confirmada por el Jefe de Zona.</p>
+                        </div>
+                        <a href="{{ route('operativo.evaluacion_concentracion.ponderacion', $zona->id) }}"
+                            class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700">
+                            Ver Resultados
+                        </a>
+                    </div>
+                </div>
+            @else
+                <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded">
+                    <strong class="font-bold">Modo Borrador</strong>
+                    <p>Los datos ingresados son preliminares.</p>
+                </div>
+            @endif
+
+            <x-flash-exito />
+
+            {{-- Cada frase en una sola línea a propósito: Blade respeta los
+                 saltos de línea del propio fichero, así que una frase que
+                 aquí ocupara dos líneas no la encontraría un assertSee() que
+                 buscara la frase entera. --}}
+            <div class="mb-6 bg-indigo-50 border-l-4 border-indigo-500 text-indigo-800 p-4 text-sm rounded">
+                <p class="font-bold mb-1">Esto no puntúa: cuenta</p>
+                <p>Cada campo es una cantidad de atractivos o de establecimientos, sin tope ni desplegable: el 0 es un dato -"no hay ninguno"-, la casilla vacía es "todavía no lo he contado".</p>
+            </div>
+
+            @php
+                // Color de borde por sección, no por clasificación: es
+                // decorativo, solo para orientarse entre las dos partes del
+                // instrumento -77 campos de atractivos y 36 de planta-. Un
+                // color completo por clave, igual que $bordesPorBloque en
+                // evaluacion_irritacion/form.blade.php, no una clase
+                // construida por interpolación.
+                $colorSeccion = [
+                    'atractivos' => 'border-emerald-500',
+                    'planta'     => 'border-blue-500',
+                ];
+            @endphp
+
+            <form method="POST" action="{{ route('operativo.evaluacion_concentracion.update', $zona->id) }}" id="form-concentracion">
+                @csrf
+
+                {{-- ═══════════════════ ATRACTIVOS TURÍSTICOS (77) ═══════════════════ --}}
+                <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $colorSeccion['atractivos'] }}">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                        <h3 class="text-xl font-bold text-gray-900">Atractivos Turísticos</h3>
+                        {{-- "Respondido" incluye el 0 -significa "no hay
+                             ninguno", es un dato-, distinto de la casilla
+                             vacía: el JavaScript de más abajo cuenta así, no
+                             como "valor mayor que cero". --}}
+                        <span class="text-sm font-semibold text-emerald-700">
+                            Respondidos: <span id="contador-atractivos">0</span> / {{ $totalAtractivos }}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-5">Manifestaciones culturales y atractivos naturales, dos tablas paralelas del instrumento.</p>
+
+                    @foreach($atractivos as $categoria => $tipos)
+                        <h4 class="text-base font-bold text-gray-800 mt-6 mb-3 border-b border-gray-200 pb-1">{{ $categoria }}</h4>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            @foreach($tipos as $tipo => $campos)
+                                {{-- El id del grupo sale del primer campo del
+                                     tipo, no de un slug del nombre: un campo
+                                     ya es único en las 113 columnas, así que
+                                     no hace falta derivar ni comprobar otra
+                                     cosa. --}}
+                                <x-tarjeta-grupo-concentracion
+                                    :titulo="$tipo"
+                                    :campos="$campos"
+                                    :grupo-id="'gr-at-' . array_key_first($campos)"
+                                    seccion="atractivos"
+                                    :evaluacion="$evaluacion"
+                                    :disabled="$bloqueado"
+                                    color-texto="text-emerald-700" />
+                            @endforeach
+                        </div>
+                    @endforeach
+                </section>
+
+                {{-- ═══════════════════ PLANTA TURÍSTICA (36) ═══════════════════ --}}
+                <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $colorSeccion['planta'] }}">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                        <h3 class="text-xl font-bold text-gray-900">Planta Turística</h3>
+                        <span class="text-sm font-semibold text-blue-700">
+                            Respondidos: <span id="contador-planta">0</span> / {{ $totalPlanta }}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-5">Diez sectores de establecimientos, cada uno con su propio subtotal.</p>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        @foreach($planta as $sector => $campos)
+                            <x-tarjeta-grupo-concentracion
+                                :titulo="$sector"
+                                :campos="$campos"
+                                :grupo-id="'gr-pt-' . array_key_first($campos)"
+                                seccion="planta"
+                                :evaluacion="$evaluacion"
+                                :disabled="$bloqueado"
+                                color-texto="text-blue-700" />
+                        @endforeach
+                    </div>
+                </section>
+
+                @unless($bloqueado)
+                    <div class="flex justify-end gap-3">
+                        <button type="submit"
+                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">
+                            Guardar Borrador
+                        </button>
+
+                        @if($esJefe)
+                            <button type="submit" name="accion_estado" value="confirmado"
+                                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow"
+                                    onclick="return confirm('Al validar, la evaluación queda cerrada para el equipo. ¿Continuar?');">
+                                Validar y Finalizar
+                            </button>
+                        @endif
+                    </div>
+                @else
+                    <p class="text-gray-500 italic text-right">
+                        Solo el Jefe de Zona puede reabrir o editar una matriz validada.
+                    </p>
+                @endunless
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Subtotales por tipo/sector y contador de respondidos por sección,
+        // en vivo y sin dependencias -como el resto del proyecto-: con 113
+        // campos, el evaluador necesita saber si va bien sin enviar el
+        // formulario para averiguarlo.
+        (function () {
+            var form = document.getElementById('form-concentracion');
+            if (!form) {
+                return;
+            }
+
+            var campos = Array.prototype.slice.call(form.querySelectorAll('input[data-grupo]'));
+
+            function recalcular() {
+                var subtotales  = {};
+                var respondidos = {};
+
+                campos.forEach(function (campo) {
+                    var grupo   = campo.dataset.grupo;
+                    var seccion = campo.dataset.seccion;
+                    var valor   = campo.value;
+
+                    // Un hueco vacío suma 0 al subtotal -no hay nada que
+                    // contar todavía-, pero NO cuenta como respondido: eso
+                    // es justo lo que lo distingue de un 0 tecleado.
+                    subtotales[grupo] = (subtotales[grupo] || 0) + (valor === '' ? 0 : (parseInt(valor, 10) || 0));
+
+                    if (valor !== '') {
+                        respondidos[seccion] = (respondidos[seccion] || 0) + 1;
+                    }
+                });
+
+                Object.keys(subtotales).forEach(function (grupo) {
+                    var etiqueta = document.getElementById('subtotal-' + grupo);
+                    if (etiqueta) {
+                        etiqueta.textContent = subtotales[grupo];
+                    }
+                });
+
+                ['atractivos', 'planta'].forEach(function (seccion) {
+                    var contador = document.getElementById('contador-' + seccion);
+                    if (contador) {
+                        contador.textContent = respondidos[seccion] || 0;
+                    }
+                });
+            }
+
+            form.addEventListener('input', recalcular);
+
+            // Recalcula también al cargar la página: un borrador ya
+            // guardado tiene que mostrar sus subtotales y su contador
+            // reales desde el primer pintado, no un 0 hasta la primera
+            // tecla.
+            recalcular();
+        })();
+    </script>
+</x-app-layout>

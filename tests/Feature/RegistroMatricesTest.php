@@ -70,7 +70,7 @@ class RegistroMatricesTest extends TestCase
      */
     public function test_solo_las_matrices_validables_cuentan_para_el_progreso(): void
     {
-        $this->assertCount(8, Registro::matrices());
+        $this->assertCount(9, Registro::matrices());
 
         foreach (Registro::matrices() as $clave => $entrada) {
             $this->assertContains($entrada['tipo'], Registro::TIPOS_VALIDABLES, $clave);
@@ -113,6 +113,16 @@ class RegistroMatricesTest extends TestCase
                 "{$clave}: el registro declara un número de criterios que no cuadra con {$matriz}."
             );
         }
+
+        // Concentración va aparte porque su lista se llama campos(), no todos():
+        // no puntúa criterios, cuenta cantidades, y el nombre lo dice. Se
+        // comprueba igual, porque su clase se genera desde el Excel y el número
+        // del registro está copiado a mano.
+        $this->assertSame(
+            count(\App\Matrices\Concentracion::campos()),
+            Registro::ENTRADAS['concentracion']['criterios'],
+            'concentracion: el registro declara un número que no cuadra con la clase generada.'
+        );
     }
 
     /**

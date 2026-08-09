@@ -229,7 +229,7 @@ class EstadoZonaTest extends TestCase
     {
         $estado = new EstadoZona($this->zona, $this->jefe);
         $this->assertSame(0, $estado->validadas());
-        $this->assertSame(8, $estado->totalMatrices());
+        $this->assertSame(9, $estado->totalMatrices());
 
         EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'confirmado']);
         EvaluacionFet::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
