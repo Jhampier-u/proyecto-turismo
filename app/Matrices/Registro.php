@@ -2,6 +2,7 @@
 
 namespace App\Matrices;
 
+use App\Models\EvaluacionConcentracion;
 use App\Models\EvaluacionFet;
 use App\Models\EvaluacionFit;
 use App\Models\EvaluacionIrritacion;
@@ -166,6 +167,24 @@ final class Registro
             'rutas'      => [
                 'editar' => 'operativo.evaluacion_irritacion.edit',
                 'ver'    => 'operativo.evaluacion_irritacion.ponderacion',
+            ],
+            'depende_de' => [],
+        ],
+
+        'concentracion' => [
+            'nombre'     => 'Concentración turística',
+            'icono'      => 'barras',
+            'grupo'      => 'presion',
+            'tipo'       => 'matriz',
+            'modelo'     => EvaluacionConcentracion::class,
+            // 113: verificado como count(Concentracion::campos()) al escribir
+            // esta entrada, no una estimación -es la matriz con más criterios
+            // del sistema y un número copiado a mano es justo el riesgo que
+            // Concentracion.php se generó desde el Excel para evitar-.
+            'criterios'  => 113,
+            'rutas'      => [
+                'editar' => 'operativo.evaluacion_concentracion.edit',
+                'ver'    => 'operativo.evaluacion_concentracion.ponderacion',
             ],
             'depende_de' => [],
         ],

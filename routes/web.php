@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\PanelController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ZonaController;
 use App\Http\Controllers\Operativo\DashboardController;
+use App\Http\Controllers\Operativo\EvaluacionConcentracionController;
 use App\Http\Controllers\Operativo\EvaluacionFetController;
 use App\Http\Controllers\Operativo\EvaluacionFitController;
 use App\Http\Controllers\Operativo\EvaluacionIrritacionController;
@@ -94,6 +95,11 @@ Route::middleware(['auth', 'personal'])->group(function () {
         Route::get('/irritacion',            [EvaluacionIrritacionController::class, 'edit'])->name('evaluacion_irritacion.edit');
         Route::post('/irritacion',           [EvaluacionIrritacionController::class, 'update'])->name('evaluacion_irritacion.update');
         Route::get('/irritacion/resultados', [EvaluacionIrritacionController::class, 'ponderacion'])->name('evaluacion_irritacion.ponderacion');
+
+        // Índice de Concentración Turística
+        Route::get('/concentracion',            [EvaluacionConcentracionController::class, 'edit'])->name('evaluacion_concentracion.edit');
+        Route::post('/concentracion',           [EvaluacionConcentracionController::class, 'update'])->name('evaluacion_concentracion.update');
+        Route::get('/concentracion/resultados', [EvaluacionConcentracionController::class, 'ponderacion'])->name('evaluacion_concentracion.ponderacion');
 
         // Matriz de Involucrados Turísticos Territoriales
         //
