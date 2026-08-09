@@ -199,4 +199,69 @@ class ConcentracionTest extends TestCase
             ->assertOk()
             ->assertSee('Volver a la zona');
     }
+
+    /**
+     * Task 4: el formulario de verdad -no el esqueleto de la Tarea 3- pinta
+     * los 113 campos. Recorridos desde Concentracion::campos() y no
+     * tecleados aquí: si el instrumento ganara o perdiera un subtipo el día
+     * de mañana, este test lo seguiría comprobando sin que nadie lo tocara.
+     */
+    public function test_el_formulario_pinta_los_113_campos(): void
+    {
+        $campos = Concentracion::campos();
+        $this->assertCount(113, $campos, 'App\Matrices\Concentracion::campos() ya no trae 113 campos.');
+
+        $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+
+        foreach ($campos as $campo) {
+            $this->assertStringContainsString(
+                'name="' . $campo . '"',
+                $html,
+                "El formulario no pinta el campo {$campo}."
+            );
+        }
+    }
+
+    /**
+     * NO se usa assertSee('disabled', false): las clases de Tailwind de este
+     * proyecto incluyen "disabled:bg-gray-100", así que esa aserción se
+     * cumple sola aunque no haya ni un campo bloqueado -ya pasó así en
+     * Paisaje, 24 veces, con el test en verde-. Se cuenta 'disabled>', con
+     * el cierre de la etiqueta pegado: esa subcadena no aparece dentro de
+     * "disabled:bg-gray-100" porque ahí sigue un ':', no un '>'.
+     */
+    public function test_el_admin_recibe_los_113_campos_deshabilitados(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(4));
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $html = $this->actingAs($admin)->get($this->url())->assertOk()->getContent();
+
+        $this->assertSame(113, substr_count($html, 'disabled>'));
+    }
+
+    /**
+     * Un valor tecleado sobrevive al repintado cuando OTRO campo dispara el
+     * error de validación. Se comprueba con una expresión regular sobre la
+     * etiqueta <input> concreta -no un assertSee('value="7"') suelto, que
+     * encontraría un 7 en cualquier parte de una página con 113 campos-,
+     * mismo cuidado que InvolucradosTest con la casilla tiene_poder.
+     */
+    public function test_un_valor_tecleado_sobrevive_a_un_error_de_validacion(): void
+    {
+        $datos = $this->todosEn(7);
+        $datos['at_nat_rios_rio'] = -1;
+
+        $this->actingAs($this->jefe)->from($this->url())->post($this->url(), $datos)
+            ->assertSessionHasErrors('at_nat_rios_rio');
+
+        $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+
+        preg_match('/<input[^>]*name="pt_al_hotel"[^>]*>/', $html, $etiqueta);
+        $this->assertNotEmpty($etiqueta, 'No se encontró el campo pt_al_hotel en el formulario.');
+        $this->assertStringContainsString('value="7"', $etiqueta[0]);
+    }
 }

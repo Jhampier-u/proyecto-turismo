@@ -20,6 +20,16 @@
                 // sin este predicado, $bloqueado solo miraría la confirmación
                 // y el admin vería el formulario abierto de par en par.
                 $bloqueado      = ! auth()->user()->puedeEditarEvaluaciones() || ($estaConfirmado && !$esJefe);
+
+                // Total de campos por sección, derivado de las mismas
+                // estructuras que ya recorre el formulario más abajo -no un
+                // 77 y un 36 sueltos que alguien tendría que corregir a mano
+                // si el instrumento ganara o perdiera un subtipo-.
+                $totalAtractivos = array_sum(array_map(
+                    fn(array $tipos) => array_sum(array_map('count', $tipos)),
+                    $atractivos
+                ));
+                $totalPlanta = array_sum(array_map('count', $planta));
             @endphp
 
             @if($estaConfirmado)
@@ -44,25 +54,119 @@
 
             <x-flash-exito />
 
-            {{--
-                Esqueleto de la Tarea 3: todavía no pinta los 113 campos de
-                conteo -dos secciones, atractivos y planta turística, cada una
-                con un campo numérico por subtipo- porque eso es la Tarea 4.
-                Esta vista solo tiene que existir y responder: sin ella,
-                EvaluacionConcentracionController::edit() no tendría qué
-                devolver, y RegistroMatricesTest recorre la ruta 'editar' de
-                cada entrada del registro por HTTP.
-            --}}
+            {{-- Cada frase en una sola línea a propósito: Blade respeta los
+                 saltos de línea del propio fichero, así que una frase que
+                 aquí ocupara dos líneas no la encontraría un assertSee() que
+                 buscara la frase entera. --}}
             <div class="mb-6 bg-indigo-50 border-l-4 border-indigo-500 text-indigo-800 p-4 text-sm rounded">
-                <p class="font-bold mb-1">Formulario en construcción</p>
-                <p>
-                    Los campos de conteo de atractivos y planta turística —{{ count(\App\Matrices\Concentracion::campos()) }} en
-                    total— llegan en un paso posterior.
-                </p>
+                <p class="font-bold mb-1">Esto no puntúa: cuenta</p>
+                <p>Cada campo es una cantidad de atractivos o de establecimientos, sin tope ni desplegable: el 0 es un dato -"no hay ninguno"-, la casilla vacía es "todavía no lo he contado".</p>
             </div>
 
-            <form method="POST" action="{{ route('operativo.evaluacion_concentracion.update', $zona->id) }}">
+            @php
+                // Color de borde por sección, no por clasificación: es
+                // decorativo, solo para orientarse entre las dos partes del
+                // instrumento -77 campos de atractivos y 36 de planta-. Un
+                // color completo por clave, igual que $bordesPorBloque en
+                // evaluacion_irritacion/form.blade.php, no una clase
+                // construida por interpolación.
+                $colorSeccion = [
+                    'atractivos' => 'border-emerald-500',
+                    'planta'     => 'border-blue-500',
+                ];
+            @endphp
+
+            <form method="POST" action="{{ route('operativo.evaluacion_concentracion.update', $zona->id) }}" id="form-concentracion">
                 @csrf
+
+                {{-- ═══════════════════ ATRACTIVOS TURÍSTICOS (77) ═══════════════════ --}}
+                <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $colorSeccion['atractivos'] }}">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                        <h3 class="text-xl font-bold text-gray-900">Atractivos Turísticos</h3>
+                        {{-- "Respondido" incluye el 0 -significa "no hay
+                             ninguno", es un dato-, distinto de la casilla
+                             vacía: el JavaScript de más abajo cuenta así, no
+                             como "valor mayor que cero". --}}
+                        <span class="text-sm font-semibold text-emerald-700">
+                            Respondidos: <span id="contador-atractivos">0</span> / {{ $totalAtractivos }}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-5">Manifestaciones culturales y atractivos naturales, dos tablas paralelas del instrumento.</p>
+
+                    @foreach($atractivos as $categoria => $tipos)
+                        <h4 class="text-base font-bold text-gray-800 mt-6 mb-3 border-b border-gray-200 pb-1">{{ $categoria }}</h4>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            @foreach($tipos as $tipo => $campos)
+                                {{-- El id del grupo sale del primer campo del
+                                     tipo, no de un slug del nombre: un campo
+                                     ya es único en las 113 columnas, así que
+                                     no hace falta derivar ni comprobar otra
+                                     cosa. --}}
+                                @php $grupoId = 'gr-at-' . array_key_first($campos); @endphp
+
+                                <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h5 class="font-semibold text-gray-800">{{ $tipo }}</h5>
+                                        <span class="text-sm font-bold text-emerald-700">
+                                            Subtotal: <span id="subtotal-{{ $grupoId }}">0</span>
+                                        </span>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        @foreach($campos as $campo => $etiqueta)
+                                            <x-input-concentracion
+                                                :label="$etiqueta"
+                                                :name="$campo"
+                                                :val="$evaluacion->$campo"
+                                                :disabled="$bloqueado"
+                                                :grupo="$grupoId"
+                                                seccion="atractivos" />
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endforeach
+                </section>
+
+                {{-- ═══════════════════ PLANTA TURÍSTICA (36) ═══════════════════ --}}
+                <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $colorSeccion['planta'] }}">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                        <h3 class="text-xl font-bold text-gray-900">Planta Turística</h3>
+                        <span class="text-sm font-semibold text-blue-700">
+                            Respondidos: <span id="contador-planta">0</span> / {{ $totalPlanta }}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-5">Diez sectores de establecimientos, cada uno con su propio subtotal.</p>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        @foreach($planta as $sector => $campos)
+                            @php $grupoId = 'gr-pt-' . array_key_first($campos); @endphp
+
+                            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h5 class="font-semibold text-gray-800">{{ $sector }}</h5>
+                                    <span class="text-sm font-bold text-blue-700">
+                                        Subtotal: <span id="subtotal-{{ $grupoId }}">0</span>
+                                    </span>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    @foreach($campos as $campo => $etiqueta)
+                                        <x-input-concentracion
+                                            :label="$etiqueta"
+                                            :name="$campo"
+                                            :val="$evaluacion->$campo"
+                                            :disabled="$bloqueado"
+                                            :grupo="$grupoId"
+                                            seccion="planta" />
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
 
                 @unless($bloqueado)
                     <div class="flex justify-end gap-3">
@@ -87,4 +191,61 @@
             </form>
         </div>
     </div>
+
+    <script>
+        // Subtotales por tipo/sector y contador de respondidos por sección,
+        // en vivo y sin dependencias -como el resto del proyecto-: con 113
+        // campos, el evaluador necesita saber si va bien sin enviar el
+        // formulario para averiguarlo.
+        (function () {
+            var form = document.getElementById('form-concentracion');
+            if (!form) {
+                return;
+            }
+
+            var campos = Array.prototype.slice.call(form.querySelectorAll('input[data-grupo]'));
+
+            function recalcular() {
+                var subtotales  = {};
+                var respondidos = {};
+
+                campos.forEach(function (campo) {
+                    var grupo   = campo.dataset.grupo;
+                    var seccion = campo.dataset.seccion;
+                    var valor   = campo.value;
+
+                    // Un hueco vacío suma 0 al subtotal -no hay nada que
+                    // contar todavía-, pero NO cuenta como respondido: eso
+                    // es justo lo que lo distingue de un 0 tecleado.
+                    subtotales[grupo] = (subtotales[grupo] || 0) + (valor === '' ? 0 : (parseInt(valor, 10) || 0));
+
+                    if (valor !== '') {
+                        respondidos[seccion] = (respondidos[seccion] || 0) + 1;
+                    }
+                });
+
+                Object.keys(subtotales).forEach(function (grupo) {
+                    var etiqueta = document.getElementById('subtotal-' + grupo);
+                    if (etiqueta) {
+                        etiqueta.textContent = subtotales[grupo];
+                    }
+                });
+
+                ['atractivos', 'planta'].forEach(function (seccion) {
+                    var contador = document.getElementById('contador-' + seccion);
+                    if (contador) {
+                        contador.textContent = respondidos[seccion] || 0;
+                    }
+                });
+            }
+
+            form.addEventListener('input', recalcular);
+
+            // Recalcula también al cargar la página: un borrador ya
+            // guardado tiene que mostrar sus subtotales y su contador
+            // reales desde el primer pintado, no un 0 hasta la primera
+            // tecla.
+            recalcular();
+        })();
+    </script>
 </x-app-layout>
