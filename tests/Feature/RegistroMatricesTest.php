@@ -25,6 +25,108 @@ class RegistroMatricesTest extends TestCase
         }
     }
 
+    /**
+     * El inverso del test de arriba: que toda ruta de matriz esté en el
+     * registro, no solo que toda ruta del registro exista.
+     *
+     * Sin este test, alguien puede añadir un controlador y sus rutas,
+     * olvidarse de la entrada en Registro::ENTRADAS, y la suite queda verde
+     * con la matriz inalcanzable desde la página de zona: exactamente el bug
+     * de Paisaje, entrando por la puerta de atrás. Ya estuvo a punto de
+     * repetirse con Involucrados y con Concentración -sus propios planes lo
+     * dejaron anotado como guardián pendiente-; las dos veces se salvó por
+     * costumbre, registrando la entrada antes de escribir el controlador, no
+     * porque nada lo comprobara.
+     *
+     * Definir «ruta de matriz» es lo delicado: un patrón por nombre (por
+     * ejemplo, "empieza por operativo.evaluacion_") sería vago y frágil -una
+     * matriz nueva con otro prefijo, como Involucrados o Concentración, se
+     * colaría sin que el test se enterara-. En su lugar se compara por
+     * "espacio de nombres": el segmento entre 'operativo.' y la última parte
+     * del nombre de ruta ('operativo.evaluacion_fit.edit' -> 'evaluacion_fit';
+     * 'operativo.involucrados.validar' -> 'involucrados'). Es el nivel al que
+     * trabaja el registro: cada entrada declara un controlador entero y solo
+     * guarda DOS de sus rutas -'editar' y 'ver'-, nunca el POST de guardado
+     * ni las rutas internas de un CRUD como involucrados (nuevo, validar,
+     * {actor}/editar...). Exigir que CADA ruta figure literal en el registro
+     * haría fallar el test hoy mismo, con el sistema sano, porque esas rutas
+     * nunca estuvieron pensadas para aparecer ahí.
+     *
+     * Con espacios de nombres, basta con que UNA ruta del espacio esté
+     * registrada para que el resto del mismo controlador pase: es
+     * exactamente la garantía que hace falta -que el controlador nuevo no
+     * pasó inadvertido-, ni más (no exige registrar cada verbo) ni menos (no
+     * se cuela con que algo del sistema tenga una ruta cualquiera).
+     */
+    public function test_toda_ruta_de_matriz_pertenece_a_una_entrada_del_registro(): void
+    {
+        // Rutas del grupo 'operativo.' que existen para llegar a una zona o
+        // navegar entre ellas, no para evaluar una matriz. No son un patrón:
+        // son dos nombres literales, y cada uno con su motivo:
+        $noSonDeMatriz = [
+            // /mis-zonas: lista las zonas del usuario. Es el punto de
+            // partida HACIA las matrices, no una de ellas.
+            'operativo.dashboard',
+            // La página de una zona: enlaza a sus matrices, no es una.
+            'operativo.zona.panel',
+        ];
+
+        // El espacio de nombres de una ruta: lo que queda entre 'operativo.'
+        // y su último segmento (la acción). Sin acción que quitar -como en
+        // 'operativo.dashboard'- el espacio de nombres es la ruta entera.
+        $espacioDeNombres = function (string $nombre): string {
+            $sinPrefijo = substr($nombre, strlen('operativo.'));
+            $ultimoPunto = strrpos($sinPrefijo, '.');
+
+            return $ultimoPunto === false ? $sinPrefijo : substr($sinPrefijo, 0, $ultimoPunto);
+        };
+
+        // array_values() antes del flatMap importa: todas las entradas
+        // comparten las mismas claves ('editar', 'ver'), y collapse() las
+        // fusiona con array_merge por clave, no por posición -sin esto, la
+        // 'editar' de cada entrada pisaría a la anterior y solo sobreviviría
+        // la de la última entrada declarada.
+        $espaciosRegistrados = collect(Registro::ENTRADAS)
+            ->flatMap(fn(array $entrada) => array_values($entrada['rutas']))
+            ->map($espacioDeNombres)
+            ->unique()
+            ->all();
+
+        $espaciosComprobados = [];
+
+        foreach (Route::getRoutes() as $ruta) {
+            $nombre = $ruta->getName();
+
+            if ($nombre === null || ! str_starts_with($nombre, 'operativo.')) {
+                continue;
+            }
+
+            if (in_array($nombre, $noSonDeMatriz, true)) {
+                continue;
+            }
+
+            $espacio = $espacioDeNombres($nombre);
+
+            // Un espacio ya comprobado no hace falta repetirlo: todas sus
+            // rutas comparten el mismo veredicto.
+            if (in_array($espacio, $espaciosComprobados, true)) {
+                continue;
+            }
+            $espaciosComprobados[] = $espacio;
+
+            $this->assertContains(
+                $espacio,
+                $espaciosRegistrados,
+                "La ruta '{$nombre}' no tiene ninguna entrada en Registro::ENTRADAS que la represente."
+            );
+        }
+
+        // Si esto no llega a comprobar nada, el test pasa siempre sin
+        // proteger nada: mejor fallar alto y claro que quedarse en verde en
+        // silencio.
+        $this->assertNotEmpty($espaciosComprobados, 'No se encontró ninguna ruta operativo.* que comprobar.');
+    }
+
     public function test_todos_los_modelos_declarados_existen(): void
     {
         foreach (Registro::ENTRADAS as $clave => $entrada) {
