@@ -16,10 +16,15 @@
             @php
                 $esJefe         = auth()->user()->esJefe();
                 $estaConfirmado = $evaluacion->estado === 'confirmado';
-                // El admin nunca edita evaluaciones, aunque estén en borrador:
-                // sin este predicado, $bloqueado solo miraría la confirmación
-                // y el admin vería el formulario abierto de par en par.
-                $bloqueado      = ! auth()->user()->puedeEditarEvaluaciones() || ($estaConfirmado && !$esJefe);
+                // Dos motivos de bloqueo, no uno: el admin nunca edita
+                // evaluaciones -esté en borrador o no-, y el equipo deja de
+                // poder hacerlo en cuanto se confirma. Separados en dos
+                // variables porque cada uno tiene su propia frase en
+                // x-aviso-bloqueo-matriz; antes de esto, $bloqueado no
+                // distinguía y el admin sobre un borrador veía el motivo del
+                // equipo, que no es el suyo.
+                $bloqueadoPorRol = ! auth()->user()->puedeEditarEvaluaciones();
+                $bloqueado      = $bloqueadoPorRol || ($estaConfirmado && !$esJefe);
 
                 // Total de campos por sección, derivado de las mismas
                 // estructuras que ya recorre el formulario más abajo -no un
@@ -157,7 +162,7 @@
                     </div>
                 @else
                     <p class="text-gray-500 italic text-right">
-                        Solo el Jefe de Zona puede reabrir o editar una matriz validada.
+                        <x-aviso-bloqueo-matriz :por-rol="$bloqueadoPorRol" />
                     </p>
                 @endunless
             </form>

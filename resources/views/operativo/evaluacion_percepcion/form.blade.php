@@ -28,10 +28,15 @@
                 @php
                     $esJefe         = auth()->user()->esJefe();
                     $estaConfirmado = $evaluacion->estado === 'confirmado';
-                    // El admin nunca edita evaluaciones, aunque estén en borrador:
-                    // sin este predicado, $bloqueado solo miraba la confirmación y
-                    // el admin veía el formulario abierto de par en par.
-                    $bloqueado      = ! auth()->user()->puedeEditarEvaluaciones() || ($estaConfirmado && !$esJefe);
+                    // Dos motivos de bloqueo, no uno: el admin nunca edita
+                    // evaluaciones -esté en borrador o no-, y el equipo deja
+                    // de poder hacerlo en cuanto se confirma. Separados en
+                    // dos variables porque cada uno tiene su propia frase en
+                    // x-aviso-bloqueo-matriz; antes de esto, $bloqueado no
+                    // distinguía y el admin sobre un borrador veía el motivo
+                    // del equipo, que no es el suyo.
+                    $bloqueadoPorRol = ! auth()->user()->puedeEditarEvaluaciones();
+                    $bloqueado      = $bloqueadoPorRol || ($estaConfirmado && !$esJefe);
 
                     $colores = [
                         'DS' => ['bg' => 'bg-blue-50',    'border' => 'border-blue-400',    'title' => 'text-blue-800'],
@@ -125,7 +130,7 @@
                                 </button>
                             @endif
                         @else
-                            <span class="text-gray-500 italic self-center">Solo el Jefe de Zona puede reabrir o editar una matriz validada.</span>
+                            <span class="text-gray-500 italic self-center"><x-aviso-bloqueo-matriz :por-rol="$bloqueadoPorRol" /></span>
                             @if($esJefe)
                                 <button type="submit" name="accion_estado" value="confirmado"
                                         class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded shadow-lg">

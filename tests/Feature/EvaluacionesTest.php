@@ -220,6 +220,51 @@ class EvaluacionesTest extends TestCase
         $respuesta->assertSee('disabled>', false);
     }
 
+    /**
+     * Motivo de bloqueo por ROL, no por validación: la evaluación sigue en
+     * borrador y aun así el admin no puede tocarla. Antes de este cambio el
+     * formulario decía «Solo el Jefe de Zona puede reabrir o editar...» de
+     * todos modos, un motivo que no es el suyo -esta evaluación nunca estuvo
+     * validada, y al admin le da igual: nunca edita ninguna-.
+     */
+    public function test_el_admin_ve_su_propio_motivo_de_bloqueo_en_fit(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fit",
+            $this->todos(self::CAMPOS_FIT, 2)
+        );
+
+        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+
+        $this->actingAs($admin)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit")
+            ->assertOk()
+            ->assertSee('El administrador puede consultar esta evaluación, pero no puede modificarla.')
+            ->assertDontSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.');
+    }
+
+    /**
+     * Motivo de bloqueo por ESTADO, no por rol: el equipo sí puede editar
+     * evaluaciones -solo esta ya fue validada por el jefe-. Es el motivo
+     * correcto para este caso, y el único que debe verse.
+     */
+    public function test_el_equipo_ve_el_motivo_de_validacion_en_fit_bloqueada(): void
+    {
+        $equipo = User::factory()->create(['role_id' => Role::where('nombre', 'equipo')->value('id')]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fit",
+            $this->todos(self::CAMPOS_FIT, 3) + ['accion_estado' => 'confirmado']
+        );
+
+        $this->actingAs($equipo)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit")
+            ->assertOk()
+            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.')
+            ->assertDontSee('El administrador puede consultar esta evaluación, pero no puede modificarla.');
+    }
+
     /** Mismo caso que FIT, aplicado a FET. */
     public function test_el_admin_recibe_el_formulario_fet_bloqueado_aunque_este_en_borrador(): void
     {
@@ -258,6 +303,41 @@ class EvaluacionesTest extends TestCase
 
         $respuesta->assertDontSee('Guardar Borrador');
         $respuesta->assertSee('disabled>', false);
+    }
+
+    /** Mismo caso que FIT, para Percepción: bloqueo por rol, no por validación. */
+    public function test_el_admin_ve_su_propio_motivo_de_bloqueo_en_percepcion(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-percepcion",
+            $this->todos($this->itemsPercepcion(), 2)
+        );
+
+        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+
+        $this->actingAs($admin)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-percepcion")
+            ->assertOk()
+            ->assertSee('El administrador puede consultar esta matriz, pero no puede modificarla.')
+            ->assertDontSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.');
+    }
+
+    /** Mismo caso que FIT, para Percepción: bloqueo por validación, no por rol. */
+    public function test_el_equipo_ve_el_motivo_de_validacion_en_percepcion_bloqueada(): void
+    {
+        $equipo = User::factory()->create(['role_id' => Role::where('nombre', 'equipo')->value('id')]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-percepcion",
+            $this->todos($this->itemsPercepcion(), 3) + ['accion_estado' => 'confirmado']
+        );
+
+        $this->actingAs($equipo)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-percepcion")
+            ->assertOk()
+            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.')
+            ->assertDontSee('El administrador puede consultar esta matriz, pero no puede modificarla.');
     }
 
     /**

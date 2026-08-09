@@ -367,6 +367,49 @@ class IrritacionTest extends TestCase
         );
     }
 
+    /**
+     * Motivo de bloqueo por ROL, no por validación: la matriz sigue en
+     * borrador y aun así el admin no puede tocarla. Antes de este cambio el
+     * formulario decía «Solo el Jefe de Zona puede reabrir o editar...» de
+     * todos modos, un motivo que no es el suyo -esta matriz nunca estuvo
+     * validada-.
+     */
+    public function test_el_admin_ve_su_propio_motivo_de_bloqueo(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(4));
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)->get($this->url())
+            ->assertOk()
+            ->assertSee('El administrador puede consultar esta matriz, pero no puede modificarla.')
+            ->assertDontSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.');
+    }
+
+    /**
+     * Motivo de bloqueo por ESTADO, no por rol: el equipo sí puede editar la
+     * matriz -solo que esta ya fue validada por el jefe-.
+     */
+    public function test_el_equipo_ve_el_motivo_de_validacion_en_la_matriz_bloqueada(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($this->jefe)->post(
+            $this->url(),
+            $this->todosEn(4) + ['accion_estado' => 'confirmado']
+        );
+
+        $this->actingAs($equipo)->get($this->url())
+            ->assertOk()
+            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.')
+            ->assertDontSee('El administrador puede consultar esta matriz, pero no puede modificarla.');
+    }
+
     public function test_el_formulario_muestra_los_doce_atributos(): void
     {
         $pagina = $this->actingAs($this->jefe)->get($this->url())->assertOk();
