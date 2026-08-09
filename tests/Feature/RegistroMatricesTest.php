@@ -113,6 +113,16 @@ class RegistroMatricesTest extends TestCase
                 "{$clave}: el registro declara un número de criterios que no cuadra con {$matriz}."
             );
         }
+
+        // Concentración va aparte porque su lista se llama campos(), no todos():
+        // no puntúa criterios, cuenta cantidades, y el nombre lo dice. Se
+        // comprueba igual, porque su clase se genera desde el Excel y el número
+        // del registro está copiado a mano.
+        $this->assertSame(
+            count(\App\Matrices\Concentracion::campos()),
+            Registro::ENTRADAS['concentracion']['criterios'],
+            'concentracion: el registro declara un número que no cuadra con la clase generada.'
+        );
     }
 
     /**

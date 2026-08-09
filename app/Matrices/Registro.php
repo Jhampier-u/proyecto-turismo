@@ -178,9 +178,10 @@ final class Registro
             'tipo'       => 'matriz',
             'modelo'     => EvaluacionConcentracion::class,
             // 113: verificado como count(Concentracion::campos()) al escribir
-            // esta entrada, no una estimación -es la matriz con más criterios
-            // del sistema y un número copiado a mano es justo el riesgo que
-            // Concentracion.php se generó desde el Excel para evitar-.
+            // esta entrada, no una estimación. No es la matriz con más criterios
+            // -Potencialidad declara 156-, pero sí la tabla con más columnas, y
+            // un número copiado a mano es justo el riesgo que Concentracion.php
+            // se generó desde el Excel para evitar.
             'criterios'  => 113,
             'rutas'      => [
                 'editar' => 'operativo.evaluacion_concentracion.edit',

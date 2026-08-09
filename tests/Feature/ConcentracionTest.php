@@ -325,6 +325,15 @@ class ConcentracionTest extends TestCase
         $this->assertStringContainsString('50.00', $html);  // Pi de Alojamiento: 100/√4
         $this->assertStringContainsString('40.00%', $html); // ICT de Alojamiento: 4/10
         $this->assertStringContainsString('60.00%', $html); // ICT de Restauración: 6/10
+
+        // La nota que avisa de que Pi baja cuando el sector crece. Un comentario
+        // de la vista afirmaba que este assertSee existía, y no existía: la
+        // frase estaba en una sola línea por costumbre, no por una protección
+        // real, y quien la reformateara no habría roto nada. Ahora sí.
+        $this->assertStringContainsString(
+            'Pi baja cuando el sector tiene más establecimientos',
+            $html
+        );
     }
 
     /**
