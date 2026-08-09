@@ -186,6 +186,15 @@ class ConcentracionTest extends TestCase
      * Navega de verdad a la página de resultados como admin, no solo
      * comprueba que el panel enlaza a ella: es el fallo que esta misma serie
      * ya corrigió en Paisaje, Valoración Territorial e Irritación.
+     *
+     * "Volver a Zonas", no "Volver a la zona": esta prueba viene de la Tarea
+     * 3, cuando el esqueleto pintaba siempre <x-matriz-sin-resultados> -y su
+     * botón de solo lectura dice "Volver a la zona"-. La Tarea 5 sustituye
+     * ese esqueleto por las tablas de verdad, y todosEn(4) completa los 113
+     * conteos: la matriz deja de estar "sin resultados", así que lo que ve
+     * el admin aquí es la página de resultados real, con el mismo botón de
+     * solo lectura que Paisaje e Irritación (ver su
+     * test_el_admin_ve_los_resultados_en_modo_lectura).
      */
     public function test_el_admin_ve_los_resultados_en_modo_lectura(): void
     {
@@ -197,7 +206,9 @@ class ConcentracionTest extends TestCase
 
         $this->actingAs($admin)->get($this->url('/resultados'))
             ->assertOk()
-            ->assertSee('Volver a la zona');
+            ->assertSee('Volver a Zonas')
+            ->assertSee(route('admin.zonas.index'), false)
+            ->assertDontSee('href="' . route('operativo.evaluacion_concentracion.edit', $this->zona->id) . '"', false);
     }
 
     /**
@@ -263,5 +274,105 @@ class ConcentracionTest extends TestCase
         preg_match('/<input[^>]*name="pt_al_hotel"[^>]*>/', $html, $etiqueta);
         $this->assertNotEmpty($etiqueta, 'No se encontró el campo pt_al_hotel en el formulario.');
         $this->assertStringContainsString('value="7"', $etiqueta[0]);
+    }
+
+    // ------------------------------------------------------------------
+    // Task 5: los resultados de verdad -las dos tablas que sustituyen el
+    // esqueleto de la Tarea 3-.
+    // ------------------------------------------------------------------
+
+    /**
+     * Los dos bloques se pintan con sus números en el caso completo. Esto es
+     * lo importante -no basta con un assertDontSee sobre el caso incompleto,
+     * esa aserción de una sola cara ya se coló dos veces en esta serie (ver
+     * el plan de esta matriz)-, así que aquí se afirman los NÚMEROS
+     * calculados de los dos bloques a la vez: el porcentaje de un subtipo de
+     * atractivos sobre el total de SU tabla (no de las dos combinadas), y el
+     * Sia, el Pi y el ICT de dos sectores de planta con establecimientos.
+     */
+    public function test_los_resultados_pintan_atractivos_y_planta_con_sus_numeros(): void
+    {
+        $datos = $this->todosEn(0);
+
+        // Manifestaciones Culturales (22 subtipos): un único subtipo con 4,
+        // el resto en 0 -> 100% para ese subtipo, 0% para todos los demás.
+        $datos['at_mc_arquitectura_museos'] = 4;
+
+        // Atractivos Naturales (55 subtipos): mismo truco, con su propio
+        // total aparte -mezclarlo con el de arriba daría un porcentaje sobre
+        // un total que el instrumento no usa-.
+        $datos['at_nat_rios_cascada'] = 6;
+
+        // Planta: Alojamiento con Sia 4 (Pi 50, el mismo caso que fija
+        // ConcentracionCalculoTest) y Restauración con Sia 6, sobre un total
+        // general de 10 -> ICT 40% y 60%.
+        $datos['pt_al_hotel']       = 1;
+        $datos['pt_al_hostal']      = 3;
+        $datos['pt_rs_restaurante'] = 6;
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos + ['accion_estado' => 'confirmado'])
+            ->assertSessionHasNoErrors();
+
+        $html = $this->actingAs($this->jefe)->get($this->url('/resultados'))->assertOk()->getContent();
+
+        // Atractivos: la etiqueta del subtipo con su porcentaje sobre el
+        // total de su propia tabla.
+        $this->assertStringContainsString('Museos', $html);
+        $this->assertStringContainsString('Cascada', $html);
+        $this->assertStringContainsString('100.00%', $html);
+
+        // Planta: Sia, Pi e ICT de los dos sectores con establecimientos.
+        $this->assertStringContainsString('50.00', $html);  // Pi de Alojamiento: 100/√4
+        $this->assertStringContainsString('40.00%', $html); // ICT de Alojamiento: 4/10
+        $this->assertStringContainsString('60.00%', $html); // ICT de Restauración: 6/10
+    }
+
+    /**
+     * El caso central del diseño de esta matriz: un sector sin ningún
+     * establecimiento no tiene "un Pi bajo", no tiene Pi. La pantalla lo
+     * tiene que decir con palabras, no con un guion suelto que se leería
+     * como cero o como error.
+     */
+    public function test_un_sector_vacio_de_planta_dice_que_no_aplica(): void
+    {
+        $datos = $this->todosEn(0);
+        $datos['pt_al_hotel'] = 5; // Solo Alojamiento tiene establecimientos.
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos)
+            ->assertSessionHasNoErrors();
+
+        $html = $this->actingAs($this->jefe)->get($this->url('/resultados'))->assertOk()->getContent();
+
+        // Se aísla la fila entera del sector vacío -Guianza Turística, en 0
+        // en este caso-, no una subcadena suelta: así no se confunde con la
+        // fila de un sector que sí tiene establecimientos.
+        preg_match_all('/<tr[^>]*>.*?<\/tr>/s', $html, $filas);
+        $fila = collect($filas[0])->first(fn (string $f) => str_contains($f, 'Guianza Turística (GT)'));
+
+        $this->assertNotNull($fila, 'No se encontró la fila del sector Guianza Turística (GT).');
+        $this->assertStringContainsString('No aplica', $fila);
+    }
+
+    /**
+     * Con la matriz a medias no hay tablas que pintar, solo el aviso
+     * compartido. Se comprueba junto con los dos tests de arriba -que sí
+     * afirman los números del caso completo-: un assertDontSee suelto en el
+     * caso incompleto dejaría pasar una pantalla que no pintase nada en
+     * absoluto, que es justo el fallo que ya se coló dos veces en esta
+     * serie.
+     */
+    public function test_la_matriz_incompleta_muestra_el_aviso_y_no_las_tablas(): void
+    {
+        $datos = $this->todosEn(2);
+        unset($datos['pt_al_hotel']); // Un único hueco basta para dejarla a medias.
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos)
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($this->jefe)->get($this->url('/resultados'))
+            ->assertOk()
+            ->assertSee('esta matriz todavía no está completa, así que no hay resultado que calcular.')
+            ->assertDontSee('Sia')
+            ->assertDontSee('% sobre la tabla');
     }
 }
