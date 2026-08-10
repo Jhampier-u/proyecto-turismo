@@ -320,22 +320,29 @@
                             @endif
 
                             {{-- Criterio: nombre + escala con el mismo
-                                 componente que ya usan FIT, FET y Percepción,
-                                 en vez del <select> / insignia de antes. Se
-                                 bloquea con $soloLectura -lectura por rol o
-                                 evaluación confirmada-, no con el toggle de
-                                 activo/inactivo: ese ya se ve en la opacidad
-                                 de la fila entera (:class de arriba, reactiva)
-                                 y el servidor ignora la calificación de un
-                                 campo inactivo sin importar lo que se envíe
-                                 (prepararDatos() la descarta y conserva el
-                                 valor guardado), así que no hay nada que
-                                 proteger deshabilitando el control en vivo. --}}
+                                 componente que ya usan Paisaje, FIT, FET y
+                                 Percepción, en vez del <select> / insignia de
+                                 antes. :bloqueado sigue siendo $soloLectura
+                                 -lectura por rol o evaluación confirmada,
+                                 fijo al renderizar-; :activo-expr es lo
+                                 nuevo: el servidor ya ignoraba la
+                                 calificación de un campo inactivo sin
+                                 importar lo que se enviara (prepararDatos()
+                                 la descarta y conserva el valor guardado), así
+                                 que nunca hubo un bug de datos, pero las
+                                 píldoras seguían respondiendo al clic con la
+                                 fila ya fundida a opacidad 0.55 -un control
+                                 que reacciona cuando no debería-. states() ya
+                                 existe en este x-data para el toggle; solo
+                                 hacía falta pasarle su nombre al componente
+                                 para que también gobierne el disabled de cada
+                                 radio, en vivo y sin recargar. --}}
                             <div class="pt-field-control">
                               <x-criterio-pildoras
                                   :campo="$campo"
                                   :criterio="['nombre' => $label, 'niveles' => $niveles]"
-                                  :bloqueado="$soloLectura" />
+                                  :bloqueado="$soloLectura"
+                                  :activo-expr="'states[\'' . $campo . '\']'" />
                             </div>
 
                           </div>{{-- /pt-field-row --}}
