@@ -44,6 +44,43 @@
 > desplegada**: el arreglo del seeder protege despliegues futuros, no el actual.
 > El resto de hallazgos altos, medios y bajos siguen pendientes.
 
+> ## Verificación 2026-08-09 — contra código real, no contra este texto
+>
+> El bloque de arriba es el estado que se escribió el 6 de agosto. Desde
+> entonces el código siguió moviéndose (nueve matrices en vez de cinco, un
+> refactor completo de los controladores de evaluación) y ese texto dejó de
+> actualizarse al mismo ritmo. Esta pasada verifica **cada uno de los 37
+> hallazgos** contra el código y la suite actual, uno por uno, con una
+> petición de test donde el hallazgo es de permisos — no releyendo el `if`.
+>
+> **Resultado: no hay ningún hallazgo de seguridad vivo.** C1–C4 y A1–A8
+> están resueltos en código, con test que lo sujeta, excepto A1 (y el
+> equivalente de correo, M16), que son despliegue, no código: el refactor de
+> almacenamiento está hecho y probado, pero `render.yaml` sigue con
+> `FILESYSTEM_DISK=public` y sin bucket dado de alta. Detalle y evidencia en
+> cada sección de abajo, marcado como **Estado:**.
+>
+> **El caso que motivó esta revisión —A8— sí estaba obsoleto**, pero al
+> revés de lo que parecía: la sección de A8 nunca se marcó como resuelta,
+> aunque el resumen de arriba ya decía "corregidos ... los altos A2–A8" desde
+> el 6 de agosto. Quien leyera solo la sección de A8 (como se lee un hallazgo
+> por su número, no el resumen entero) se encontraba una `Consecuencia:` y
+> una `Corrección:` sin ninguna nota de que ya estaba hecho. Ver A8 abajo.
+>
+> **Corrección al recuento:** "10 altos" (línea de abajo) nunca coincidió con
+> los hallazgos documentados — solo hay A1–A8, ocho. Se corrige a 8 aquí y en
+> el recuento de la sección siguiente.
+>
+> Un hallazgo (M6, la persistencia de `campos_activos` antes de validar)
+> estaba resuelto en código pero sin ningún test que lo sujetara: se añadió
+> uno. Lo mismo con M9 (imagen nueva + quitar imagen a la vez) y M11 (casts a
+> float). Los tres se verificaron reintroduciendo temporalmente el bug
+> original y confirmando que el test nuevo lo detecta, no solo que pasa en
+> verde. Detalle en A1/M6/M9/M11 abajo.
+>
+> Suite: **365 tests, todos en verde** (362 ya existentes + 3 nuevos de esta
+> verificación). Commit y fecha exactos, al final del documento.
+
 ## Resumen ejecutivo
 
 El proyecto está bien construido en lo que respecta a **higiene básica de Laravel**:
@@ -62,7 +99,9 @@ en el despliegue**. Hay tres fallas que comprometen el sistema en producción ho
 A esas tres se suma un **XSS almacenado** que permite a un estudiante ejecutar código
 en el navegador del administrador.
 
-Recuento: **4 críticos, 10 altos, 16 medios, 9 bajos**.
+Recuento: **4 críticos, 8 altos, 16 medios, 9 bajos** (corregido de "10 altos":
+ver la nota de verificación de 2026-08-09 arriba — nunca hubo más de ocho
+documentados).
 
 ---
 
@@ -70,7 +109,17 @@ Recuento: **4 críticos, 10 altos, 16 medios, 9 bajos**.
 
 ### C1 — Credenciales de administrador conocidas, activas en producción
 
-**Dónde:** `database/seeders/DatabaseSeeder.php:19-41`, `docker/entrypoint.sh:34-39`, `render.yaml`
+> **Estado: RESUELTO.** `DatabaseSeeder` ya no crea usuarios con contraseña
+> fija: llama a `AdminSeeder` (lee `ADMIN_EMAIL`/`ADMIN_PASSWORD` de config, no
+> crea nada si faltan, no toca la cuenta si ya existe) y a `DemoSeeder` solo
+> bajo `app()->environment('local')`. Ver `database/seeders/DatabaseSeeder.php`,
+> `database/seeders/AdminSeeder.php`. Sujeto por
+> `tests/Feature/SeedersTest.php` (4 tests: cero usuarios fuera de local, el
+> admin sale de la config, no se recrea si ya existe).
+> Pendiente real, no de código: rotar la contraseña en la instancia ya
+> desplegada con las credenciales viejas (esto no lo arregla ningún commit).
+
+**Dónde (histórico, ya no vigente):** `database/seeders/DatabaseSeeder.php:19-41`, `docker/entrypoint.sh:34-39`, `render.yaml`
 
 El seeder crea tres usuarios con la contraseña literal `password`:
 
@@ -106,7 +155,21 @@ contraseña de una variable de entorno. Y **cambiar la contraseña del admin des
 
 ### C2 — IDOR: cualquier usuario accede a cualquier zona
 
-**Dónde:** `app/Http/Middleware/isPersonal.php:19` + todos los controladores de `app/Http/Controllers/Operativo/`
+> **Estado: RESUELTO.** Middleware `zona` → `app/Http/Middleware/PerteneceAZona.php`,
+> registrado en `bootstrap/app.php:17` y aplicado a todo el grupo
+> `operativo/zona/{zona}` en `routes/web.php:57`. Comprueba jefe o miembro de
+> equipo de *esa* zona; al admin lo deja consultar (métodos seguros) pero
+> aborta 403 en cualquier escritura. La confirmación ya no depende de
+> `role_id == 2` sino de `$user->esJefe()` combinado con el propio middleware
+> (que ya exige ser el jefe de *esa* zona, no de cualquiera).
+> Sujeto por petición real, no por lectura del código:
+> `tests/Feature/AutorizacionZonaTest.php::test_un_miembro_de_equipo_no_accede_a_una_zona_ajena`,
+> `::test_un_jefe_no_accede_a_una_zona_que_no_dirige`,
+> `::test_un_jefe_no_puede_confirmar_evaluaciones_de_zonas_ajenas` (POST con
+> `accion_estado=confirmado` a una zona ajena → 403),
+> `::test_el_admin_puede_consultar_pero_no_escribir`.
+
+**Dónde (histórico, ya no vigente):** `app/Http/Middleware/isPersonal.php:19` + todos los controladores de `app/Http/Controllers/Operativo/`
 
 El middleware `personal` solo comprueba que el usuario tenga algún rol:
 
@@ -147,7 +210,15 @@ Y cambiar los checks de confirmación de `role_id == 2` a `$zona->jefe_user_id =
 
 ### C3 — Borrado y edición de inventarios sin ninguna restricción
 
-**Dónde:** `app/Http/Controllers/Operativo/InventarioController.php:100-111`, `:113-121`, `:123-139`, `:141-191`
+> **Estado: RESUELTO.** `destroy()`, `show()`, `edit()` y `update()` en
+> `app/Http/Controllers/Operativo/InventarioController.php` escopan con
+> `Inventario::where('zona_id', $zonaId)->findOrFail($inventarioId)`.
+> Sujeto por petición con el ID de un inventario ajeno, no por lectura:
+> `tests/Feature/AutorizacionZonaTest.php::test_no_se_puede_borrar_un_inventario_de_otra_zona`
+> (`DELETE` a un inventario de otra zona → 404, `assertDatabaseHas` confirma
+> que sigue existiendo) y `::test_no_se_puede_ver_un_inventario_de_otra_zona`.
+
+**Dónde (histórico, ya no vigente):** `app/Http/Controllers/Operativo/InventarioController.php:100-111`, `:113-121`, `:123-139`, `:141-191`
 
 El parámetro `$zonaId` de la ruta anidada se ignora por completo:
 
@@ -179,7 +250,16 @@ Idealmente usar *scoped route bindings* de Laravel:
 
 ### C4 — XSS almacenado: un estudiante ejecuta código como administrador
 
-**Dónde:** `resources/views/admin/users/index.blade.php:75`
+> **Estado: RESUELTO.** El nombre ya no viaja dentro de un atributo `on*`.
+> `resources/views/admin/users/index.blade.php` lo pone en `data-nombre` y lo
+> lee un listener JS (`form.dataset.nombre`); `admin/lugares/index.blade.php:90-93`
+> usa `Js::from()`, que codifica correctamente para contexto JavaScript.
+> Sujeto por `tests/Feature/AdminUsuariosTest.php::test_el_nombre_de_usuario_no_puede_inyectar_javascript`:
+> crea un usuario con nombre `'); alert(1); //`, verifica que nunca aparece
+> sin escapar, que aparece dentro de `data-nombre="&#039;); alert(1); //"` y
+> que ya no queda ningún `onsubmit=` en la página.
+
+**Dónde (histórico, ya no vigente):** `resources/views/admin/users/index.blade.php:75`
 
 ```blade
 <form action="{{ route('admin.users.destroy', $user) }}" method="POST"
@@ -221,7 +301,18 @@ o usar la directiva `@js()` de Laravel, que codifica correctamente para contexto
 
 ### A1 — Las fotos subidas se pierden en cada redespliegue
 
-**Dónde:** `render.yaml` (bloque `disk:` comentado), `Dockerfile`, `docker/entrypoint.sh:14-21`
+> **Estado: VIVO (código resuelto, despliegue pendiente).** El código ya no
+> tiene ninguna ruta fija a `disk('public')`: todo pasa por
+> `config('filesystems.default')` / `Storage::url()`, así que cambiar
+> `FILESYSTEM_DISK=s3` en el entorno basta, sin tocar código. Sujeto por
+> `tests/Feature/AlmacenamientoImagenesTest.php` (fake del disco *por
+> defecto*, no de `'public'` fijo; sube, borra, sirve vía `Storage::url()`).
+> Pero **`render.yaml` sigue con `FILESYSTEM_DISK=public`** y las variables
+> `AWS_*` en `sync: false` sin valor: hasta que alguien dé de alta un bucket y
+> las rellene en el dashboard de Render, las fotos siguen perdiéndose en cada
+> redespliegue. Esto no lo cierra ningún commit — es un paso de despliegue.
+
+**Dónde (histórico, ya no vigente):** `render.yaml` (bloque `disk:` comentado), `Dockerfile`, `docker/entrypoint.sh:14-21`
 
 `render.yaml` lo dice explícitamente: *"discos persistentes NO están disponibles en el
 plan free"*. El entrypoint prevé `/var/data` pero ese directorio no existe en el plan free,
@@ -239,7 +330,15 @@ Alternativa: subir al plan Starter de Render y descomentar el bloque `disk:`.
 
 ### A2 — La suite de tests no arranca: `User` no usa `HasFactory`
 
-**Dónde:** `app/Models/User.php:11`
+> **Estado: RESUELTO.** `app/Models/User.php` usa `HasFactory, Notifiable`.
+> `Inventario` (el otro caso citado) también: `app/Models/Inventario.php` usa
+> `HasFactory` y `database/factories/InventarioFactory.php` existe. No hace
+> falta un test dedicado: la mayoría de los 365 tests de la suite llaman a
+> `User::factory()->create()` en su `setUp()`, así que si el trait se
+> quitara la suite entera fallaría en cadena — es la red de seguridad más
+> ancha posible.
+
+**Dónde (histórico, ya no vigente):** `app/Models/User.php:11`
 
 ```php
 class User extends Authenticatable
@@ -261,10 +360,19 @@ Toda la cobertura existente está inutilizada. (Lo mismo con `Inventario` e `Inv
 
 ### A3 — Cobertura de tests nula sobre la lógica de negocio
 
-> **Parcialmente cubierto.** Se añadieron `AutorizacionZonaTest`, `AdminUsuariosTest` y
-> `SeedersTest`, que fijan las reglas de acceso por zona, el escapado del nombre de
-> usuario y el comportamiento del seeder. Sigue sin haber tests de los cálculos
-> ponderados (FIT, FET, VTT, Potencialidad, Percepción), que es lo que queda pendiente.
+> **Estado: RESUELTO** (esta nota de "parcialmente cubierto" ya estaba
+> desactualizada: quedó escrita cuando solo existían `AutorizacionZonaTest`,
+> `AdminUsuariosTest` y `SeedersTest`, y no se tocó cuando el resto llegó).
+> Hoy hay 34 ficheros de test, 365 tests. Los cinco cálculos ponderados que
+> esta nota daba como pendientes tienen test dedicado:
+> `EvaluacionesTest::test_fit_promedia_por_bloque_y_no_por_campo` (FIT),
+> `::test_fet_pondera_demanda_superestructura_e_imagen` (FET),
+> `::test_el_vtt_se_guarda_al_confirmar_y_no_al_consultarlo` (VTT),
+> `::test_percepcion_normaliza_el_total_entre_cero_y_uno` (Percepción),
+> `PotencialidadCalculoTest` (20 tests, Potencialidad). Además las cinco
+> matrices añadidas después de esta auditoría (Paisaje, Valoración
+> Territorial, Irritación, Concentración, Involucrados) tienen su propio
+> fichero de test.
 
 **Dónde:** `tests/`
 
@@ -283,7 +391,14 @@ recibe 403 en la zona B — estos últimos servirían además como verificación
 
 ### A4 — Cuatro modelos apuntan a tablas que no existen
 
-**Dónde:** `app/Models/Evaluacion.php:9`, `EvaluacionValor.php:9`, `MatrizCriterio.php:9`, `MatrizVariable.php:9`
+> **Estado: RESUELTO.** Los cuatro modelos (`Evaluacion`, `EvaluacionValor`,
+> `MatrizCriterio`, `MatrizVariable`) ya no existen en `app/Models/`.
+> `Zona::evaluaciones()` tampoco existe. El `down()` de
+> `2025_12_02_045117_create_turismo_schema.php` ya no dropea esas tablas
+> fantasma. Verificado por ausencia (grep sobre `app/` y las migraciones): no
+> hace falta test, es código que ya no está.
+
+**Dónde (histórico, ya no vigente):** `app/Models/Evaluacion.php:9`, `EvaluacionValor.php:9`, `MatrizCriterio.php:9`, `MatrizVariable.php:9`
 
 Ninguna migración crea `evaluaciones`, `evaluacion_valores`, `matriz_criterios` ni
 `matriz_variables`. Sin embargo el `down()` de
@@ -302,7 +417,15 @@ Peor: `app/Models/Zona.php:14` mantiene viva la relación
 
 ### A5 — Falta `unique` en `zona_id` de cuatro tablas tratadas como 1:1
 
-**Dónde:** `evaluaciones_fit`, `evaluaciones_fet`, `evaluaciones_potencialidad`, `potencialidad_campos_activos`
+> **Estado: RESUELTO.** Migración
+> `database/migrations/2026_08_06_000001_add_unique_zona_id_to_evaluaciones.php`
+> consolida duplicados existentes (conserva la fila de mayor id) y añade
+> `unique('zona_id')` a las cuatro tablas exactas de este hallazgo. Sujeto por
+> `tests/Feature/IntegridadDatosTest.php::test_no_se_admiten_dos_filas_para_la_misma_zona`
+> (data provider con las cuatro tablas: inserta dos filas con el mismo
+> `zona_id` y espera `QueryException` en la segunda).
+
+**Dónde (histórico, ya no vigente):** `evaluaciones_fit`, `evaluaciones_fet`, `evaluaciones_potencialidad`, `potencialidad_campos_activos`
 
 Todo el código asume una fila por zona (`firstOrNew(['zona_id' => $zonaId])`,
 `updateOrCreate(['zona_id' => $zonaId], ...)`), pero la base de datos no lo garantiza.
@@ -320,7 +443,20 @@ previa limpieza de duplicados si los hubiera.
 
 ### A6 — Borrar un usuario con actividad produce error 500
 
-**Dónde:** `app/Http/Controllers/Admin/UserController.php:69-79`, `app/Http/Controllers/ProfileController.php:43-59`
+> **Estado: RESUELTO.** Migración
+> `database/migrations/2026_08_06_000002_fix_user_foreign_keys_on_delete.php`
+> pasa `inventarios.creado_por_user_id`, `evaluaciones_fit/fet/potencialidad.user_id`
+> y `vocacion_turistica_territorio.user_id` a `nullOnDelete()`.
+> `Admin/UserController::destroy()` además tiene try/catch sobre
+> `QueryException` como defensa adicional. `ProfileController::destroy()`
+> invirtió el orden: borra primero, y usa `Auth::forgetUser()` en vez de
+> `Auth::logout()` (que resucitaría al usuario ya borrado al guardar su
+> "remember token"). Sujeto por
+> `tests/Feature/IntegridadDatosTest.php::test_borrar_un_usuario_con_actividad_no_falla_y_conserva_los_datos`,
+> `::test_el_admin_recibe_un_mensaje_en_vez_de_un_error_500`,
+> `::test_borrar_la_propia_cuenta_no_resucita_al_usuario`.
+
+**Dónde (histórico, ya no vigente):** `app/Http/Controllers/Admin/UserController.php:69-79`, `app/Http/Controllers/ProfileController.php:43-59`
 
 Las claves foráneas `inventarios.creado_por_user_id`, `evaluaciones_fit.user_id`,
 `evaluaciones_fet.user_id`, `evaluaciones_potencialidad.user_id` y
@@ -349,7 +485,18 @@ claro en ambos controladores. Invertir el orden en `ProfileController`.
 
 ### A7 — `accion_estado` llega a la base de datos sin validar
 
-**Dónde:** `EvaluacionFetController.php:58-60`, `EvaluacionFitController.php:77-79`, `EvaluacionPercepcionController.php:87-89`, `EvaluacionPotencialidadController.php:281-283`
+> **Estado: RESUELTO.** Los cuatro controladores originales (y todos los que
+> se añadieron después: Paisaje, Valoración Territorial, Irritación,
+> Concentración) ahora heredan de `EvaluacionZonaController`, cuyo
+> `update()` centraliza `$request->validate(['accion_estado' => 'nullable|in:borrador,confirmado'])`
+> antes de decidir el estado — la validación que faltaba, en un solo sitio en
+> vez de cuatro copias. Sujeto por
+> `tests/Feature/EvaluacionesTest.php::test_un_accion_estado_invalido_se_rechaza_con_validacion`
+> (envía `accion_estado => 'no-existe'`, espera `assertSessionHasErrors('accion_estado')`
+> y `assertDatabaseCount('evaluaciones_fet', 0)` — antes esto llegaba a la
+> columna enum y tiraba 500).
+
+**Dónde (histórico, ya no vigente):** `EvaluacionFetController.php:58-60`, `EvaluacionFitController.php:77-79`, `EvaluacionPercepcionController.php:87-89`, `EvaluacionPotencialidadController.php:281-283`
 
 ```php
 $estado = ($user->role_id == 2)
@@ -372,7 +519,28 @@ de validación en los cuatro controladores.
 
 ### A8 — Un admin degrada evaluaciones confirmadas a borrador
 
-**Dónde:** `EvaluacionFetController.php:26` y equivalentes en los otros tres controladores
+> **Estado: RESUELTO** (era el hallazgo que motivó esta verificación de
+> 2026-08-09 — el resumen de arriba ya decía "corregidos ... los altos
+> A2–A8" desde el 6 de agosto, pero esta sección nunca se marcó, así que
+> leída sola parecía un hallazgo abierto). Dos capas independientes lo
+> cierran, no solo una:
+> 1. `app/Http/Middleware/PerteneceAZona.php:34-41` — al admin lo deja pasar
+>    en métodos seguros (`GET`) y aborta 403 en cualquier escritura sobre
+>    *cualquier* ruta `operativo/zona/{zona}/...`, evaluaciones incluidas. El
+>    admin no llega a `update()` en absoluto.
+> 2. Aunque llegara: `EvaluacionZonaController::update()` fija
+>    `$estado = $user->esJefe() ? ... : 'borrador'` — solo el Jefe puede
+>    escribir `confirmado`; y el bloqueo de escritura sobre una evaluación ya
+>    confirmada (`$user->esEquipo()`) tampoco distingue admin porque el admin
+>    nunca llega aquí.
+> Sujeto por petición real, con roles admin y jefe intentándolo:
+> `tests/Feature/AutorizacionZonaTest.php::test_el_admin_puede_consultar_pero_no_escribir`
+> (POST con `accion_estado=confirmado` como admin → 403) y
+> `tests/Feature/ReabrirMatrizTest.php::test_el_admin_no_puede_reabrir_una_matriz_confirmada`
+> (confirma como jefe, luego el admin intenta reabrir con `accion_estado=borrador`
+> → 403, y la evaluación sigue `confirmado` con los valores del jefe).
+
+**Dónde (histórico, ya no vigente):** `EvaluacionFetController.php:26` y equivalentes en los otros tres controladores
 
 El bloqueo de edición solo cubre al rol 3:
 
@@ -394,40 +562,40 @@ explícita de "reabrir", y no sobrescribir `user_id` cuando quien guarda no es e
 
 ## MEDIOS
 
-| # | Hallazgo | Ubicación |
-|---|---|---|
-| M1 | **Endpoint `/__bootstrap`** ejecuta `migrate` + `db:seed` desde el navegador. El token viaja en query string (queda en logs), se compara con `!==` en vez de `hash_equals()`, no tiene rate limiting y usa `env()` en runtime (con `config:cache` activo devuelve null y la ruta muere). Además el seeder no es idempotente: una segunda visita duplica catálogos. | `routes/web.php:22-34` |
-| M2 | **Registro público abierto.** Cualquiera en internet crea cuentas; quedan con `role_id = NULL` e inservibles, pero llenan la tabla. En un sistema de roles administrado el registro debería estar deshabilitado. | `routes/auth.php:15-18` |
-| M3 | **`VttController` escribe en base de datos en una petición GET.** Viola la semántica HTTP (sin CSRF, cacheable, el prefetch del navegador puede dispararlo) y cualquier usuario sobrescribe el `user_id` del VTT con solo visitar la página. | `VttController.php:44-53`, `routes/web.php:88` |
-| M4 | **Catálogos sin `unique`**, por lo que el `insertOrIgnore()` del seeder no ignora nada: cada re-ejecución duplica las 4 regiones, 24 provincias, categorías y tipos de propietario. | `SystemSeeder.php:45,54` y migración principal |
-| M5 | **Índices de claves foráneas ausentes.** Producción es PostgreSQL, que —a diferencia de MySQL— **no** indexa las FK automáticamente. Sin índice: `inventarios.zona_id`, `zonas.jefe_user_id`, `zona_equipo.user_id`, `users.role_id`, `categorias_recurso.parent_id` y las `zona_id` de las evaluaciones. | migraciones |
-| M6 | **Potencialidad: efecto colateral persistido antes de validar.** `PotencialidadCamposActivos::updateOrCreate()` corre antes de `$request->validate()`; si la validación falla, la configuración ya cambió sin transacción que lo revierta. Además `campos[]` no se filtra contra una lista blanca. | `EvaluacionPotencialidadController.php:245-264` |
-| M7 | **Fotos de inventario sin límite de cantidad.** Se valida cada archivo (`max:2048`) pero no el array. Una petición con cientos de imágenes llena el disco. | `InventarioController.php:58,158` |
-| M8 | **Borrar una zona deja las fotos de sus inventarios huérfanas.** La cascada de BD borra las filas, pero nadie borra los archivos de `storage/app/public/inventarios`. | `ZonaController.php:107-114` |
-| M9 | **`ZonaController::update`**: enviar imagen nueva y "quitar imagen" a la vez guarda el archivo y luego anula la referencia — archivo huérfano y cambio perdido. | `ZonaController.php:87-99` |
-| M10 | **`role_id` en `$fillable` de `User`.** Hoy no es explotable (todas las rutas usan arrays validados), pero un `User::create($request->all())` futuro habilita escalada a admin. Lo mismo con `user_id` y `estado` en los modelos de evaluación. | `User.php:14` |
-| M11 | **Casts numéricos ausentes** en los ~50 campos `decimal` de las evaluaciones. PostgreSQL devuelve `numeric` como *string*, así que el comportamiento difiere entre local (SQLite → float) y producción. | modelos de evaluación |
-| M12 | **`SESSION_SECURE_COOKIE` no está definida** en `render.yaml`, así que la cookie de sesión no lleva el flag `Secure` pese a que el sitio va por HTTPS. | `render.yaml`, `config/session.php:172` |
-| M13 | **Asignación de jefe/equipo sin validar el rol.** `'jefe_user_id' => 'required|exists:users,id'` acepta a cualquier usuario. Si se asigna como jefe a alguien de rol 3, la zona queda bloqueada en borrador sin explicación visible. | `ZonaController.php:33,74` |
-| M14 | **La paginación sale sin estilos en producción.** `tailwind.config.js:7` escanea las vistas de paginación de `vendor/`, pero la etapa de assets del `Dockerfile:7-9` solo copia los configs y `resources/` — **`vendor/` no existe ahí** (Composer corre después, en la etapa 2). Las clases se purgan. Afecta a los cuatro listados con `->links()`. Solo se ve en el entorno desplegado; en local funciona. | `Dockerfile:7-9`, `tailwind.config.js:7` |
-| M15 | **Clases Tailwind construidas dinámicamente se purgan.** `class="bg-{{ $color }}-50 border border-{{ $color }}-200"` — Tailwind busca nombres de clase literales, y `bg-green-50` nunca aparece como texto. La tarjeta del cuadrante se renderiza sin color. Necesita un mapa de clases completas o un `safelist`. | `admin/zonas/potencialidad.blade.php:89-92` (fichero eliminado; el admin usa ahora la página común de zona) |
-| M16 | **La recuperación de contraseña no funciona.** `render.yaml` no define ninguna variable `MAIL_*`, así que queda el default `log`, y `LOG_CHANNEL=stderr`. El formulario responde "enlace enviado" pero el correo solo se escribe en stderr. Nadie puede recuperar su contraseña salvo que el admin la resetee a mano. | `render.yaml`, `auth/forgot-password.blade.php` |
+| # | Hallazgo | Ubicación (histórica) | Estado (verificado 2026-08-09) |
+|---|---|---|---|
+| M1 | Endpoint `/__bootstrap` ejecuta `migrate` + `db:seed` desde el navegador, con token en query string y comparación `!==`. | `routes/web.php:22-34` | **RESUELTO.** La ruta ya no existe en `routes/web.php`. Sujeto por `tests/Feature/AdminZonasTest.php::test_la_ruta_de_bootstrap_remoto_ya_no_existe` (`GET /__bootstrap?token=...` → 404). |
+| M2 | Registro público abierto: cualquiera crea cuentas con `role_id = NULL`. | `routes/auth.php:15-18` | **RESUELTO.** `routes/auth.php` ya no define ninguna ruta `register` (comentario explícito: "el registro público está deshabilitado a propósito"). Sujeto por `tests/Feature/AdminZonasTest.php::test_el_registro_publico_ya_no_existe` (`GET`/`POST /register` → 404). |
+| M3 | `VttController` escribe en base de datos en una petición `GET`. | `VttController.php:44-53`, `routes/web.php:88` | **RESUELTO.** `app/Http/Controllers/Operativo/VttController.php` quedó con un único método, `resultadoFinal()`, de solo lectura; la instantánea se guarda al confirmar FIT/FET (`despuesDeGuardar()`), no al abrir la página. Sujeto por `tests/Feature/EvaluacionesTest.php::test_el_vtt_se_guarda_al_confirmar_y_no_al_consultarlo`. |
+| M4 | Catálogos sin `unique`: el seeder duplica regiones/provincias/categorías en cada re-ejecución. | `SystemSeeder.php:45,54` y migración principal | **RESUELTO.** Migración `2026_08_06_000003_add_unique_to_catalogos.php` consolida duplicados y añade `unique` a `regiones`, `provincias`, `lugares`, `tipos_propietario`, `categorias_recurso`; `SystemSeeder` reescrito con `idDe()` (busca antes de insertar). Sujeto por `tests/Feature/AdminZonasTest.php` (líneas 127-133: siembra dos veces y compara conteos). |
+| M5 | Índices de FK ausentes (PostgreSQL no los crea automáticamente). | migraciones | **RESUELTO, sin test dedicado.** Migración `2026_08_06_000004_add_foreign_key_indexes.php` añade índice a las columnas exactas listadas en el hallazgo. No hay test que confirme el índice en el esquema (requeriría introspección específica del driver); es una mejora de rendimiento, no de corrección funcional, así que su ausencia no se detectaría por un test que fallara — solo por un `EXPLAIN` en producción. |
+| M6 | Potencialidad persiste `campos_activos` antes de validar los criterios; `campos[]` sin lista blanca. | `EvaluacionPotencialidadController.php:245-264` | **RESUELTO.** `prepararDatos()` ahora valida `campos.*` contra `Rule::in($this->getAllCampos())` y valida los criterios (`$request->validate($reglas, ...)`) **antes** de llamar a `PotencialidadCamposActivos::updateOrCreate()`. Esta verificación encontró el hallazgo **resuelto pero sin ningún test que lo sujetara** — se añadió `tests/Feature/PotencialidadCalculoTest.php::test_una_validacion_fallida_no_deja_la_configuracion_de_campos_a_medio_cambiar`, verificado además reintroduciendo temporalmente el orden viejo y confirmando que el test nuevo lo detecta. |
+| M7 | Fotos de inventario sin límite de cantidad en el array. | `InventarioController.php:58,158` | **RESUELTO.** `store()` y `update()` validan `'fotos' => 'nullable|array|max:15'` / `'nuevas_fotos' => 'nullable|array|max:15'`. Sujeto por `tests/Feature/AlmacenamientoImagenesTest.php::test_no_se_admiten_mas_de_quince_fotos_por_peticion`. |
+| M8 | Borrar una zona deja huérfanas las fotos de sus inventarios. | `ZonaController.php:107-114` | **RESUELTO.** `ZonaController::destroy()` recoge las rutas de `InventarioImagen` (y la imagen propia de la zona) antes del `delete()` y las borra del disco después. Sujeto por `tests/Feature/AlmacenamientoImagenesTest.php::test_borrar_una_zona_borra_las_fotos_de_sus_inventarios`. |
+| M9 | Imagen nueva + "quitar imagen" a la vez: se guarda el archivo y luego se anula la referencia — huérfano y cambio perdido. | `ZonaController.php:87-99` | **RESUELTO.** El código ahora es `if (hasFile) { borra la vieja; guarda la nueva } elseif (quitar_imagen) { borra; null }` — mutuamente excluyente, gana la imagen nueva (comentario explícito en el código). Esta verificación encontró el hallazgo **resuelto pero sin ningún test que lo sujetara** — se añadió `tests/Feature/AlmacenamientoImagenesTest.php::test_subir_imagen_nueva_y_marcar_quitar_imagen_a_la_vez_conserva_la_nueva`, verificado reintroduciendo temporalmente el orden secuencial viejo y confirmando que el test nuevo falla con él. |
+| M10 | `role_id` en `$fillable` de `User`; lo mismo con `user_id`/`estado` en los modelos de evaluación. | `User.php:14` | **PARCIAL.** `role_id` ya **no** está en `$fillable` de `app/Models/User.php` (comentario explícito: "es un campo de privilegio y no debe poder asignarse en masa"); lo asigna `UserController` de forma explícita. `user_id`/`estado` siguen en `$fillable` de los modelos de evaluación porque `EvaluacionZonaController::update()` los necesita para el `updateOrCreate()` centralizado — sigue sin ser explotable hoy (verificado: no hay ningún `$request->all()` en `app/`, `grep` sin resultados), exactamente la misma salvedad que ya hacía el hallazgo original. |
+| M11 | Casts numéricos ausentes en los campos `decimal`: PostgreSQL los devuelve como *string*. | modelos de evaluación | **RESUELTO.** Todos los totales calculados (`fit`, `fet`, `percepcion_total`, `fn_total`, `fx_total`, `vtt` y sus componentes) tienen cast `'float'` explícito, con el mismo comentario en cada modelo. Esta verificación encontró el hallazgo **resuelto pero sin test que lo sujetara** (SQLite no expone la diferencia de driver que motivó el hallazgo) — se añadió `tests/Feature/IntegridadDatosTest.php::test_los_totales_calculados_se_castean_a_float`, que fija la declaración del cast en sí (`getCasts()`) en vez de depender de un driver concreto. |
+| M12 | `SESSION_SECURE_COOKIE` no definida en `render.yaml`. | `render.yaml`, `config/session.php:172` | **RESUELTO.** `render.yaml` define `SESSION_SECURE_COOKIE: "true"`. Es configuración de despliegue: no hay (ni tiene sentido que haya) test de PHPUnit para un valor de `render.yaml`. |
+| M13 | Asignación de jefe/equipo sin validar el rol. | `ZonaController.php:33,74` | **RESUELTO.** `ZonaController::reglas()` usa `Rule::exists('users','id')->where('role_id', ...)` para `jefe_user_id` y `equipo.*`. Sujeto por `tests/Feature/AdminZonasTest.php::test_no_se_puede_nombrar_jefe_a_quien_no_tiene_ese_rol` y `::test_no_se_puede_poner_en_el_equipo_a_un_jefe`. |
+| M14 | Paginación sin estilos en producción: `vendor/` no existe en la etapa de build de assets. | `Dockerfile:7-9`, `tailwind.config.js:7` | **RESUELTO** (no cubierto por PHPUnit — es comportamiento de build de Docker). `Dockerfile` ahora tiene una etapa `vendor` (Composer) que copia las vistas de paginación de Laravel a la etapa `assets` antes de `npm run build`, con el razonamiento del hallazgo citado en el propio comentario del Dockerfile. |
+| M15 | Clases Tailwind dinámicas (`bg-{{ $color }}-50`) purgadas. | `admin/zonas/potencialidad.blade.php:89-92` | **YA NO APLICA.** El fichero no existe (confirmado: no hay ningún `bg-{{` en `resources/views/`); ya lo decía la propia fila original. |
+| M16 | Recuperación de contraseña no funciona: sin `MAIL_*`, cae a `log`/`stderr`. | `render.yaml`, `auth/forgot-password.blade.php` | **VIVO (código listo, despliegue pendiente)**, igual que A1. `render.yaml` ya define `MAIL_MAILER: smtp`, pero `MAIL_HOST`/`MAIL_USERNAME`/`MAIL_PASSWORD` siguen en `sync: false` sin valor: hasta que alguien configure un proveedor SMTP real en el dashboard de Render, el correo sigue sin salir. |
 
 ---
 
 ## BAJOS
 
-| # | Hallazgo | Ubicación |
-|---|---|---|
-| B1 | **19 MB de archivos no-código entran en cada imagen Docker.** `.dockerignore` no excluye `Documentación/` (3,2 MB) ni `entregables/` (16 MB, con su propio `node_modules`). | `.dockerignore` |
-| B2 | **`entregables/node_modules` está versionado en git**: 576 archivos. `.gitignore` usa `/node_modules`, anclado a la raíz, que no cubre subdirectorios. | `.gitignore` |
-| B3 | **Interpolación Blade dentro de JavaScript.** `label: '{{ $zona->nombre }}'` — no es explotable (dentro de `<script>` el navegador no decodifica entidades HTML), pero un nombre con apóstrofo se muestra como `d&#039;Oro`. Usar `@json()`, como sí se hace correctamente en `evaluacion_percepcion/ponderacion.blade.php:187`. | `evaluacion_potencialidad/ponderacion.blade.php:352` |
-| B4 | **`env.example` está obsoleto**: documenta un despliegue en Railway con MySQL, mientras el despliegue real es Render con PostgreSQL (`render.yaml`). Conviven dos archivos de ejemplo contradictorios (`.env.example` y `env.example`). | raíz |
-| B5 | **README desactualizado**: describe XAMPP y MySQL, sin mención de Docker ni PostgreSQL. Además arrastra el README genérico de Laravel a partir de la línea 76. | `README.md` |
-| B6 | **Restos y código muerto**: `start.txt` vacío; ruta y método `guardarCampos` que solo redirige; `@tailwindcss/vite@4.1.17` instalado pero sin usar (el build va por PostCSS con Tailwind 3.4.18). | varios |
-| B7 | **Comparaciones de rol inconsistentes**: `IsAdmin.php:19` usa `!== 1` (estricto) mientras el módulo operativo usa `== 2` / `== 3` (flojo), y `User` no castea `role_id` a entero. | middleware y controladores |
-| B8 | **El menú móvil no tiene ningún enlace útil.** Los accesos a Panel Admin / Usuarios / Lugares / Zonas están solo en el bloque `hidden sm:flex`. Por debajo de 640 px el admin no puede navegar a ninguna sección — relevante para un sistema de trabajo de campo. | `layouts/navigation.blade.php:97-102` |
-| B9 | **Vistas muertas que apuntan a rutas inexistentes**: `auth/admLogin.blade.php:9` usa `route('admLogin')` y `components/layout.blade.php:12` usa `route('show.admLogin')`; ninguna de las dos rutas existe (produciría error 500 si se enlazara). También sin uso: `evaluacion_potencialidad/seleccionar_campos.blade.php` (251 líneas) y `dashboard.blade.php`. Además `.claude/settings.local.json` está versionado con rutas absolutas del disco del desarrollador. | varios |
+| # | Hallazgo | Ubicación (histórica) | Estado (verificado 2026-08-09) |
+|---|---|---|---|
+| B1 | 19 MB de archivos no-código en cada imagen Docker: `.dockerignore` no excluye `Documentación/` ni `entregables/`. | `.dockerignore` | **RESUELTO.** `.dockerignore` excluye ahora `Documentación`, `entregables` y `**/node_modules` (con comentario explicando el anclado a la raíz que fallaba antes). |
+| B2 | `entregables/node_modules` versionado en git; `.gitignore` con `/node_modules` no cubre subdirectorios. | `.gitignore` | **RESUELTO.** `.gitignore` usa `**/node_modules`. Verificado por ausencia: `git ls-files \| grep entregables/node_modules` no devuelve nada. |
+| B3 | Interpolación Blade dentro de JavaScript en `evaluacion_potencialidad/ponderacion.blade.php:352`. | `evaluacion_potencialidad/ponderacion.blade.php:352` | **RESUELTO.** La línea ahora es `label: @json($zona->nombre)`. Verificado leyendo el fichero actual (línea 412) y confirmando que no queda ninguna interpolación Blade cruda dentro de `<script>`. |
+| B4 | `env.example` obsoleto (Railway/MySQL) conviviendo con `.env.example` (Render/PostgreSQL). | raíz | **RESUELTO.** Solo existe `.env.example`, alineado con Render/PostgreSQL/SQLite de test; `env.example` (sin punto) ya no existe en el repositorio. |
+| B5 | README desactualizado (XAMPP/MySQL) con el README genérico de Laravel a partir de la línea 76. | `README.md` | **RESUELTO**, con una deriva nueva encontrada de paso: el README (130 líneas, sin rastro del stub de Laravel) documenta Docker/PostgreSQL/Render correctamente, pero su primera línea dice "cinco matrices" cuando el sistema ya tiene nueve (se añadieron Paisaje, Valoración Territorial, Irritación, Concentración e Involucrados después de escribir esa frase). No se corrige aquí porque está fuera del alcance de esta auditoría, pero es exactamente el tipo de deriva que motivó esta revisión — se deja constancia para que no se repita el patrón. |
+| B6 | Restos y código muerto: `start.txt`, `guardarCampos`, `@tailwindcss/vite` sin usar. | varios | **RESUELTO.** Ninguno de los tres existe ya: no hay `start.txt`, no hay `guardarCampos` en `app/` ni `routes/`, y `package.json` no tiene `@tailwindcss/vite` (solo `@tailwindcss/forms`, que es una dependencia distinta y sí se usa). |
+| B7 | Comparaciones de rol inconsistentes (`!== 1` vs `== 2`/`== 3`) y `role_id` sin cast. | middleware y controladores | **RESUELTO.** No queda ninguna comparación cruda de `role_id` en `app/` (verificado por grep); todo pasa por `esAdmin()`/`esJefe()`/`esEquipo()`/`tieneRolOperativo()`, y `User::casts()` incluye `'role_id' => 'integer'`. |
+| B8 | Menú móvil sin los enlaces de admin (`hidden sm:flex` solamente). | `layouts/navigation.blade.php:97-102` | **RESUELTO**, sin test (es una diferencia de visibilidad CSS entre los dos bloques de navegación, que un test de backend no puede distinguir: ambos bloques están siempre en el HTML). `layouts/navigation.blade.php` tiene ahora los mismos `x-responsive-nav-link` que el menú de escritorio dentro del bloque `sm:hidden`, con un comentario explícito citando el problema original. |
+| B9 | Vistas muertas (`admLogin`, `show.admLogin`, `seleccionar_campos.blade.php`, `dashboard.blade.php`) y `.claude/settings.local.json` versionado. | varios | **RESUELTO.** `admLogin.blade.php` y `seleccionar_campos.blade.php` ya no existen; no queda ninguna referencia a `route('admLogin')` ni `route('show.admLogin')`. Los `dashboard.blade.php` que sí existen hoy (`admin/` y `operativo/`) están en uso activo (`PanelController::index`, `DashboardController::index`) — no son los que este hallazgo señalaba como muertos. `.claude/settings.local.json` ya no está en `git ls-files` y `.gitignore` lo excluye explícitamente. |
 
 ---
 
@@ -452,6 +620,23 @@ No todo son problemas. Verificado explícitamente:
 
 ## Plan de acción sugerido
 
+> **Nota 2026-08-09:** este plan quedó obsoleto casi entero — los diez puntos
+> de código que listaba (C1-C4, A2-A7, A4, M1, M2, M5, M11) están resueltos y
+> verificados, ver cada hallazgo arriba. Se deja el texto histórico plegado
+> abajo y se reduce este plan a lo que de verdad sigue pendiente, que no es
+> código:
+
+**Pendiente real, los tres son pasos de despliegue, no de repositorio:**
+1. Rotar la contraseña del administrador en la instancia ya desplegada (C1)
+   — el seeder arreglado protege despliegues futuros, no revierte el actual.
+2. Dar de alta un bucket S3-compatible y rellenar `AWS_*` en Render, o subir
+   al plan Starter y descomentar el `disk:` de `render.yaml` (A1).
+3. Configurar un proveedor SMTP real y rellenar `MAIL_HOST`/`MAIL_USERNAME`/
+   `MAIL_PASSWORD` en Render (M16).
+
+<details>
+<summary>Plan original del 6 de agosto (histórico, ya ejecutado)</summary>
+
 **Ahora mismo (producción comprometida):**
 1. Cambiar la contraseña del admin en la instancia desplegada.
 2. Sacar los usuarios demo del seeder de producción (C1).
@@ -468,3 +653,35 @@ No todo son problemas. Verificado explícitamente:
 8. Limpiar los modelos fantasma (A4), retirar `/__bootstrap` y cerrar el registro público (M1, M2).
 9. Índices de claves foráneas (M5) y casts decimales (M11).
 10. Higiene de repositorio: `.dockerignore`, `.gitignore`, README (B1, B2, B5).
+
+</details>
+
+---
+
+## Nota de verificación
+
+**Fecha:** 9 de agosto de 2026.
+**Contra qué commit:** base `main` en `a03378c` (362 tests en verde), rama
+`auditoria-al-dia`. Los cambios de esta verificación —este documento y los
+tres tests nuevos— son los commits siguientes en esa rama; verlos con
+`git log auditoria-al-dia` o `git diff a03378c..auditoria-al-dia`.
+
+**Método:** cada uno de los 37 hallazgos (C1–C4, A1–A8, M1–M16, B1–B9) se
+comprobó contra el código actual, no contra este documento. Donde el
+hallazgo era de permisos, la comprobación fue una petición real con
+`actingAs()` intentando lo que el hallazgo dice que no debería poder pasar
+— no una relectura del `if`. Se ejecutó la suite completa antes y después:
+**362 → 365 tests, todos en verde** (3 tests nuevos, para los hallazgos
+resueltos que no tenían ninguno: M6, M9, M11). Los tres se verificaron
+además reintroduciendo temporalmente el bug original en el código de
+producción y confirmando que el test nuevo lo detecta, antes de revertir.
+
+**Resultado:** cero hallazgos de seguridad vivos. Dos hallazgos pendientes,
+ninguno de código — son pasos de despliegue (A1: bucket S3, M16: SMTP) que
+ya estaban correctamente señalados como pendientes en el documento previo a
+esta verificación.
+
+**Próxima vez que se lea este documento:** si una sección de hallazgo no
+tiene una línea `**Estado: ...**` justo debajo de su título, es que no se ha
+verificado desde el 9 de agosto de 2026 — no asumir que sigue vigente ni que
+está resuelta.
