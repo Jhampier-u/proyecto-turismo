@@ -1,6 +1,6 @@
 # Estado del proyecto — traspaso entre máquinas
 
-**Fecha:** 9 de agosto de 2026 (actualizado al terminar `deudas-registro`)
+**Fecha:** 9 de agosto de 2026 (actualizado al terminar `reabrir-matriz`)
 **Para:** continuar en otro ordenador sin perder contexto.
 
 Este documento reemplaza a `ESTADO-MATRICES.md`, que quedó desfasado.
@@ -351,6 +351,71 @@ las dos causas. FET quedó igual: su «Evaluación FET cerrada» es vago pero no
 atribuye una causa incorrecta, así que no es esta deuda; queda anotado por si
 alguien quiere unificarlo el día que se toque ese formulario.
 
+### Rama `reabrir-matriz` — premisa falsa, cerrada sin código nuevo
+
+El encargo era «reabrir una matriz validada», partiendo de que este documento
+la daba como «en el diseño, sin implementar» y de que el aviso de bloqueo
+promete justo esa capacidad al Jefe de Zona («Solo el Jefe de Zona puede
+reabrir o editar una matriz validada»). **La premisa era falsa: ya estaba
+implementada, en las ocho matrices de formulario.** Suite: **362 tests**.
+
+`EvaluacionZonaController::update()` decide el estado ANTES de validar los
+criterios, y solo bloquea la escritura de `$user->esEquipo()` sobre una
+matriz confirmada:
+
+```php
+if ($actual && $actual->estado === 'confirmado' && $user->esEquipo()) {
+    return back()->with('error', $this->mensajeCerrada());
+}
+```
+
+Nada ahí bloquea al jefe. Y en la vista, `$bloqueado` en las ocho formas de
+`evaluacion_*/form.blade.php` es
+`! puedeEditarEvaluaciones() || ($estaConfirmado && !$esJefe)`: para el jefe,
+el segundo término es siempre falso, así que el formulario no se deshabilita
+y el botón «Guardar Borrador» —que manda `accion_estado=borrador`— sigue
+visible aunque la matriz esté confirmada. Enviarlo pone `estado='borrador'`
+conservando los valores ya respondidos, que es exactamente «reabrir». El
+admin nunca llega: `PerteneceAZona` corta con 403 cualquier método no seguro
+suyo antes de que la petición toque el controlador.
+
+Verificado con un test antes de escribir nada (`tests/Feature/ReabrirMatrizTest.php`,
+seis tests, incluida Potencialidad para confirmar que el mecanismo no depende
+de heredar `MatrizPonderadaController`), no solo leyendo el código:
+
+1. El jefe reabre y los valores quedan intactos —incluidas las columnas
+   calculadas, que se recomputan sobre los mismos datos—.
+2. El equipo no puede: mismo bloqueo que ya tenía, sin cambios.
+3. El admin no puede: 403 del middleware si insiste por POST directo.
+4. **Los dependientes ya se defendían solos.** `Registro::ENTRADAS['vtt']`
+   depende de `fit` y `fet`; tanto `EstadoZona::filaResultado()` como
+   `VttController::resultadoFinal()` comprueban en vivo, en cada petición, que
+   las dos sigan confirmadas —no memorizan «disponible» en ningún sitio—.
+   Reabrir FIT hace que la fila de Vocación del Territorio en el panel de zona
+   pase a `bloqueada` con el mismo mensaje que ve cualquiera que nunca llegó a
+   validarlas («Se desbloquea al validar: Factores intrínsecos (FIT)»), y que
+   `/resultado-vtt` redirija al formulario de FIT en vez de enseñar nada. La
+   instantánea guardada en `vocacion_turistica_territorio` —la que escribe
+   `VocacionTuristicaTerritorio::registrar()` al confirmar— se queda desfasada
+   mientras tanto, pero nadie la lee directamente: `resultadoFinal()` la
+   recalcula siempre a partir del FIT y el FET vigentes antes de mostrarla, así
+   que al volver a confirmar FIT con un valor distinto, Vocación refleja el
+   valor nuevo, no el viejo. No hizo falta decidir nada sobre cascada ni
+   bloqueo explícito: la regla ya existente —recalcular en vivo, nunca fiarse
+   de una instantánea— ya cubre el caso.
+5. El aviso de bloqueo (`x-aviso-bloqueo-matriz`) sigue diciendo la verdad
+   después de reabrir: la frase de «validada» desaparece en cuanto la matriz
+   deja de estarlo, y el equipo recupera el botón de guardar.
+
+**No se tocó ningún controlador ni vista.** El botón ya existía y el
+documento era lo único que mentía; corregirlo —y fijar el comportamiento con
+tests permanentes— era todo el trabajo real. Involucrados no se tocó: ya tenía
+su propio mecanismo de reapertura (`InvolucradosController::reabrirSiConfirmada()`),
+anterior a esta rama y con su propio aviso explícito en el mensaje de éxito,
+que esta rama no necesitaba replicar en las ocho matrices de formulario —ahí
+el mecanismo es transparente (el propio botón de guardar) en vez de una
+advertencia aparte, y ningún test pedía unificarlos—.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -527,7 +592,14 @@ niveles de anidamiento— y ninguno se movió con el cambio.
 4. **Migrar FIT, FET, Percepción y Potencialidad** a los componentes de criterio
    nuevos (`criterio-escala`, `criterio-pildoras`). Siguen usando desplegables
    mientras Paisaje y Valoración Territorial ya usan tarjetas. Sin plan escrito.
-5. **«Reabrir» una matriz validada**: está en el diseño, sin implementar.
+5. ~~**«Reabrir» una matriz validada**~~ — resuelto en `reabrir-matriz`: no
+   estaba «en el diseño, sin implementar» como decía esta lista, ya
+   funcionaba end-to-end en las ocho matrices de formulario. Ver esa rama en
+   §3. Queda de verdad pendiente, si alguien lo echa de menos, hacer el gesto
+   más *descubrible* —hoy reabrir es un efecto secundario silencioso de
+   «Guardar Borrador», sin el aviso explícito que sí tiene Involucrados
+   («... vuelve a borrador: hay que validarla de nuevo»)—, pero ningún test
+   de esta rama lo exigía y no se inventó ese trabajo.
 
 ### Fuera de código, en Render
 
