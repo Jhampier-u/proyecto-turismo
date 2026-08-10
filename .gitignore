@@ -25,3 +25,7 @@ Homestead.yaml
 Thumbs.db
 /.claude/settings.local.json
 /storage/app/public/*
+
+# Cache de bytecode de Python: lo deja cualquier ejecucion de los
+# generadores de database/matrices/ y no es del proyecto.
+__pycache__/
