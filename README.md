@@ -1,8 +1,10 @@
 # UDAExplore — Gestión Turística
 
 Sistema de gestión de inventarios y evaluación de potencial turístico territorial.
-Implementa cinco matrices de valoración (Inventarios, FIT, FET, Potencialidad
-Turística y Percepción de la Localidad) sobre zonas asignadas a equipos de campo.
+Implementa nueve matrices de valoración (FIT, FET, Potencialidad Turística,
+Paisaje, Valoración Territorial, Percepción de la Localidad, Irritación
+Turística, Concentración Turística e Involucrados Turísticos) sobre zonas
+asignadas a equipos de campo, además del módulo de Inventario de recursos.
 
 **Stack:** Laravel 12 · PHP 8.2 · PostgreSQL (producción) / SQLite (desarrollo y
 tests) · Tailwind CSS 3 + Vite · Docker.
