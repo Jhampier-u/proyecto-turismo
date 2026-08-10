@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Matrices\Involucrados;
 use App\Matrices\Paisaje;
 use App\Matrices\Percepcion;
+use App\Matrices\Potencialidad;
 use App\Matrices\Registro;
 use App\Models\EvaluacionFit;
 use App\Models\EvaluacionPaisaje;
@@ -408,6 +409,50 @@ class GuardadoParcialTest extends TestCase
         unset($estado['ds1_posicion_turistica']);
         foreach ($estado as $campo => $valor) {
             $this->assertSame(3, $valor, "{$campo} debería conservar la respuesta que el usuario acababa de escribir");
+        }
+    }
+
+    /**
+     * Mismo caso que FIT y Percepción, para Potencialidad: aunque no hereda
+     * de MatrizPonderadaController -tiene su propio prepararDatos()-, el
+     * <select> también migró a <x-criterio-pildoras> en la rama
+     * potencialidad-componentes, y un hueco tiene que seguir sin ser un cero.
+     *
+     * Antes de esa migración el <select> preseleccionaba "0 — Ausencia" con
+     * `$val = $evaluacion->$campo ?? 0`: un criterio activo nunca visitado se
+     * habría enviado como Ausencia en vez de quedar sin responder. Este test
+     * habría fallado contra esa versión.
+     *
+     * estadoInicial() recoge los valores de las ~20 secciones (una x-data por
+     * sección, no una por matriz como en FIT), así que $estado trae los 156
+     * campos -null los que nadie tocó-; el bucle final solo recorre los 5 de
+     * Afluencia Turística, que son los que esta petición respondió.
+     */
+    public function test_un_error_al_validar_no_borra_lo_ya_respondido_en_potencialidad(): void
+    {
+        $url = "/operativo/zona/{$this->zona->id}/evaluacion-potencialidad";
+
+        $activos = array_keys(Potencialidad::SECCIONES['Afluencia Turística']);
+        $datos   = ['campos' => $activos, 'accion_estado' => 'confirmado'] + array_fill_keys($activos, 2);
+        unset($datos['dt_at_estadia']);
+
+        $this->actingAs($this->jefe)->from($url)->post($url, $datos)
+            ->assertSessionHasErrors('dt_at_estadia');
+
+        $this->assertDatabaseCount('evaluaciones_potencialidad', 0);
+
+        $pagina = $this->actingAs($this->jefe)->get($url)->assertOk();
+
+        $estado = $this->estadoInicial($pagina->getContent());
+
+        $this->assertNull($estado['dt_at_estadia'], 'el criterio que faltaba debe volver sin responder');
+
+        foreach ($activos as $campo) {
+            if ($campo === 'dt_at_estadia') {
+                continue;
+            }
+
+            $this->assertSame(2, $estado[$campo], "{$campo} debería conservar la respuesta que el usuario acababa de escribir");
         }
     }
 
