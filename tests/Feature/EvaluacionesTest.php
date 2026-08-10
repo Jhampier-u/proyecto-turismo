@@ -385,10 +385,28 @@ class EvaluacionesTest extends TestCase
             ->assertOk();
 
         // Potencialidad no tiene un botón "Guardar Borrador" con B mayúscula:
-        // el suyo es "Guardar borrador" (con b minúscula), y en modo lectura
-        // muestra badges en vez de <select>, no selects deshabilitados.
+        // el suyo es "Guardar borrador" (con b minúscula).
         $respuesta->assertDontSee('Guardar borrador');
-        $respuesta->assertDontSee('name="rn_agua_lagos"', false);
+
+        // Hasta la rama potencialidad-componentes, el modo lectura pintaba una
+        // insignia («🔴 0», «🟡 1», «🟢 2») en vez de un <select>, y esta
+        // aserción comprobaba que no aparecía ningún name="..." -ninguna
+        // insignia lo lleva-. El control cambió a <x-criterio-pildoras>, que
+        // SÍ lleva name="..." incluso deshabilitado -es el mismo componente,
+        // y la misma comprobación, que ya usan FIT/FET/Percepción-, así que
+        // la aserción original dejaría de tener sentido tal cual. Se
+        // sustituye por una más estricta: cuenta los radios reales y exige
+        // que los tres campos activos (3 × 3 niveles = 9) estén deshabilitados,
+        // en vez de asumir que la palabra "disabled" en el HTML basta -las
+        // clases `disabled:` de Tailwind la contienen sin que nada esté
+        // deshabilitado-.
+        $contenido = $respuesta->getContent();
+
+        preg_match_all('/<input type="radio"[^>]*>/', $contenido, $radios);
+        $this->assertCount(9, $radios[0], 'CAMPOS_POTENCIALIDAD tiene 3 campos activos × 3 niveles.');
+
+        $deshabilitados = array_filter($radios[0], fn(string $radio) => str_contains($radio, 'disabled'));
+        $this->assertCount(9, $deshabilitados, 'los 9 radios deben estar deshabilitados para el admin.');
     }
 
     /**

@@ -205,9 +205,10 @@ class RegistroMatricesTest extends TestCase
      * App\Matrices\Percepcion: antes vivía en una propiedad estática de
      * EvaluacionPercepcionController, en el mismo caso que FIT/FET.
      *
-     * Potencialidad sigue sin clase en App\Matrices -sus criterios viven en
-     * una propiedad estática de su controlador- y se queda fuera de este
-     * guardián automático.
+     * Potencialidad se sumó en la rama potencialidad-componentes, con
+     * App\Matrices\Potencialidad: antes vivía en una propiedad estática de su
+     * controlador -que ni siquiera hereda de MatrizPonderadaController-, en el
+     * mismo caso que las demás antes de su propia migración.
      */
     public function test_los_criterios_declarados_coinciden_con_el_instrumento(): void
     {
@@ -218,6 +219,7 @@ class RegistroMatricesTest extends TestCase
             'fit'                    => \App\Matrices\Fit::class,
             'fet'                    => \App\Matrices\Fet::class,
             'percepcion'             => \App\Matrices\Percepcion::class,
+            'potencialidad'          => \App\Matrices\Potencialidad::class,
         ];
 
         foreach ($verificables as $clave => $matriz) {

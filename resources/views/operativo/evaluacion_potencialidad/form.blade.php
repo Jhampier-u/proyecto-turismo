@@ -91,34 +91,25 @@
         .pt-btn-none:hover { background:#fee2e2; }
 
         /* ── Field rows ────────────────────────────────────────────────────── */
-        .pt-field-row { display:flex; align-items:center; gap:10px; padding:6px 8px; border-radius:8px; transition:background .12s; min-height:38px; }
+        /* align-items:flex-start, no center: el componente de criterio pinta
+           su propio nombre encima de las píldoras, así que la fila ya no es
+           una línea de ~38px sino un bloque; el toggle/punto queda arriba, a
+           la altura del nombre, en vez de centrado contra todo el bloque. */
+        .pt-field-row { display:flex; align-items:flex-start; gap:10px; padding:10px 8px; border-radius:8px; transition:background .12s; }
         .pt-field-row:hover { background:#fff; }
         .pt-field-row.pt-inactive { opacity:.55; }
-        .pt-field-label { font-size:.83rem; color:#374151; flex:1; min-width:0; transition:color .15s; }
-        .pt-field-label.faded { color:#9ca3af; text-decoration:line-through; }
+        .pt-field-control { flex:1; min-width:0; }
 
         /* Toggle switch */
-        .pt-toggle { position:relative; flex-shrink:0; width:36px; height:20px; cursor:pointer; }
+        .pt-toggle { position:relative; flex-shrink:0; width:36px; height:20px; cursor:pointer; margin-top:3px; }
         .pt-toggle input { opacity:0; width:0; height:0; position:absolute; }
         .pt-toggle-track { display:block; width:36px; height:20px; border-radius:10px; transition:background .2s; position:relative; }
         .pt-toggle-thumb { position:absolute; top:3px; left:3px; width:14px; height:14px; background:#fff; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.2); transition:transform .2s; }
 
         /* Dot indicator (non-Jefe roles) */
-        .pt-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+        .pt-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:6px; }
         .pt-dot-on  { background:#22c55e; box-shadow:0 0 0 2px #dcfce7; }
         .pt-dot-off { background:#d1d5db; }
-
-        /* Rating select */
-        .pt-select-wrap { flex-shrink:0; min-width:165px; }
-        .pt-select { width:100%; padding:5px 10px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:.79rem; font-family:'DM Sans',sans-serif; font-weight:500; background:#fff; cursor:pointer; outline:none; transition:border-color .15s,opacity .15s,background .15s; }
-        .pt-select:focus { border-color:#6366f1; }
-        .pt-select:disabled { opacity:.45; background:#f1f5f9; cursor:not-allowed; border-color:#e2e8f0; }
-
-        /* Readonly badge */
-        .pt-ro-badge { flex-shrink:0; display:inline-flex; align-items:center; padding:4px 12px; border-radius:8px; font-size:.78rem; font-weight:700; }
-        .pt-ro-0 { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
-        .pt-ro-1 { background:#fffbeb; color:#d97706; border:1px solid #fde68a; }
-        .pt-ro-2 { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; }
 
         /* Banner confirmado */
         .pt-banner-ok { background:linear-gradient(135deg,#f0fdf4,#dcfce7); border:1.5px solid #86efac; border-radius:13px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
@@ -245,11 +236,32 @@
                           $secId = Str::slug($secNombre);
                           $camposJson = json_encode(array_keys($camposSeccion));
                           $activosJson = json_encode($camposActivos);
+
+                          // Calificación inicial de cada criterio de la
+                          // sección, para el x-data que lee el componente de
+                          // criterio (pildoras).
+                          // old() manda sobre lo guardado -si la validación
+                          // falla, el formulario tiene que devolver los demás
+                          // criterios tal como estaban, no lo último guardado-,
+                          // y un hueco llega como null, no como 0: (int) null
+                          // lo convertiría en «Ausencia», que es una
+                          // calificación real. Mismo criterio que FIT, FET y
+                          // Percepción; antes de este cambio el <select> de
+                          // Potencialidad preseleccionaba 0 con `?? 0`, así que
+                          // un criterio activo nunca visitado se enviaba como
+                          // «Ausencia» en vez de quedar sin responder.
+                          $valoresIniciales = collect($camposSeccion)->mapWithKeys(
+                              function ($lbl, $campo) use ($evaluacion) {
+                                  $valor = old($campo, $evaluacion->$campo);
+
+                                  return [$campo => $valor === null || $valor === '' ? null : (int) $valor];
+                              }
+                          )->all();
                       @endphp
 
                       {{-- Sección ──────────────────────────────────────── --}}
                       <div class="pt-section"
-                           x-data="ptSection({{ $camposJson }}, {{ $activosJson }})"
+                           x-data="ptSection({{ $camposJson }}, {{ $activosJson }}, @js($valoresIniciales))"
                            x-init="init()">
 
                         {{-- Encabezado de sección ──────────────────────── --}}
@@ -272,8 +284,6 @@
 
                         {{-- Filas de campos ──────────────────────────── --}}
                         @foreach($camposSeccion as $campo => $label)
-                          @php $val = $evaluacion->$campo ?? 0; @endphp
-
                           <div class="pt-field-row"
                                :class="{ 'pt-inactive': !states['{{ $campo }}'] }">
 
@@ -309,45 +319,24 @@
                               </span>
                             @endif
 
-                            {{-- Etiqueta ──────────────────────────────── --}}
-                            <span class="pt-field-label"
-                                  :class="{ 'faded': !states['{{ $campo }}'] }">
-                              {{ $label }}
-                            </span>
-
-                            {{-- Calificación: selector o badge ────────── --}}
-                            @if($soloLectura)
-                              {{-- Admin / Evaluación confirmada para equipo --}}
-                              <span class="pt-ro-badge pt-ro-{{ $val }}">
-                                {{ $val == 0 ? '🔴 0' : ($val == 1 ? '🟡 1' : '🟢 2') }}
-                              </span>
-
-                            @elseif($puedeConfigurar)
-                              {{-- Jefe: select habilitado cuando el toggle está ON --}}
-                              <div class="pt-select-wrap">
-                                <select name="{{ $campo }}"
-                                        class="pt-select"
-                                        :disabled="!states['{{ $campo }}']">
-                                  <option value="0" {{ $val == 0 ? 'selected' : '' }}>🔴 0 — Ausencia</option>
-                                  <option value="1" {{ $val == 1 ? 'selected' : '' }}>🟡 1 — Fragilidad</option>
-                                  <option value="2" {{ $val == 2 ? 'selected' : '' }}>🟢 2 — Aprovechable</option>
-                                </select>
-                              </div>
-
-                            @else
-                              {{-- Equipo: select solo para campos activos --}}
-                              @if(in_array($campo, $camposActivos))
-                              <div class="pt-select-wrap">
-                                <select name="{{ $campo }}" class="pt-select">
-                                  <option value="0" {{ $val == 0 ? 'selected' : '' }}>🔴 0 — Ausencia</option>
-                                  <option value="1" {{ $val == 1 ? 'selected' : '' }}>🟡 1 — Fragilidad</option>
-                                  <option value="2" {{ $val == 2 ? 'selected' : '' }}>🟢 2 — Aprovechable</option>
-                                </select>
-                              </div>
-                              @else
-                              <span style="font-size:.72rem;color:#cbd5e1;font-style:italic;flex-shrink:0;">inactivo</span>
-                              @endif
-                            @endif
+                            {{-- Criterio: nombre + escala con el mismo
+                                 componente que ya usan FIT, FET y Percepción,
+                                 en vez del <select> / insignia de antes. Se
+                                 bloquea con $soloLectura -lectura por rol o
+                                 evaluación confirmada-, no con el toggle de
+                                 activo/inactivo: ese ya se ve en la opacidad
+                                 de la fila entera (:class de arriba, reactiva)
+                                 y el servidor ignora la calificación de un
+                                 campo inactivo sin importar lo que se envíe
+                                 (prepararDatos() la descarta y conserva el
+                                 valor guardado), así que no hay nada que
+                                 proteger deshabilitando el control en vivo. --}}
+                            <div class="pt-field-control">
+                              <x-criterio-pildoras
+                                  :campo="$campo"
+                                  :criterio="['nombre' => $label, 'niveles' => $niveles]"
+                                  :bloqueado="$soloLectura" />
+                            </div>
 
                           </div>{{-- /pt-field-row --}}
                         @endforeach
@@ -508,11 +497,17 @@
     {{-- Smooth scroll para la navegación del sidebar ──────────────────────── --}}
     <script>
         // ── Componente Alpine por sección ─────────────────────────────────────
-        function ptSection(campos, activosList) {
+        // `valoresIniciales` alimenta al componente de criterio (pildoras),
+        // que lee y escribe en `valores` -no en `states`, que sigue siendo
+        // solo el activo/inactivo del toggle-. Vienen en dos objetos
+        // separados porque son dos preguntas distintas por criterio: "¿cuenta
+        // para el cálculo?" y "¿qué calificación tiene?".
+        function ptSection(campos, activosList, valoresIniciales) {
             const initStates = {};
             campos.forEach(c => { initStates[c] = activosList.includes(c); });
             return {
                 states: { ...initStates },
+                valores: { ...valoresIniciales },
                 activosCount: 0,
                 init() {
                     this.activosCount = campos.filter(c => this.states[c]).length;
