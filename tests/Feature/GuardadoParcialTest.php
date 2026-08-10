@@ -345,6 +345,14 @@ class GuardadoParcialTest extends TestCase
      *
      * Encontrado probando la rama en el navegador: 33 respuestas perdidas por
      * olvidar una.
+     *
+     * FIT migró de <select> a <x-criterio-pildoras> en la rama
+     * fit-fet-componentes: la selección ya no viaja en un `<option selected>`
+     * del HTML servido, sino en el `x-data` de Alpine que lee old(), así que
+     * la comprobación pasó a leer ese JSON -mismo mecanismo que
+     * ValoracionTerritorialTest::estadoInicial()-. El comportamiento que
+     * importa (old() gana sobre lo guardado) es el mismo; solo cambió cómo se
+     * observa desde fuera.
      */
     public function test_un_error_al_validar_no_borra_lo_ya_respondido(): void
     {
@@ -360,12 +368,37 @@ class GuardadoParcialTest extends TestCase
 
         $pagina = $this->actingAs($this->jefe)->get($url)->assertOk();
 
-        // Los 17 respondidos vuelven marcados; el que faltaba, sin responder.
-        $this->assertSame(
-            17,
-            substr_count($pagina->getContent(), '<option value="3" selected>'),
-            'El formulario no devolvió las respuestas que el usuario acababa de escribir.'
-        );
+        $estado = $this->estadoInicial($pagina->getContent());
+
+        $this->assertNull($estado['recursos_culturales'], 'el criterio que faltaba debe volver sin responder');
+
+        unset($estado['recursos_culturales']);
+        foreach ($estado as $campo => $valor) {
+            $this->assertSame(3, $valor, "{$campo} debería conservar la respuesta que el usuario acababa de escribir");
+        }
+    }
+
+    /**
+     * Extrae el estado inicial de Alpine del HTML. Idéntico a
+     * ValoracionTerritorialTest::estadoInicial(): Blade emite el x-data como
+     * JSON.parse('...') con las comillas escapadas a &quot;, porque
+     * Js::from() codifica dos veces.
+     *
+     * @return array<string, int|null> campo => calificación
+     */
+    private function estadoInicial(string $html): array
+    {
+        preg_match_all("/JSON\.parse\('(.+?)'\)/", $html, $coincidencias);
+
+        $valores = [];
+
+        foreach ($coincidencias[1] as $escapado) {
+            $json = json_decode('"' . $escapado . '"');
+
+            $valores += json_decode((string) $json, true) ?? [];
+        }
+
+        return $valores;
     }
 
     public function test_el_equipo_tambien_guarda_a_medias(): void

@@ -194,11 +194,16 @@ class RegistroMatricesTest extends TestCase
     /**
      * El número de criterios alimenta el «21 de 34 respondidos». Un número mal
      * copiado no rompe nada visible, así que se comprueba solo donde se puede:
-     * Paisaje y Valoración Territorial exponen todos() y son verificables.
+     * las matrices que exponen todos() son verificables.
      *
-     * FIT, FET, Percepción y Potencialidad declaran sus criterios en métodos
-     * protegidos de sus controladores, sin superficie pública que consultar;
-     * los suyos se verifican a mano en el Step 5 de esta tarea.
+     * FIT y FET se sumaron a este grupo en la rama fit-fet-componentes, con
+     * App\Matrices\Fit y App\Matrices\Fet: antes declaraban sus criterios en
+     * métodos protegidos de sus controladores, sin superficie pública que
+     * consultar, y este test no podía verificarlos.
+     *
+     * Percepción y Potencialidad siguen sin clase en App\Matrices -sus
+     * criterios viven en propiedades estáticas de sus controladores- y se
+     * quedan fuera de este guardián automático.
      */
     public function test_los_criterios_declarados_coinciden_con_el_instrumento(): void
     {
@@ -206,6 +211,8 @@ class RegistroMatricesTest extends TestCase
             'paisaje'                => \App\Matrices\Paisaje::class,
             'valoracion_territorial' => \App\Matrices\ValoracionTerritorial::class,
             'irritacion'             => \App\Matrices\Irritacion::class,
+            'fit'                    => \App\Matrices\Fit::class,
+            'fet'                    => \App\Matrices\Fet::class,
         ];
 
         foreach ($verificables as $clave => $matriz) {

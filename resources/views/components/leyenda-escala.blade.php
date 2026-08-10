@@ -13,11 +13,19 @@
 --}}
 
 @php
-    // Indexados por POSICIÓN en la escala, no por el valor del nivel: Valoración
-    // Territorial usa 0/1/2 y Paisaje usa 0/3/5, y ambas deben pintar igual.
-    $colores = ['bg-red-500', 'bg-amber-500', 'bg-green-500'];
+    // Indexadas por POSICIÓN en la escala, no por el valor del nivel:
+    // Valoración Territorial usa 0/1/2, Paisaje usa 0/3/5, y FIT/FET usan un
+    // cuarto nivel (0-3) -ver App\Matrices\Fit y App\Matrices\Fet-. La de 3
+    // sigue igual que siempre; la de 4 evita repetir el verde -"lo mejor"- a
+    // media escala si se reutilizara la de 3.
+    $paletas = [
+        3 => ['bg-red-500', 'bg-amber-500', 'bg-green-500'],
+        4 => ['bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-green-500'],
+    ];
 
     ksort($niveles);
+
+    $colores = $paletas[count($niveles)] ?? $paletas[3];
 @endphp
 
 <div class="bg-white border border-gray-200 rounded-lg p-4 mb-6">

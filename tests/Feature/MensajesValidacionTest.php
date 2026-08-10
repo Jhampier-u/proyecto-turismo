@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Http\Controllers\Operativo\EvaluacionPercepcionController;
 use App\Http\Controllers\Operativo\EvaluacionPotencialidadController;
 use App\Matrices\Concentracion;
+use App\Matrices\Fet;
+use App\Matrices\Fit;
 use App\Matrices\Involucrados;
 use App\Matrices\Irritacion;
 use App\Matrices\Paisaje;
@@ -30,7 +32,10 @@ use Tests\TestCase;
  * etiquetas -es justo lo que MatrizPonderadaController::etiquetas() y sus
  * sobreescrituras tienen que soportar sin copiar nada-:
  *
- *   - Paisaje / ValoracionTerritorial: const con 'nombre' anidado por criterio.
+ *   - Paisaje / ValoracionTerritorial / Fit / Fet: const con 'nombre' anidado
+ *     por criterio. FIT y FET se sumaron a este grupo en la rama
+ *     fit-fet-componentes: antes no tenían ninguna clase de la que derivar
+ *     su etiqueta -ver más abajo, y docs/ESTADO-PROYECTO.md-.
  *   - Irritacion: const que ya es directamente campo => texto.
  *   - Concentracion: dos const de dos niveles más (categoría/sector > tipo),
  *     aplanadas por Concentracion::etiquetas().
@@ -39,11 +44,12 @@ use Tests\TestCase;
  *     hereda de MatrizPonderadaController.
  *   - Involucrados: ni matriz de formulario ni MatrizPonderadaController -es
  *     una lista de actores con su propio reglas()/etiquetas()-.
- *   - FIT: a propósito SIN etiquetas (ver el reporte de esta rama): sus
- *     nombres solo existen como literales en el Blade, no en ninguna clase
- *     PHP de la que derivarlos sin copiarlos. Sirve para probar el mínimo
- *     exigible incluso sin etiqueta: campo legible, con espacios, en
- *     castellano.
+ *
+ * Hasta la rama fit-fet-componentes, FIT y FET eran las únicas dos matrices
+ * SIN etiqueta: sus nombres solo existían como literales sueltos en sus
+ * vistas Blade, sin ninguna clase PHP de la que derivarlos sin copiarlos.
+ * Ahora que App\Matrices\Fit y App\Matrices\Fet existen, se comportan igual
+ * que Paisaje y ValoracionTerritorial.
  */
 class MensajesValidacionTest extends TestCase
 {
@@ -85,6 +91,17 @@ class MensajesValidacionTest extends TestCase
     private function fitValido(): array
     {
         return array_fill_keys(self::CAMPOS_FIT, 3);
+    }
+
+    private const CAMPOS_FET = [
+        'demanda_flujos', 'demanda_estadia',
+        'super_institucionalidad', 'super_organizacion', 'super_planificacion',
+        'imagen_apertura', 'imagen_seguridad', 'imagen_percibida', 'imagen_marketing',
+    ];
+
+    private function fetValido(): array
+    {
+        return array_fill_keys(self::CAMPOS_FET, 3);
     }
 
     private function paisajeValido(): array
@@ -272,25 +289,40 @@ class MensajesValidacionTest extends TestCase
             ]);
     }
 
-    // ── 3. Sin etiqueta accesible, al menos que sea legible ─────────────────
-
     /**
-     * FIT no tiene ninguna etiqueta accesible sin copiarla (ver el reporte de
-     * esta rama): sus nombres de campo solo existen como literales sueltos en
-     * el Blade del formulario. MatrizPonderadaController::etiquetas() devuelve
-     * [] por defecto y Laravel cae a su propio humanizador. El mínimo exigible
-     * sigue cumplido: castellano, y guiones bajos convertidos en espacios, no
-     * `recursos_culturales` crudo.
+     * Fit: misma forma que Paisaje/ValoracionTerritorial (const con 'nombre'
+     * anidado), instrumento distinto. Antes de la rama fit-fet-componentes,
+     * FIT no tenía ninguna clase de la que derivar su etiqueta -sus nombres
+     * de campo eran literales sueltos en el Blade del formulario- y este
+     * mismo test comprobaba justo lo contrario: que el mensaje se quedaba en
+     * "recursos culturales" en minúsculas. Ver docs/ESTADO-PROYECTO.md.
      */
-    public function test_sin_etiqueta_el_campo_al_menos_se_ve_legible_y_en_castellano(): void
+    public function test_fit_nombra_el_campo_con_la_etiqueta_del_instrumento(): void
     {
+        $etiqueta = Fit::todos()['recursos_culturales']['nombre'];
+
         $datos = $this->fitValido() + ['accion_estado' => 'confirmado'];
         unset($datos['recursos_culturales']);
 
         $this->actingAs($this->jefe)
             ->post("/operativo/zona/{$this->zona->id}/evaluacion-fit", $datos)
             ->assertSessionHasErrors([
-                'recursos_culturales' => 'El campo recursos culturales es obligatorio.',
+                'recursos_culturales' => "El campo {$etiqueta} es obligatorio.",
+            ]);
+    }
+
+    /** Fet: mismo caso que Fit, mismo motivo. */
+    public function test_fet_nombra_el_campo_con_la_etiqueta_del_instrumento(): void
+    {
+        $etiqueta = Fet::todos()['demanda_flujos']['nombre'];
+
+        $datos = $this->fetValido() + ['accion_estado' => 'confirmado'];
+        unset($datos['demanda_flujos']);
+
+        $this->actingAs($this->jefe)
+            ->post("/operativo/zona/{$this->zona->id}/evaluacion-fet", $datos)
+            ->assertSessionHasErrors([
+                'demanda_flujos' => "El campo {$etiqueta} es obligatorio.",
             ]);
     }
 
