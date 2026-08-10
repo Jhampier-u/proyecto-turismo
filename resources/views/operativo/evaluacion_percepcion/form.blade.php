@@ -44,6 +44,22 @@
                         'PE' => ['bg' => 'bg-emerald-50', 'border' => 'border-emerald-400', 'title' => 'text-emerald-800'],
                         'NO' => ['bg' => 'bg-purple-50',  'border' => 'border-purple-400',  'title' => 'text-purple-800'],
                     ];
+
+                    // Un campo sin responder llega como null y así tiene que
+                    // quedarse: (int) null lo convertiría en 0, que aquí es
+                    // una puntuación real -«Negativo»- y no un hueco.
+                    //
+                    // old() manda sobre lo guardado: si validar se rechaza
+                    // por un criterio que falta, el formulario tiene que
+                    // devolver los otros quince tal como estaban, no lo
+                    // último que se llegó a guardar.
+                    $inicial = fn($items) => collect($items)->mapWithKeys(
+                        function ($etiqueta, $campo) use ($evaluacion) {
+                            $valor = old($campo, $evaluacion->$campo);
+
+                            return [$campo => $valor === null || $valor === '' ? null : (int) $valor];
+                        }
+                    );
                 @endphp
 
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 mb-6">
@@ -68,39 +84,55 @@
                         </div>
                     @endif
 
-                    <div class="mb-6 bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 text-sm">
-                        <p class="font-bold mb-1">Instrucciones — Escala Valorativa</p>
-                        <p>Evalúe la percepción de la localidad en cada atributo, según la siguiente escala:</p>
-                        <ul class="list-disc ml-6 mt-1">
-                            <li><b>1 — Negativo</b></li>
-                            <li><b>2 — Neutral</b></li>
-                            <li><b>3 — Positivo</b></li>
-                        </ul>
-                    </div>
+                    <x-leyenda-escala :niveles="$niveles" />
 
                     {{-- Categorías --}}
                     @foreach($categorias as $codigo => $cat)
                         @php $c = $colores[$codigo]; @endphp
-                        <div class="{{ $c['bg'] }} border-l-4 {{ $c['border'] }} p-5 rounded mb-6">
-                            <div class="flex items-baseline justify-between mb-4 border-b pb-2">
+                        <div class="{{ $c['bg'] }} border-l-4 {{ $c['border'] }} p-5 rounded mb-6"
+                             x-data="{
+                                valores: @js($inicial($cat['items'])),
+                                // Con la categoría a medias no hay media que
+                                // enseñar: dividir entre el total daba un
+                                // número bajo que se lee como una percepción
+                                // negativa cuando lo único que dice es que
+                                // falta rellenar. Mismo criterio que FIT.
+                                get promedio() {
+                                    const v = Object.values(this.valores);
+                                    return v.some(x => x === null)
+                                        ? null
+                                        : v.reduce((t, x) => t + x, 0) / v.length;
+                                },
+                                get respondidos() {
+                                    return Object.values(this.valores).filter(v => v !== null).length;
+                                },
+                             }">
+                            <div class="flex flex-wrap justify-between items-baseline gap-3 mb-4 border-b pb-2">
                                 <h3 class="font-bold text-lg {{ $c['title'] }}">
                                     {{ $codigo }} — {{ $cat['nombre'] }}
                                 </h3>
-                                <span class="text-xs font-semibold text-gray-600 uppercase">
-                                    Peso: {{ number_format($cat['peso'] * 100, 0) }}%
-                                </span>
+                                <div class="flex items-baseline gap-4">
+                                    <span class="text-sm text-gray-600">
+                                        <span x-text="respondidos" class="font-semibold text-gray-700"></span>
+                                        de {{ count($cat['items']) }} respondidos
+                                    </span>
+                                    <span class="text-sm font-bold {{ $c['title'] }}">
+                                        Media
+                                        <span x-text="promedio === null ? '—' : promedio.toFixed(2)"></span>
+                                        <span class="text-gray-400 font-normal">/ 3.00</span>
+                                    </span>
+                                    <span class="text-sm font-semibold text-gray-600">
+                                        Peso: {{ number_format($cat['peso'] * 100, 0) }}%
+                                    </span>
+                                </div>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                @foreach($cat['items'] as $campo => $etiqueta)
-                                    <div class="bg-white p-3 rounded border">
-                                        <x-select-percepcion
-                                            :label="$etiqueta"
-                                            :name="$campo"
-                                            :val="$evaluacion->$campo"
-                                            :disabled="$bloqueado" />
-                                    </div>
-                                @endforeach
-                            </div>
+
+                            @foreach($cat['items'] as $campo => $etiqueta)
+                                <x-criterio-pildoras
+                                    :campo="$campo"
+                                    :criterio="['nombre' => $etiqueta, 'niveles' => $niveles]"
+                                    :bloqueado="$bloqueado" />
+                            @endforeach
                         </div>
                     @endforeach
 

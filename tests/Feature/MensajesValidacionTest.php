@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\Operativo\EvaluacionPercepcionController;
 use App\Http\Controllers\Operativo\EvaluacionPotencialidadController;
 use App\Matrices\Concentracion;
 use App\Matrices\Fet;
@@ -10,6 +9,7 @@ use App\Matrices\Fit;
 use App\Matrices\Involucrados;
 use App\Matrices\Irritacion;
 use App\Matrices\Paisaje;
+use App\Matrices\Percepcion;
 use App\Matrices\ValoracionTerritorial;
 use App\Models\Role;
 use App\Models\User;
@@ -39,7 +39,8 @@ use Tests\TestCase;
  *   - Irritacion: const que ya es directamente campo => texto.
  *   - Concentracion: dos const de dos niveles más (categoría/sector > tipo),
  *     aplanadas por Concentracion::etiquetas().
- *   - Percepcion: propiedad estática del controlador (no del instrumento).
+ *   - Percepcion: propiedad estática de App\Matrices\Percepcion -mutable a
+ *     propósito, no una const como las demás; ver más abajo-.
  *   - Potencialidad: propiedad estática de un controlador que ni siquiera
  *     hereda de MatrizPonderadaController.
  *   - Involucrados: ni matriz de formulario ni MatrizPonderadaController -es
@@ -50,6 +51,14 @@ use Tests\TestCase;
  * vistas Blade, sin ninguna clase PHP de la que derivarlos sin copiarlos.
  * Ahora que App\Matrices\Fit y App\Matrices\Fet existen, se comportan igual
  * que Paisaje y ValoracionTerritorial.
+ *
+ * Percepción ya daba su etiqueta desde antes de fit-fet-componentes -no era
+ * el problema que esa rama resolvía-, pero la propiedad vivía en
+ * EvaluacionPercepcionController, no en App\Matrices. La rama
+ * percepcion-componentes la movió a App\Matrices\Percepcion::$categorias,
+ * igual que hizo fit-fet-componentes con Fit/Fet, salvo que aquí sigue siendo
+ * una propiedad mutable en vez de una const -ver el test de mutación, más
+ * abajo, sobre por qué-.
  */
 class MensajesValidacionTest extends TestCase
 {
@@ -124,12 +133,10 @@ class MensajesValidacionTest extends TestCase
         return array_fill_keys(Concentracion::campos(), 2);
     }
 
-    /** Los 16 campos de Percepción, tomados de la propia definición del controlador. */
+    /** Los 16 campos de Percepción, tomados de App\Matrices\Percepcion. */
     private function itemsPercepcion(): array
     {
-        return collect(EvaluacionPercepcionController::$categorias)
-            ->flatMap(fn($cat) => array_keys($cat['items']))
-            ->all();
+        return array_keys(Percepcion::todos());
     }
 
     private function percepcionValida(): array
@@ -231,10 +238,10 @@ class MensajesValidacionTest extends TestCase
             ]);
     }
 
-    /** Percepción: propiedad estática del CONTROLADOR, no una clase en App\Matrices. */
+    /** Percepción: propiedad estática de App\Matrices\Percepcion, mutable a propósito. */
     public function test_percepcion_nombra_el_campo_con_la_etiqueta_del_instrumento(): void
     {
-        $etiqueta = EvaluacionPercepcionController::$categorias['PL']['items']['pl3_conoc_motivo_visita'];
+        $etiqueta = Percepcion::$categorias['PL']['items']['pl3_conoc_motivo_visita'];
 
         $datos = $this->percepcionValida() + ['accion_estado' => 'confirmado'];
         unset($datos['pl3_conoc_motivo_visita']);
@@ -337,17 +344,19 @@ class MensajesValidacionTest extends TestCase
      * VIGENTE de cada const en vez de copiar un literal, que es la única
      * forma de detectar una divergencia futura en esos casos.
      *
-     * EvaluacionPercepcionController::$categorias sí es una propiedad estática
-     * normal (no una const), así que aquí SÍ se puede mutar de verdad: se
-     * cambia una etiqueta del instrumento dentro del test, se comprueba que el
-     * mensaje cambia con ella, y se restaura en el finally para no dejar
-     * estado mutado para el resto de la suite.
+     * App\Matrices\Percepcion::$categorias sí es una propiedad estática
+     * normal (no una const) -se movió desde EvaluacionPercepcionController en
+     * la rama percepcion-componentes, pero se dejó mutable a propósito, justo
+     * para no perder esta prueba-, así que aquí SÍ se puede mutar de verdad:
+     * se cambia una etiqueta del instrumento dentro del test, se comprueba
+     * que el mensaje cambia con ella, y se restaura en el finally para no
+     * dejar estado mutado para el resto de la suite.
      */
     public function test_la_etiqueta_de_percepcion_sale_del_instrumento_y_no_de_una_copia(): void
     {
-        $original = EvaluacionPercepcionController::$categorias['DS']['items']['ds1_posicion_turistica'];
+        $original = Percepcion::$categorias['DS']['items']['ds1_posicion_turistica'];
 
-        EvaluacionPercepcionController::$categorias['DS']['items']['ds1_posicion_turistica']
+        Percepcion::$categorias['DS']['items']['ds1_posicion_turistica']
             = 'Etiqueta Mutada Para Esta Prueba';
 
         try {
@@ -360,7 +369,7 @@ class MensajesValidacionTest extends TestCase
                     'ds1_posicion_turistica' => 'El campo Etiqueta Mutada Para Esta Prueba es obligatorio.',
                 ]);
         } finally {
-            EvaluacionPercepcionController::$categorias['DS']['items']['ds1_posicion_turistica'] = $original;
+            Percepcion::$categorias['DS']['items']['ds1_posicion_turistica'] = $original;
         }
 
         // Si la restauración fallara, cualquier test posterior que use este
@@ -368,7 +377,7 @@ class MensajesValidacionTest extends TestCase
         // señale en ESTE test y no en uno inocente que se ejecute después.
         $this->assertSame(
             $original,
-            EvaluacionPercepcionController::$categorias['DS']['items']['ds1_posicion_turistica']
+            Percepcion::$categorias['DS']['items']['ds1_posicion_turistica']
         );
     }
 }

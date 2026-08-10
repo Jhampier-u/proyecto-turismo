@@ -201,9 +201,13 @@ class RegistroMatricesTest extends TestCase
      * métodos protegidos de sus controladores, sin superficie pública que
      * consultar, y este test no podía verificarlos.
      *
-     * Percepción y Potencialidad siguen sin clase en App\Matrices -sus
-     * criterios viven en propiedades estáticas de sus controladores- y se
-     * quedan fuera de este guardián automático.
+     * Percepción se sumó en la rama percepcion-componentes, con
+     * App\Matrices\Percepcion: antes vivía en una propiedad estática de
+     * EvaluacionPercepcionController, en el mismo caso que FIT/FET.
+     *
+     * Potencialidad sigue sin clase en App\Matrices -sus criterios viven en
+     * una propiedad estática de su controlador- y se queda fuera de este
+     * guardián automático.
      */
     public function test_los_criterios_declarados_coinciden_con_el_instrumento(): void
     {
@@ -213,6 +217,7 @@ class RegistroMatricesTest extends TestCase
             'irritacion'             => \App\Matrices\Irritacion::class,
             'fit'                    => \App\Matrices\Fit::class,
             'fet'                    => \App\Matrices\Fet::class,
+            'percepcion'             => \App\Matrices\Percepcion::class,
         ];
 
         foreach ($verificables as $clave => $matriz) {

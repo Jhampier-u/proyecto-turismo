@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Operativo;
 
+use App\Matrices\Percepcion;
 use App\Models\EvaluacionPercepcion;
 use App\Models\Zona;
 use Illuminate\Database\Eloquent\Model;
@@ -9,65 +10,22 @@ use Illuminate\Http\Request;
 
 class EvaluacionPercepcionController extends MatrizPonderadaController
 {
-    // Estructura: código → [nombre_campo_db, etiqueta]
-    public static array $categorias = [
-        'DS' => [
-            'nombre' => 'Dimensión Social',
-            'peso'   => 0.20,
-            'items'  => [
-                'ds1_posicion_turistica'  => 'Posición frente a la actividad turística en el lugar',
-                'ds2_interes_participar'  => 'Grado de interés por participar en el desarrollo de actividades turísticas',
-                'ds3_contribucion_social' => 'Contribución del turismo en los procesos sociales de la localidad',
-            ],
-        ],
-        'PL' => [
-            'nombre' => 'Percepción Local',
-            'peso'   => 0.40,
-            'items'  => [
-                'pl1_conoc_recursos'         => 'Conocimiento de la existencia de recursos turísticos en el territorio',
-                'pl2_conoc_atractivos'       => 'Conocimiento de la existencia de atractivos turísticos en el territorio',
-                'pl3_conoc_motivo_visita'    => 'Conocimiento del motivo de visita hacia el territorio',
-                'pl4_conoc_flujo_visitantes' => 'Conocimiento del flujo de visitantes en la comunidad',
-                'pl5_sentimiento_visitantes' => 'Percepción o sentimiento causado por la presencia de visitantes',
-                'pl6_necesidad_visitantes'   => 'Opinión sobre la necesidad de la llegada de visitantes al lugar',
-            ],
-        ],
-        'PE' => [
-            'nombre' => 'Percepción Económica',
-            'peso'   => 0.20,
-            'items'  => [
-                'pe1_incidencia_ingresos'   => 'Incidencia de los ingresos económicos que perciben por su actividad actual',
-                'pe2_beneficios_esperados'  => 'Percepción de los beneficios que pueden esperarse por efectos del turismo',
-                'pe3_disposicion_inversion' => 'Grado de disposición de la localidad para invertir en actividades turísticas',
-            ],
-        ],
-        'NO' => [
-            'nombre' => 'Nivel de Organización',
-            'peso'   => 0.20,
-            'items'  => [
-                'no1_organizacion_colectiva' => 'Nivel de organización colectiva entorno a objetivos comunes',
-                'no2_lideres_sociales'       => 'Presencia de líderes sociales al interior de la comunidad',
-                'no3_opinion_lideres'        => 'Opinión del trabajo realizado por los líderes',
-                'no4_conflictos_sociales'    => 'Presencia de conflictos entre actores y grupos sociales',
-            ],
-        ],
-    ];
-
     public function edit($zonaId)
     {
         $zona       = Zona::findOrFail($zonaId);
         $evaluacion = EvaluacionPercepcion::firstOrNew(['zona_id' => $zonaId]);
-        $categorias = self::$categorias;
+        $categorias = Percepcion::$categorias;
+        $niveles    = Percepcion::NIVELES;
 
         return view('operativo.evaluacion_percepcion.form',
-            compact('zona', 'evaluacion', 'categorias'));
+            compact('zona', 'evaluacion', 'categorias', 'niveles'));
     }
 
     public function ponderacion($zonaId)
     {
         $zona       = Zona::findOrFail($zonaId);
         $evaluacion = EvaluacionPercepcion::where('zona_id', $zonaId)->firstOrFail();
-        $categorias = self::$categorias;
+        $categorias = Percepcion::$categorias;
 
         return view('operativo.evaluacion_percepcion.ponderacion',
             compact('zona', 'evaluacion', 'categorias'));
@@ -85,13 +43,13 @@ class EvaluacionPercepcionController extends MatrizPonderadaController
 
     protected function escala(): array
     {
-        return [1, 3];
+        return [Percepcion::ESCALA_MIN, Percepcion::ESCALA_MAX];
     }
 
     protected function criterios(): array
     {
         $criterios = [];
-        foreach (self::$categorias as $codigo => $cat) {
+        foreach (Percepcion::$categorias as $codigo => $cat) {
             $criterios[strtolower($codigo)] = array_keys($cat['items']);
         }
 
@@ -99,16 +57,15 @@ class EvaluacionPercepcionController extends MatrizPonderadaController
     }
 
     /**
-     * Las 16 etiquetas del instrumento, tomadas de self::$categorias y no
-     * copiadas: cada 'items' de ahí ya es campo => texto tal como lo declaran
-     * las categorías DS/PL/PE/NO.
+     * Las 16 etiquetas del instrumento, tomadas de Percepcion::todos() y no
+     * copiadas. Antes de esta migración ya se leían de self::$categorias
+     * -Percepción nunca estuvo entre las matrices sin etiqueta, a diferencia
+     * de FIT/FET-; lo único que cambia es que la definición ya no vive en
+     * este controlador.
      */
     protected function etiquetas(): array
     {
-        return array_merge(...array_map(
-            fn(array $cat) => $cat['items'],
-            array_values(self::$categorias)
-        ));
+        return Percepcion::todos();
     }
 
     /** Añade el campo de texto libre, que no es un criterio puntuable. */
@@ -156,7 +113,7 @@ class EvaluacionPercepcionController extends MatrizPonderadaController
             'NO' => ['media' => 'media_no', 'pond' => 'pond_no'],
         ];
 
-        foreach (self::$categorias as $codigo => $cat) {
+        foreach (Percepcion::$categorias as $codigo => $cat) {
             $campos = array_keys($cat['items']);
             $valores = array_map(fn($c) => (float) ($v[$c] ?? 0), $campos);
             $media   = count($valores) > 0 ? array_sum($valores) / count($valores) : 0;

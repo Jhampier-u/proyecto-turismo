@@ -85,7 +85,7 @@ return [
     |
     | Los campos de criterio de las nueve matrices NO están aquí a propósito:
     | sus etiquetas ya existen en App\Matrices\* o en el controlador de cada
-    | matriz -Paisaje::todos(), Irritacion::ETIQUETAS, EvaluacionPercepcionController::$categorias,
+    | matriz -Paisaje::todos(), Irritacion::ETIQUETAS, Percepcion::$categorias,
     | etc.-, y se pasan al validador como atributos personalizados por
     | petición (ver MatrizPonderadaController::etiquetas()). Copiarlas también
     | aquí crearía exactamente la segunda fuente de verdad que este proyecto

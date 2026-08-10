@@ -1,6 +1,6 @@
 # Estado del proyecto — traspaso entre máquinas
 
-**Fecha:** 10 de agosto de 2026 (actualizado al terminar `fit-fet-componentes`)
+**Fecha:** 10 de agosto de 2026 (actualizado al terminar `percepcion-componentes`)
 **Para:** continuar en otro ordenador sin perder contexto.
 
 Este documento reemplaza a `ESTADO-MATRICES.md`, que quedó desfasado.
@@ -496,6 +496,86 @@ valida —solo dónde viven las definiciones y cómo se pintan—.
 Suite: **376 tests** (365 en `main` + 10 en `FitTest.php`/`FetTest.php` + 1 neto
 en `MensajesValidacionTest.php`, que cambió un test por dos).
 
+### Rama `percepcion-componentes` — Percepción migrada, terminada
+
+La **Matriz de Percepción de la Localidad** (16 criterios en 4 categorías:
+Dimensión Social, Percepción Local, Percepción Económica, Nivel de
+Organización) pasó de `<select>` a `<x-criterio-pildoras>`, igual que FIT y
+FET en `fit-fet-componentes`. Suite: **383 tests**.
+
+**Antes de tocar nada se comprobó la dirección de la escala, criterio por
+criterio, no se asumió** —era el punto de parada explícito del encargo—.
+Percepción usa una escala de acuerdo Negativo(1)/Neutral(2)/Positivo(3), y al
+menos un atributo suena formulado en negativo: NO4, «Presencia de conflictos
+entre actores y grupos sociales». Se comprobó contra la hoja original
+(`Documentación/IMPLEMENTADA MATRIZ PERCEPCIÓN DE LA LOCALIDAD.xlsx`): la
+escala Positivo=3/Neutral=2/Negativo=1 es **única para los 16 atributos**, no
+una cantidad por atributo —no pregunta «cuántos conflictos hay», pregunta si
+esa situación es favorable o no para la localidad—. Bajo esa lectura, 3 es
+siempre el mejor valor posible en los 16, incluido NO4, así que la dirección
+es consistente y `<x-criterio-pildoras>` —que colorea por posición asumiendo
+que más alto es mejor— encaja sin necesidad de un control propio como el que
+sí necesitó Irritación.
+
+**Los componentes no necesitaron ningún cambio.** A diferencia de FIT/FET,
+que necesitaron una paleta de 4 niveles nueva, Percepción usa 3 niveles
+(Negativo/Neutral/Positivo) y `criterio-pildoras`/`leyenda-escala` ya cubrían
+3 desde antes de `fit-fet-componentes` —es la misma paleta que usan Paisaje y
+Valoración Territorial—.
+
+**Las etiquetas se movieron a `App\Matrices\Percepcion::$categorias`**, que
+antes vivían en `EvaluacionPercepcionController::$categorias`. A diferencia de
+FIT/FET, Percepción ya daba su etiqueta en los mensajes de validación desde
+antes de esta rama —no era el problema que resolvía `fit-fet-componentes`—;
+lo que cambia es solo dónde vive la definición, por la misma razón que llevó a
+mover las de FIT/FET: que el formulario la recorra sin tenerla tecleada, y que
+el controlador no sea a la vez la fuente y uno de sus consumidores.
+
+**Se mantuvo como propiedad estática mutable, no `const`, a propósito.**
+`Fit::BLOQUES`, `Fet::BLOQUES`, `Paisaje::CATEGORIAS` y compañía son todas
+`public const`; `Percepcion::$categorias` no. Es la única forma de conservar
+`MensajesValidacionTest::test_la_etiqueta_de_percepcion_sale_del_instrumento_y_no_de_una_copia()`,
+que muta una etiqueta en caliente y comprueba que el mensaje de error cambia
+con ella —PHP no permite reasignar una class constant ni por Reflection—.
+Convertirla en `const` habría degradado esa prueba a «leer el valor vigente»,
+como las demás matrices, perdiendo la única cobertura de la suite que detecta
+una copia en vez de una lectura dinámica. El test se adaptó para apuntar a
+`Percepcion::$categorias` en vez de `EvaluacionPercepcionController::$categorias`,
+sin cambiar qué prueba ni cómo.
+
+**Un test quedó atado a marcado que dejó de existir, y se hizo más estricto,
+no más laxo.** `EvaluacionesTest::test_el_admin_recibe_el_formulario_percepcion_bloqueado_aunque_este_en_borrador`
+comprobaba el literal `disabled>`, que ya no aparece con `<input type="radio">`.
+A diferencia de FIT/FET, un `substr_count($contenido, 'disabled')` a secas no
+bastaba aquí: el formulario de Percepción tiene un `<textarea>` con la clase
+Tailwind `disabled:bg-gray-100` —contiene la palabra "disabled" en su nombre
+siempre, esté o no bloqueado— y su propio atributo `disabled` condicional, así
+que el conteo real daba 50, no 48. Se reemplazó por un conteo que solo cuenta
+dentro de `<input type="radio">`: primero que existan 48 (16 criterios × 3
+niveles), después que los 48 estén deshabilitados. Es más preciso que el
+`substr_count` de FIT/FET, no una versión relajada de la misma prueba.
+
+**Dos tests nuevos, siguiendo el patrón de FIT/FET:**
+`PercepcionTest.php` -análogo a `FitTest.php`- fija que el instrumento declara
+16 criterios en 4 categorías con pesos que suman 1.0, que los 3 niveles son
+genéricos, que el formulario los recorre desde `Percepcion::todos()` -no
+tecleados- y que el guardado parcial sigue funcionando tras el cambio de
+control. `GuardadoParcialTest::test_un_error_al_validar_no_borra_lo_ya_respondido_en_percepcion`
+-análogo al de FIT- confirma que `old()` sigue ganando sobre lo guardado
+cuando falta un criterio al confirmar, leyendo el `x-data` de Alpine con el
+mismo `estadoInicial()` que ya usaba FIT: Percepción tiene cuatro bloques
+`x-data` (uno por categoría) en vez de uno solo, y el helper los funde sin
+cambios porque recorre todas las coincidencias de `JSON.parse(...)` de la
+página.
+
+`RegistroMatricesTest::test_los_criterios_declarados_coinciden_con_el_instrumento`
+se amplió con `'percepcion' => App\Matrices\Percepcion::class`, igual que se
+amplió con FIT/FET en la rama anterior.
+
+Ningún test de cálculo, guardado parcial a nivel de base de datos, bloqueo por
+rol/estado o mensajes de cierre se tocó: no cambió qué se guarda ni qué se
+valida, solo dónde vive la definición y cómo se pinta.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -669,15 +749,16 @@ niveles de anidamiento— y ninguno se movió con el cambio.
    El solapamiento con el módulo de Inventario, que era la duda que lo tenía
    parado, se resolvió a propósito **no** derivando uno del otro; el motivo está
    arriba y en el diseño.
-4. **Migrar Percepción y Potencialidad** a los componentes de criterio nuevos
-   (`criterio-escala`, `criterio-pildoras`). Siguen usando desplegables.
-   FIT y FET ya migraron —rama `fit-fet-componentes`, ver §3— y de paso
-   empezaron a dar la etiqueta del instrumento en sus mensajes de validación,
-   que antes no tenían. Sin plan escrito para las dos que quedan. Antes de
-   asumir qué componente usar, comprobar de verdad —no dar por hecho— si su
-   escala tiene 3 niveles (como Paisaje/ValoracionTerritorial, que ya encajan
-   con los componentes tal cual) o si haría falta la paleta de 4 que esta rama
-   añadió a `criterio-pildoras`/`leyenda-escala`, u otra distinta.
+4. ~~**Migrar Percepción y Potencialidad**~~ — Percepción hecha, ver rama
+   `percepcion-componentes` en §3. Queda solo **Potencialidad**, que sigue
+   usando desplegables y sin plan escrito. Antes de asumir qué componente
+   usar, comprobar de verdad —no dar por hecho— tanto la dirección de su
+   escala como si tiene 3 niveles (como Paisaje/ValoracionTerritorial, que ya
+   encajan con los componentes tal cual) o si haría falta la paleta de 4 que
+   `fit-fet-componentes` añadió a `criterio-pildoras`/`leyenda-escala`, u otra
+   distinta. Con 156 criterios, es la más grande del sistema; Percepción (16)
+   y FIT (18) no dan una idea real de cómo escalará el formulario ni de si
+   conviene alguna agrupación visual adicional.
 5. ~~**«Reabrir» una matriz validada**~~ — resuelto en `reabrir-matriz`: no
    estaba «en el diseño, sin implementar» como decía esta lista, ya
    funcionaba end-to-end en las ocho matrices de formulario. Ver esa rama en

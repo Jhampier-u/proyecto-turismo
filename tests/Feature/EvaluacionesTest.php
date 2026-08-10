@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Matrices\Percepcion;
 use App\Models\EvaluacionFet;
 use App\Models\EvaluacionFit;
-use App\Http\Controllers\Operativo\EvaluacionPercepcionController;
 use App\Models\EvaluacionPercepcion;
 use App\Models\EvaluacionPotencialidad;
 use App\Models\Role;
@@ -292,7 +292,7 @@ class EvaluacionesTest extends TestCase
         $this->assertSame(9 * 4, substr_count($respuesta->getContent(), 'disabled'));
     }
 
-    /** Mismo caso, para Percepción: usa el mismo componente select-percepcion. */
+    /** Mismo caso que FIT: Percepción migró de <select> a <x-criterio-pildoras> en esta rama. */
     public function test_el_admin_recibe_el_formulario_percepcion_bloqueado_aunque_este_en_borrador(): void
     {
         $this->actingAs($this->jefe)->post(
@@ -309,7 +309,22 @@ class EvaluacionesTest extends TestCase
             ->assertOk();
 
         $respuesta->assertDontSee('Guardar Borrador');
-        $respuesta->assertSee('disabled>', false);
+
+        // A diferencia de FIT/FET, esta página tiene un <textarea> con la
+        // clase Tailwind "disabled:bg-gray-100" -contiene la palabra
+        // "disabled" en su nombre, siempre, esté o no bloqueado- y su propio
+        // atributo `disabled` condicional. Un substr_count() a secas sobre
+        // toda la página los contaría también (50, no 48) y dejaría de medir
+        // lo que dice medir. Contar solo dentro de <input type="radio"> evita
+        // ese falso positivo: 16 criterios × 3 niveles = 48 radios, todos
+        // deshabilitados.
+        preg_match_all('/<input type="radio"[^>]*>/', $respuesta->getContent(), $radios);
+        $this->assertCount(48, $radios[0], 'deberían existir 48 radios (16 × 3 niveles)');
+        $this->assertCount(
+            48,
+            array_filter($radios[0], fn($tag) => str_contains($tag, 'disabled')),
+            'los 48 radios deberían estar deshabilitados'
+        );
     }
 
     /** Mismo caso que FIT, para Percepción: bloqueo por rol, no por validación. */
@@ -654,12 +669,10 @@ class EvaluacionesTest extends TestCase
         $this->assertDatabaseCount('evaluaciones_fet', 0);
     }
 
-    /** Los 16 ítems, tomados de la propia definición del controlador. */
+    /** Los 16 ítems, tomados de App\Matrices\Percepcion, no tecleados. */
     private function itemsPercepcion(): array
     {
-        return collect(EvaluacionPercepcionController::$categorias)
-            ->flatMap(fn($cat) => array_keys($cat['items']))
-            ->all();
+        return array_keys(Percepcion::todos());
     }
 
     public function test_percepcion_normaliza_el_total_entre_cero_y_uno(): void
