@@ -3,14 +3,17 @@
 {{--
     Escala 0-3 de la Matriz de Involucrados Turísticos Territoriales.
 
-    Con el instrumento en el nombre a propósito: select-0-3.blade.php ya existe
-    y también cubre una escala 0-3, pero nació para FIT/FET con sus propias
+    Con el instrumento en el nombre a propósito: select-0-3.blade.php también
+    cubría una escala 0-3, pero había nacido para FIT/FET con sus propias
     etiquetas ("Nulo/Bajo/Medio/Alto") — un nombre genérico atado a la
-    semántica de esas dos matrices. select-0-2.blade.php tiene el mismo
+    semántica de esas dos matrices. select-0-2.blade.php tenía el mismo
     problema con Potencialidad ("Ausencia/Fragilidad/Aprovechable"). Aquí 0 no
     es "el peor valor de la escala": es "no posee el criterio", una valoración
     cualitativa distinta. Compartir el componente de FIT/FET habría mezclado
     dos vocabularios que significan cosas distintas con el mismo número.
+    (select-0-3 y select-0-2 se borraron en cabos-sueltos, cabo 4, al migrar
+    FIT/FET/Potencialidad a <x-criterio-pildoras>; esta nota se conserva
+    porque el motivo del nombre sigue siendo el mismo.)
 
     Las CUATRO PALABRAS no viven aquí: llegan por :etiquetas desde
     App\Matrices\Involucrados::etiquetasEscala(), porque el vocabulario de

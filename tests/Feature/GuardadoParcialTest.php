@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Matrices\Fet;
 use App\Matrices\Involucrados;
 use App\Matrices\Paisaje;
 use App\Matrices\Percepcion;
@@ -285,15 +286,24 @@ class GuardadoParcialTest extends TestCase
      * otra vez, y un hueco que vuelve como 0 se convierte en una puntuación que
      * nadie eligió. Es el paso que el plan dejaba en verificación manual.
      *
-     * select-involucrados entra en los dos bucles como select-0-3/select-0-2/
-     * select-irritacion: también empieza en 0, y es justo la matriz donde ese
-     * 0 significa más —"no lo posee", una valoración explícita, no el peor
-     * valor de una escala—. Antes no estaba en esta lista y ningún test lo
-     * tocaba (un grep por su nombre en tests/ no devolvía nada), así que
-     * quedaba fuera del contrato compartido que el resto de desplegables sí
-     * cumple. A diferencia de sus hermanos necesita :etiquetas —el
+     * select-involucrados entra en los dos bucles junto a select-irritacion:
+     * también empieza en 0, y es justo la matriz donde ese 0 significa más
+     * —"no lo posee", una valoración explícita, no el peor valor de una
+     * escala—. A diferencia de select-irritacion necesita :etiquetas —el
      * vocabulario de la escala no es fijo, cambia por campo—, así que se le
      * pasa aparte en vez de forzarlo en la firma común de los demás.
+     *
+     * select-0-3, select-0-2 y select-percepcion —los <select> que usaban
+     * FIT/FET, Potencialidad y Percepción antes de migrar a
+     * <x-criterio-pildoras>— pasaron por aquí mientras existieron y se
+     * borraron con el resto de componentes muertos al terminar esa
+     * migración. No hace falta llevar su cobertura a este test: la selección
+     * de <x-criterio-pildoras> no vive en un atributo HTML que este método
+     * pueda inspeccionar —vive en el `x-data` de Alpine de la sección que lo
+     * envuelve—, así que la distinción hueco/cero para las cuatro matrices
+     * que migraron ya se comprueba de punta a punta, vía HTTP y leyendo ese
+     * `x-data`, en los test_un_error_al_validar_no_borra_lo_ya_respondido*
+     * de más abajo.
      */
     public function test_los_desplegables_distinguen_el_hueco_del_cero(): void
     {
@@ -304,7 +314,7 @@ class GuardadoParcialTest extends TestCase
         $etiquetas = Involucrados::etiquetasEscala('pod_poder');
         $extraDe   = fn(string $componente) => $componente === 'select-involucrados' ? ' :etiquetas="$etiquetas"' : '';
 
-        foreach (['select-0-3', 'select-0-2', 'select-percepcion', 'select-irritacion', 'select-involucrados'] as $componente) {
+        foreach (['select-irritacion', 'select-involucrados'] as $componente) {
             $extra = $extraDe($componente);
 
             $sinResponder = (string) $this->blade(
@@ -313,8 +323,7 @@ class GuardadoParcialTest extends TestCase
             );
             $conValor = (string) $this->blade(
                 "<x-{$componente} label=\"Criterio\" name=\"c\" :val=\"\$val\"{$extra} />",
-                // Percepción no tiene 0 en su escala; su valor bajo es el 1.
-                ['val' => $componente === 'select-percepcion' ? 1 : 0, 'etiquetas' => $etiquetas]
+                ['val' => 0, 'etiquetas' => $etiquetas]
             );
 
             $this->assertStringContainsString(
@@ -327,7 +336,7 @@ class GuardadoParcialTest extends TestCase
 
         // El caso que de verdad importa, y solo lo tienen las escalas que
         // empiezan en 0: un cero guardado tiene que volver marcado como cero.
-        foreach (['select-0-3', 'select-0-2', 'select-irritacion', 'select-involucrados'] as $componente) {
+        foreach (['select-irritacion', 'select-involucrados'] as $componente) {
             $extra = $extraDe($componente);
 
             $this->assertStringContainsString(
@@ -453,6 +462,41 @@ class GuardadoParcialTest extends TestCase
             }
 
             $this->assertSame(2, $estado[$campo], "{$campo} debería conservar la respuesta que el usuario acababa de escribir");
+        }
+    }
+
+    /**
+     * Mismo caso que FIT, para FET. Antes de fit-fet-componentes las dos
+     * compartían select-0-3, así que la única prueba que protegía este
+     * contrato para FET era la genérica de ese componente
+     * -test_los_desplegables_distinguen_el_hueco_del_cero-, no una propia:
+     * ningún test de este fichero mencionaba FET hasta este. Al borrar
+     * select-0-3 con el resto de desplegables muertos, FET se habría quedado
+     * sin ninguna cobertura de la distinción hueco/cero si no se trasladaba
+     * aquí, al componente que de verdad usa hoy.
+     */
+    public function test_un_error_al_validar_no_borra_lo_ya_respondido_en_fet(): void
+    {
+        $url = "/operativo/zona/{$this->zona->id}/evaluacion-fet";
+
+        $campos = array_keys(Fet::todos());
+        $datos  = array_fill_keys($campos, 3) + ['accion_estado' => 'confirmado'];
+        unset($datos['demanda_flujos']);
+
+        $this->actingAs($this->jefe)->from($url)->post($url, $datos)
+            ->assertSessionHasErrors('demanda_flujos');
+
+        $this->assertDatabaseCount('evaluaciones_fet', 0);
+
+        $pagina = $this->actingAs($this->jefe)->get($url)->assertOk();
+
+        $estado = $this->estadoInicial($pagina->getContent());
+
+        $this->assertNull($estado['demanda_flujos'], 'el criterio que faltaba debe volver sin responder');
+
+        unset($estado['demanda_flujos']);
+        foreach ($estado as $campo => $valor) {
+            $this->assertSame(3, $valor, "{$campo} debería conservar la respuesta que el usuario acababa de escribir");
         }
     }
 
