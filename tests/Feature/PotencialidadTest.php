@@ -157,4 +157,90 @@ class PotencialidadTest extends TestCase
         // Un campo inactivo conocido no debe aparecer con su propio control.
         $respuesta->assertDontSee('name="i_transporte"', false);
     }
+
+    /**
+     * Cabo 5(a) de cabos-sueltos: el toggle de campos activos ahora también
+     * deshabilita el control en vivo, no solo funde la fila a opacidad 0.55.
+     * Antes de este cambio las píldoras de un campo inactivo seguían
+     * respondiendo al clic -sin bug de datos, porque prepararDatos() ya
+     * descartaba esa calificación sin importar qué se enviara, pero sí un
+     * control que reacciona cuando no debería-.
+     *
+     * PHPUnit no ejecuta Alpine, así que esto no simula el clic: fija que
+     * el HTML servido al Jefe lleva el x-bind:disabled correcto -la mitad
+     * que sí puede verificarse sin un navegador-, apuntando al mismo
+     * `states` que ya gobierna el toggle. El otro half -que un campo
+     * inactivo termina con disabled=true de verdad, que un clic sobre él no
+     * cambia la selección, y que reactivarlo lo devuelve a responder- se
+     * verificó a mano en el navegador (Alpine, DevTools) durante esta rama.
+     */
+    public function test_el_toggle_de_campos_activos_deshabilita_el_control_en_vivo(): void
+    {
+        $inactivo = 'rn_litoral_playas';
+        $activo   = 'rn_litoral_arrecifes';
+        $activos  = array_diff(array_keys(Potencialidad::todos()), [$inactivo]);
+
+        PotencialidadCamposActivos::create([
+            'zona_id'        => $this->zona->id,
+            'campos_activos' => array_values($activos),
+        ]);
+
+        // html_entity_decode: Blade escapa la comilla simple del literal
+        // JS a &#039; al pasar por {{ }} -el navegador la decodifica solo al
+        // parsear el atributo, pero getContent() devuelve el HTML crudo tal
+        // cual sale del servidor-.
+        $html = html_entity_decode(
+            $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent()
+        );
+
+        // El Jefe ve los 156 campos siempre -incluido el inactivo, fundido a
+        // opacidad pero visible, para poder reactivarlo-, así que su radio
+        // también lleva el binding.
+        $this->assertStringContainsString(
+            "x-bind:disabled=\"!(states['{$inactivo}'])\"",
+            $html,
+            'el campo inactivo debe llevar el binding reactivo de disabled'
+        );
+
+        // Uno activo también lo lleva -el binding es incondicional, la
+        // expresión decide en vivo si el toggle cambia sin recargar-, no
+        // solo el que empezó inactivo.
+        $this->assertStringContainsString(
+            "x-bind:disabled=\"!(states['{$activo}'])\"",
+            $html,
+            'un campo activo tambien debe llevar el binding, para que responda si se desactiva sin recargar'
+        );
+    }
+
+    /**
+     * Garantía de que :activo-expr es aditivo de verdad: sin él -el caso de
+     * Paisaje, FIT, FET y Percepción, que nunca lo pasan- el HTML que sale
+     * de <x-criterio-pildoras> no cambia ni un atributo, bloqueado o no.
+     *
+     * Se verifica sobre el componente directamente, no releyendo una de
+     * esas cuatro vistas, para que la garantía cubra también a cualquier
+     * consumidor futuro que tampoco lo pase -no solo a los cuatro de hoy-.
+     * Las suites completas de FitTest, FetTest, PercepcionTest y
+     * PaisajeTest, sin ningún cambio, son la otra mitad de esta garantía:
+     * si esto rompiera algo suyo, habría fallado ahí.
+     */
+    public function test_sin_activo_expr_el_componente_no_cambia(): void
+    {
+        $this->withViewErrors([]);
+
+        $criterio = ['nombre' => 'Criterio', 'niveles' => Potencialidad::NIVELES];
+
+        foreach ([false, true] as $bloqueado) {
+            $html = (string) $this->blade(
+                '<x-criterio-pildoras :campo="$campo" :criterio="$criterio" :bloqueado="$bloqueado" />',
+                ['campo' => 'c', 'criterio' => $criterio, 'bloqueado' => $bloqueado]
+            );
+
+            $this->assertStringNotContainsString(
+                'x-bind:disabled',
+                $html,
+                'sin :activo-expr no debe aparecer ningún binding reactivo de disabled (bloqueado=' . ($bloqueado ? 'true' : 'false') . ')'
+            );
+        }
+    }
 }

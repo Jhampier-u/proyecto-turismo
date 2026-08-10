@@ -187,5 +187,8 @@ lineas += ["    /** @return array<string, array> todos los criterios, CT seguido
            "}"]
 
 DESTINO.parent.mkdir(parents=True, exist_ok=True)
-DESTINO.write_text("\n".join(lineas) + "\n", encoding="utf-8")
+# newline="\n": sin esto, en Windows write_text traduce \n a \r\n y el
+# fichero generado queda con finales de línea distintos a los del resto del
+# repo (.gitattributes fija `eol=lf` para todo *.php).
+DESTINO.write_text("\n".join(lineas) + "\n", encoding="utf-8", newline="\n")
 print(f"escrito: {DESTINO}")

@@ -1,4 +1,4 @@
-@props(['campo', 'criterio', 'bloqueado' => false])
+@props(['campo', 'criterio', 'bloqueado' => false, 'activoExpr' => null])
 
 {{--
     Variante compacta de <x-criterio-escala> para criterios cuyas opciones son
@@ -12,6 +12,17 @@
     bien sin ningún caso especial.
 
     El estado vive en el `x-data` de la sección que envuelve al componente.
+
+    $activoExpr es opcional y aditivo: Paisaje, FIT, FET y Percepción nunca lo
+    pasan, así que para ellas nada cambia -ni una clase, ni un atributo nuevo
+    en el HTML-. Solo Potencialidad lo usa, para su configuración de campos
+    activos: :bloqueado ya es estático (fijado por PHP al renderizar, según
+    rol/estado), pero "activo" es reactivo en el cliente -un Jefe activa o
+    desactiva un campo sin recargar la página-, así que necesita su propio
+    x-bind:disabled en vez de otro @disabled(). $activoExpr es la expresión
+    Alpine que evalúa a "está activo" en el x-data de quien lo use -en
+    Potencialidad, "states['campo']"-; el componente no conoce esa variable,
+    solo la referencia por nombre.
 --}}
 
 @php
@@ -43,6 +54,12 @@
     ksort($niveles);
 
     $estilos = $paletas[count($niveles)] ?? $paletas[3];
+
+    // Si ya está bloqueado por rol/estado, el radio ya sale disabled por
+    // @disabled($bloqueado) más abajo y no hace falta nada reactivo: no hay
+    // ningún toggle de activo/inactivo visible en modo lectura con el que
+    // pueda entrar en conflicto.
+    $bindDisabled = ($activoExpr && ! $bloqueado) ? "!({$activoExpr})" : null;
 @endphp
 
 <div class="border-b border-gray-200 py-4">
@@ -61,6 +78,7 @@
                        value="{{ $valor }}"
                        x-model.number="valores['{{ $campo }}']"
                        @disabled($bloqueado)
+                       @if($bindDisabled) x-bind:disabled="{{ $bindDisabled }}" @endif
                        class="sr-only">
 
                 <span class="font-bold text-base {{ $e['numero'] }}">{{ $valor }}</span>
@@ -76,6 +94,7 @@
             <button type="button"
                     x-show="valores['{{ $campo }}'] !== null"
                     @click="valores['{{ $campo }}'] = null"
+                    @if($bindDisabled) x-bind:disabled="{{ $bindDisabled }}" @endif
                     class="inline-flex items-center px-2 text-sm text-gray-500 underline hover:text-gray-700">
                 Borrar respuesta
             </button>

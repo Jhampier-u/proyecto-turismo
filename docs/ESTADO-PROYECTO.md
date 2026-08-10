@@ -1,6 +1,6 @@
 # Estado del proyecto — traspaso entre máquinas
 
-**Fecha:** 10 de agosto de 2026 (actualizado al terminar `potencialidad-componentes`)
+**Fecha:** 10 de agosto de 2026 (actualizado al terminar `cabos-sueltos`)
 **Para:** continuar en otro ordenador sin perder contexto.
 
 Este documento reemplaza a `ESTADO-MATRICES.md`, que quedó desfasado.
@@ -351,6 +351,9 @@ tampoco expliquen el motivo—. Potencialidad e Involucrados ya distinguían bie
 las dos causas. FET quedó igual: su «Evaluación FET cerrada» es vago pero no
 atribuye una causa incorrecta, así que no es esta deuda; queda anotado por si
 alguien quiere unificarlo el día que se toque ese formulario.
+
+*(Ese día llegó en `cabos-sueltos`, cabo 2: FET también usa
+`x-aviso-bloqueo-matriz` ahora. Ver esa rama en §3.)*
 
 ### Rama `reabrir-matriz` — premisa falsa, cerrada sin código nuevo
 
@@ -710,6 +713,92 @@ Ningún test de cálculo, guardado parcial a nivel de base de datos, bloqueo
 por rol/estado o mensajes de cierre se tocó, salvo el de la insignia de
 solo lectura ya descrito: no cambió qué se guarda ni qué se valida, solo
 dónde vive la definición y cómo se pinta.
+
+### Rama `cabos-sueltos` — cinco cabos pequeños, terminada
+
+Cinco correcciones independientes de `main`, cada una en su propio commit
+para que cualquiera se pueda revertir sola. Suite: **394 tests**.
+
+1. **El README decía «cinco matrices».** Son nueve, y de paso contaba
+   Inventarios como una de ellas —no lo es: `Registro::ENTRADAS` la declara
+   tipo `inventario`, no `matriz`/`actores`—. Corregido el recuento y la
+   lista de nombres. El resto del fichero —tabla de roles, credenciales de
+   prueba, variables de Render, ficheros que enlaza— se repasó contra este
+   documento y sigue siendo cierto, así que no se tocó.
+
+2. **FET no distinguía su motivo de bloqueo.** «Evaluación FET cerrada.» no
+   mentía, pero cubría dos causas —matriz validada, o rol de consulta— con
+   la misma frase. Ahora usa `$bloqueadoPorRol` + `x-aviso-bloqueo-matriz`,
+   igual que FIT, Percepción, Irritación y Concentración (ver §3,
+   `deudas-registro`). Paisaje y Valoración Territorial se revisaron de
+   paso: cuando el bloqueo es por rol siguen sin pintar ningún aviso
+   (`@unless($bloqueado)` sin rama `@else`); no dicen nada falso, así que
+   quedan fuera de esta corrección a propósito.
+
+3. **`generar_valoracion_territorial.py` escribía con CRLF en Windows.**
+   Le faltaba `newline="\n"` en el `write_text()` final —`generar_concentracion.py`,
+   más reciente, ya lo tenía—. Arreglado el script. No se regeneró el `.php`
+   dando por hecho que haría falta: `.gitattributes` fija `eol=lf` para todo
+   el repositorio, así que regenerar con el generador roto (CRLF) o con el
+   ya arreglado (LF) produce, tras `git add`, el mismo blob que ya está en
+   HEAD —comprobado con `git hash-object`, no supuesto—. El arreglo es
+   higiene del script para quien lo ejecute fuera del alcance de git (o si
+   el `.gitattributes` cambiara el día de mañana), no la corrección de un
+   fichero versionado que estuviera mal.
+
+4. **`select-0-2`, `select-0-3` y `select-percepcion` ya no los usaba
+   ninguna vista.** Los reemplazó `<x-criterio-pildoras>` en
+   `fit-fet-componentes`, `percepcion-componentes` y `potencialidad-componentes`.
+   Borrados los tres, tras confirmar que ningún `<x-...>` los invocaba y que
+   `select-irritacion`/`select-involucrados` no dependían de ellos —solo los
+   mencionaban en un comentario, actualizado para no dejar una referencia
+   colgante a un fichero borrado—.
+   `GuardadoParcialTest::test_los_desplegables_distinguen_el_hueco_del_cero`
+   los renderizaba para proteger la distinción hueco/cero; esa protección
+   para FIT, Potencialidad y Percepción ya vivía, aparte, en pruebas de ida
+   y vuelta por HTTP que leen el `x-data` de Alpine
+   (`test_un_error_al_validar_no_borra_lo_ya_respondido*`). FET no tenía una
+   propia —su única cobertura era la genérica de `select-0-3`, compartida
+   con FIT y nunca específica de ninguna de las dos— así que se añadió
+   `test_un_error_al_validar_no_borra_lo_ya_respondido_en_fet` antes de
+   borrar el componente que la sostenía.
+
+5. **Dos decisiones de `potencialidad-componentes` (§3), revisadas por
+   pedido del responsable del proyecto:**
+
+   - **(a) El toggle de campos activos ahora deshabilita el control en
+     vivo.** `<x-criterio-pildoras>` gana un prop opcional `:activo-expr`
+     (default `null`), aditivo de verdad: sin él —Paisaje, FIT, FET y
+     Percepción, que nunca lo pasan— el HTML no cambia ni un atributo.
+     `PotencialidadTest::test_sin_activo_expr_el_componente_no_cambia` lo
+     fija sobre el componente solo, para que la garantía cubra a cualquier
+     consumidor futuro que tampoco lo pase. Solo Potencialidad lo usa,
+     pasando `states['campo']` —la misma variable Alpine que ya gobierna el
+     toggle— como `x-bind:disabled` en el radio y en el botón «Borrar
+     respuesta». Verificado en el navegador con Alpine y DevTools, no solo
+     leído: al desactivar un campo sus 3 radios pasan a `disabled=true` de
+     verdad y un clic sobre ellos no cambia la selección; al reactivarlo,
+     vuelven a responder. Nota de alcance encontrada al mirar: el
+     componente lo usan **cinco** matrices, no cuatro —Paisaje también,
+     desde antes de esta migración—; las cinco se verificaron con sus
+     suites en verde sin tocarlas.
+   - **(b) La tarjeta de escala propia de Potencialidad se queda, no se
+     sustituye por `<x-leyenda-escala>`.** Comparadas las dos: la
+     compartida solo pinta número + etiqueta por nivel; la propia de
+     Potencialidad añade una descripción («No existe o es inexistente»,
+     «Existe pero es débil / incipiente», «Consolidado y funcional») que la
+     compartida no tiene dónde mostrar. Sustituirla perdería información,
+     así que se deja igual —tal como pedía el encargo si se confirmaba la
+     pérdida—.
+
+Ficheros: `README.md`; `resources/views/operativo/evaluacion_fet/form.blade.php`;
+`database/matrices/generar_valoracion_territorial.py`;
+`resources/views/components/select-0-2.blade.php`,
+`select-0-3.blade.php`, `select-percepcion.blade.php` (borrados),
+`select-involucrados.blade.php`, `select-irritacion.blade.php`,
+`criterio-pildoras.blade.php`;
+`resources/views/operativo/evaluacion_potencialidad/form.blade.php`;
+`tests/Feature/EvaluacionesTest.php`, `GuardadoParcialTest.php`, `PotencialidadTest.php`.
 
 ## 4. Lo que hay que saber para continuar
 
