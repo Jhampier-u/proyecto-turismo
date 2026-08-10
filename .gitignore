@@ -29,3 +29,7 @@ Thumbs.db
 # Cache de bytecode de Python: lo deja cualquier ejecucion de los
 # generadores de database/matrices/ y no es del proyecto.
 __pycache__/
+
+# Configuracion local del servidor de desarrollo (Claude Code): la decide
+# cada maquina, no el proyecto.
+/.claude/launch.json

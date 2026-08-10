@@ -1005,9 +1005,11 @@ Ninguna depende de programar, y las tres están vivas:
 
 ## 7. Detalle suelto
 
-`package-lock.json` aparece modificado en el árbol y **no está commiteado a
-propósito**. Se regeneró al instalar en Windows; el `npm ci` de la imagen de
-producción usa el generado en Linux. La recomendación es revertirlo:
+`package-lock.json` **ya no aparece modificado**: en su día se regeneraba al
+instalar en Windows y esta sección recomendaba revertirlo, porque el `npm ci` de
+la imagen de producción usa el generado en Linux. Hoy el árbol está limpio. Si
+vuelve a salir modificado tras un `npm install` en Windows, revertirlo sigue
+siendo lo correcto:
 
 ```bash
 git checkout -- package-lock.json
