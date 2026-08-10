@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Operativo;
 
+use App\Matrices\Fit;
 use App\Models\EvaluacionFit;
 use App\Models\User;
 use App\Models\VocacionTuristicaTerritorio;
@@ -11,40 +12,44 @@ class EvaluacionFitController extends MatrizPonderadaController
 {
     protected function criterios(): array
     {
-        return [
-            'rtt' => ['recursos_culturales', 'recursos_naturales'],
-            'at'  => ['atractivos_manifestaciones', 'atractivos_sitios'],
-            'pst' => ['prestadores_alojamiento', 'prestadores_restauracion', 'prestadores_guianza'],
-            'ptt' => ['productos_territoriales'],
-            'i'   => ['infraestructura_basica', 'infraestructura_apoyo'],
-            'ft'  => [
-                'facilidades_senaletica', 'facilidades_recepcion',
-                'facilidades_interpretacion', 'facilidades_senderos',
-                'facilidades_estacionamientos', 'facilidades_campamentos',
-                'facilidades_miradores', 'facilidades_sanitarios',
-            ],
-        ];
+        return collect(Fit::BLOQUES)
+            ->map(fn(array $bloque) => array_keys($bloque['criterios']))
+            ->all();
     }
 
     protected function escala(): array
     {
-        return [0, 3];
+        return [Fit::ESCALA_MIN, Fit::ESCALA_MAX];
     }
 
-    /** Peso de cada bloque sobre el total. Suman 1.0. */
-    private const PESOS = [
-        'rtt' => 0.30, 'at' => 0.05, 'pst' => 0.20,
-        'ptt' => 0.05, 'i'  => 0.20, 'ft'  => 0.20,
-    ];
+    /**
+     * Las 18 etiquetas del instrumento, tomadas de Fit::todos() y no
+     * copiadas: cada criterio trae su 'nombre' ya escrito allí. Antes de
+     * esta migración este método no existía -devolvía [] por herencia de
+     * MatrizPonderadaController-, y FIT era la única de las nueve matrices
+     * sin etiqueta en sus mensajes de validación. Ver
+     * docs/ESTADO-PROYECTO.md, rama mensajes-validacion.
+     */
+    protected function etiquetas(): array
+    {
+        return array_map(fn(array $criterio) => $criterio['nombre'], Fit::todos());
+    }
 
+    /**
+     * Cada bloque promedia sus criterios y ese promedio se pondera. El peso
+     * de cada bloque vive en Fit::BLOQUES, no en una constante aparte de
+     * este controlador: dos listas de pesos para el mismo instrumento se
+     * habrían podido desincronizar sin que nada lo notara.
+     */
     protected function calcular(array $valores): array
     {
         $resultado = [];
         $total = 0.0;
 
-        foreach ($this->criterios() as $bloque => $campos) {
+        foreach (Fit::BLOQUES as $bloque => $datos) {
+            $campos = array_keys($datos['criterios']);
             $media = array_sum(array_map(fn($c) => $valores[$c], $campos)) / count($campos);
-            $ponderado = $media * self::PESOS[$bloque];
+            $ponderado = $media * $datos['peso'];
 
             $resultado["media_{$bloque}"] = $media;
             $resultado["fit_{$bloque}"]   = $ponderado;
@@ -89,7 +94,12 @@ class EvaluacionFitController extends MatrizPonderadaController
         $zona       = Zona::findOrFail($zonaId);
         $evaluacion = EvaluacionFit::firstOrNew(['zona_id' => $zonaId]);
 
-        return view('operativo.evaluacion_fit.form', compact('zona', 'evaluacion'));
+        return view('operativo.evaluacion_fit.form', [
+            'zona'       => $zona,
+            'evaluacion' => $evaluacion,
+            'bloques'    => Fit::BLOQUES,
+            'niveles'    => Fit::NIVELES,
+        ]);
     }
 
     public function ponderacion($zonaId)

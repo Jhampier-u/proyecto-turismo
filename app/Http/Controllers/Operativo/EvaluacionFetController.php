@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Operativo;
 
+use App\Matrices\Fet;
 use App\Models\EvaluacionFet;
 use App\Models\User;
 use App\Models\VocacionTuristicaTerritorio;
@@ -11,29 +12,39 @@ class EvaluacionFetController extends MatrizPonderadaController
 {
     protected function criterios(): array
     {
-        return [
-            'demanda' => ['demanda_flujos', 'demanda_estadia'],
-            'super'   => ['super_institucionalidad', 'super_organizacion', 'super_planificacion'],
-            'imagen'  => ['imagen_apertura', 'imagen_seguridad', 'imagen_percibida', 'imagen_marketing'],
-        ];
+        return collect(Fet::BLOQUES)
+            ->map(fn(array $bloque) => array_keys($bloque['criterios']))
+            ->all();
     }
 
     protected function escala(): array
     {
-        return [0, 3];
+        return [Fet::ESCALA_MIN, Fet::ESCALA_MAX];
     }
 
-    /** Peso de cada bloque sobre el total. Suman 1.0. */
-    private const PESOS = ['demanda' => 0.20, 'super' => 0.40, 'imagen' => 0.40];
+    /**
+     * Las 9 etiquetas del instrumento, tomadas de Fet::todos() y no
+     * copiadas. Ver EvaluacionFitController::etiquetas(): mismo motivo,
+     * mismo instrumento sin etiqueta hasta esta migración.
+     */
+    protected function etiquetas(): array
+    {
+        return array_map(fn(array $criterio) => $criterio['nombre'], Fet::todos());
+    }
 
+    /**
+     * Ver EvaluacionFitController::calcular(): el peso de cada bloque vive
+     * en Fet::BLOQUES, no en una constante aparte de este controlador.
+     */
     protected function calcular(array $valores): array
     {
         $resultado = [];
         $total = 0.0;
 
-        foreach ($this->criterios() as $bloque => $campos) {
+        foreach (Fet::BLOQUES as $bloque => $datos) {
+            $campos = array_keys($datos['criterios']);
             $media = array_sum(array_map(fn($c) => $valores[$c], $campos)) / count($campos);
-            $ponderado = $media * self::PESOS[$bloque];
+            $ponderado = $media * $datos['peso'];
 
             $resultado["media_{$bloque}"] = $media;
             $resultado["fet_{$bloque}"]   = $ponderado;
@@ -78,7 +89,12 @@ class EvaluacionFetController extends MatrizPonderadaController
         $zona       = Zona::findOrFail($zonaId);
         $evaluacion = EvaluacionFet::firstOrNew(['zona_id' => $zonaId]);
 
-        return view('operativo.evaluacion_fet.form', compact('zona', 'evaluacion'));
+        return view('operativo.evaluacion_fet.form', [
+            'zona'       => $zona,
+            'evaluacion' => $evaluacion,
+            'bloques'    => Fet::BLOQUES,
+            'niveles'    => Fet::NIVELES,
+        ]);
     }
 
     public function ponderacion($zonaId)

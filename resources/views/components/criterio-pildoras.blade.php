@@ -17,14 +17,32 @@
 @php
     // Clases completas por posición. Tailwind purga las que no aparezcan
     // literalmente, así que no pueden construirse por concatenación.
-    $estilos = [
-        0 => ['franja' => 'border-l-red-500',   'activo' => 'bg-red-50 border-red-300 text-red-900 ring-2 ring-red-400',       'numero' => 'text-red-700'],
-        1 => ['franja' => 'border-l-amber-500', 'activo' => 'bg-amber-50 border-amber-300 text-amber-900 ring-2 ring-amber-400', 'numero' => 'text-amber-700'],
-        2 => ['franja' => 'border-l-green-500', 'activo' => 'bg-green-50 border-green-300 text-green-900 ring-2 ring-green-400', 'numero' => 'text-green-700'],
+    //
+    // Paleta según el número de niveles, no una sola fija: Paisaje y
+    // ValoracionTerritorial usan 3 (rojo→ámbar→verde, sin cambios); FIT y FET
+    // usan una escala genérica de 4 (Nulo/Bajo/Medio/Alto), y reutilizar la
+    // paleta de 3 habría dejado un índice sin definir en el cuarto nivel, o
+    // habría corrido el verde -"lo mejor"- a media escala. Las dos progresan
+    // de la posición peor a la mejor porque en ambos instrumentos el valor
+    // más alto es siempre el mejor -ver App\Matrices\Fit y App\Matrices\Fet-.
+    $paletas = [
+        3 => [
+            0 => ['franja' => 'border-l-red-500',   'activo' => 'bg-red-50 border-red-300 text-red-900 ring-2 ring-red-400',       'numero' => 'text-red-700'],
+            1 => ['franja' => 'border-l-amber-500', 'activo' => 'bg-amber-50 border-amber-300 text-amber-900 ring-2 ring-amber-400', 'numero' => 'text-amber-700'],
+            2 => ['franja' => 'border-l-green-500', 'activo' => 'bg-green-50 border-green-300 text-green-900 ring-2 ring-green-400', 'numero' => 'text-green-700'],
+        ],
+        4 => [
+            0 => ['franja' => 'border-l-red-500',    'activo' => 'bg-red-50 border-red-300 text-red-900 ring-2 ring-red-400',             'numero' => 'text-red-700'],
+            1 => ['franja' => 'border-l-orange-500', 'activo' => 'bg-orange-50 border-orange-300 text-orange-900 ring-2 ring-orange-400', 'numero' => 'text-orange-700'],
+            2 => ['franja' => 'border-l-amber-500',  'activo' => 'bg-amber-50 border-amber-300 text-amber-900 ring-2 ring-amber-400',     'numero' => 'text-amber-700'],
+            3 => ['franja' => 'border-l-green-500',  'activo' => 'bg-green-50 border-green-300 text-green-900 ring-2 ring-green-400',     'numero' => 'text-green-700'],
+        ],
     ];
 
     $niveles = $criterio['niveles'];
     ksort($niveles);
+
+    $estilos = $paletas[count($niveles)] ?? $paletas[3];
 @endphp
 
 <div class="border-b border-gray-200 py-4">

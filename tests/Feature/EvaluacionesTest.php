@@ -214,10 +214,15 @@ class EvaluacionesTest extends TestCase
             ->assertOk();
 
         $respuesta->assertDontSee('Guardar Borrador');
-        // Los 18 <select> del formulario llevan `disabled` al final de la
-        // etiqueta cuando $bloqueado es true; en las clases CSS aparece
-        // "disabled:" (con dos puntos), nunca el atributo suelto.
-        $respuesta->assertSee('disabled>', false);
+        // FIT migró de <select> a <x-criterio-pildoras> en la rama
+        // fit-fet-componentes: ya no hay un único `disabled>` al final de una
+        // etiqueta -assertSee('disabled', false) a secas también se
+        // arriesgaba a un falso positivo si algún día aparece una clase
+        // Tailwind "disabled:" en la página-. Contar los 72 radios
+        // deshabilitados (18 criterios × 4 niveles) es la comprobación que de
+        // verdad importa: que el formulario entero quedó bloqueado, no solo
+        // que la palabra "disabled" aparece en algún sitio.
+        $this->assertSame(18 * 4, substr_count($respuesta->getContent(), 'disabled'));
     }
 
     /**
@@ -282,7 +287,9 @@ class EvaluacionesTest extends TestCase
             ->assertOk();
 
         $respuesta->assertDontSee('Guardar Borrador');
-        $respuesta->assertSee('disabled>', false);
+        // Ver el comentario equivalente en el test de FIT: 9 criterios × 4
+        // niveles = 36 radios deshabilitados.
+        $this->assertSame(9 * 4, substr_count($respuesta->getContent(), 'disabled'));
     }
 
     /** Mismo caso, para Percepción: usa el mismo componente select-percepcion. */
