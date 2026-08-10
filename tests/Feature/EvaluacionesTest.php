@@ -292,6 +292,49 @@ class EvaluacionesTest extends TestCase
         $this->assertSame(9 * 4, substr_count($respuesta->getContent(), 'disabled'));
     }
 
+    /**
+     * Motivo de bloqueo por ROL, no por validación: mismo caso que FIT,
+     * aplicado a FET. Antes de este cambio, "Evaluación FET cerrada." no
+     * mentía, pero tampoco decía cuál de las dos causas de bloqueo era la
+     * suya -la matriz validada, o el rol de quien mira-.
+     */
+    public function test_el_admin_ve_su_propio_motivo_de_bloqueo_en_fet(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fet",
+            $this->todos(self::CAMPOS_FET, 2)
+        );
+
+        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+
+        $this->actingAs($admin)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-fet")
+            ->assertOk()
+            ->assertSee('El administrador puede consultar esta evaluación, pero no puede modificarla.')
+            ->assertDontSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.');
+    }
+
+    /**
+     * Motivo de bloqueo por ESTADO, no por rol: mismo caso que FIT, aplicado
+     * a FET.
+     */
+    public function test_el_equipo_ve_el_motivo_de_validacion_en_fet_bloqueada(): void
+    {
+        $equipo = User::factory()->create(['role_id' => Role::where('nombre', 'equipo')->value('id')]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fet",
+            $this->todos(self::CAMPOS_FET, 3) + ['accion_estado' => 'confirmado']
+        );
+
+        $this->actingAs($equipo)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-fet")
+            ->assertOk()
+            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.')
+            ->assertDontSee('El administrador puede consultar esta evaluación, pero no puede modificarla.');
+    }
+
     /** Mismo caso que FIT: Percepción migró de <select> a <x-criterio-pildoras> en esta rama. */
     public function test_el_admin_recibe_el_formulario_percepcion_bloqueado_aunque_este_en_borrador(): void
     {

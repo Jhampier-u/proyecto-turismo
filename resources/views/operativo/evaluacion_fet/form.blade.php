@@ -16,10 +16,14 @@
             @php
                 $esJefe = auth()->user()->esJefe();
                 $estaConfirmado = $evaluacion->estado === 'confirmado';
-                // El admin nunca edita evaluaciones, aunque estén en borrador:
-                // sin este predicado, $bloqueado solo miraba la confirmación y
-                // el admin veía el formulario abierto de par en par.
-                $bloqueado = ! auth()->user()->puedeEditarEvaluaciones() || ($estaConfirmado && !$esJefe);
+                // Dos motivos de bloqueo, no uno: el admin nunca edita
+                // evaluaciones -esté en borrador o no-, y el equipo deja de
+                // poder hacerlo en cuanto se confirma. Separados en dos
+                // variables porque cada uno tiene su propia frase en
+                // x-aviso-bloqueo-matriz; sin esto, el admin sobre un
+                // borrador vería el motivo del equipo, que no es el suyo.
+                $bloqueadoPorRol = ! auth()->user()->puedeEditarEvaluaciones();
+                $bloqueado = $bloqueadoPorRol || ($estaConfirmado && !$esJefe);
             @endphp
 
             @if($estaConfirmado)
@@ -118,7 +122,7 @@
                     </button>
                     @endif
                     @else
-                    <span class="text-gray-500 italic self-center">Evaluación FET cerrada.</span>
+                    <span class="text-gray-500 italic self-center"><x-aviso-bloqueo-matriz :por-rol="$bloqueadoPorRol" sustantivo="evaluación" /></span>
                     @endif
                 </div>
             </form>
