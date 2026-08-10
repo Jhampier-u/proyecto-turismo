@@ -951,16 +951,19 @@ niveles de anidamiento— y ninguno se movió con el cambio.
 
 ### En código
 
-1. **Fusionar `guardado-parcial`**, en cuanto sus tres migraciones se hayan
-   probado contra un PostgreSQL de verdad. El código está terminado y revisado.
+1. ~~**Fusionar `guardado-parcial`**~~ — hecho hace tiempo, y sus migraciones
+   probadas contra PostgreSQL 16 real. Desde entonces la suite entera corre
+   contra Postgres; ver §4.
 2. ~~**Vistas de admin**~~ — hecho. El panel da cifras y avisa de las zonas sin
    jefe, y las dos listas tienen buscador, filtro por rol y las columnas que
    faltaban. Suite: **222 tests**. Quedan fuera, a propósito, los formularios
    de alta y edición (`users/form`, `lugares/form`, `zonas/form`): comparten
    los defectos de tipografía pero se usan de forma puntual.
 3. **Una matriz sin implementar**: el **Índice Espacial de Frecuentación**, la
-   última. Su fichero está en `~/Downloads/fwdmatrices` de esta máquina, ya
-   analizado. Es una lista variable de sitios con dos cifras cada uno y el índice
+   última. Su fichero está en `Documentación/Índice Espacial de Frecuentación
+   Turística.xlsx` —**dentro del repositorio**, desde hoy: antes vivía solo en
+   `~/Downloads` de una máquina, así que en cualquier otra la única matriz
+   pendiente no se podía ni abrir—. Es una lista variable de sitios con dos cifras cada uno y el índice
    es la suma de sus cocientes, así que se parecería a Involucrados más que a un
    formulario de criterios. **Está bloqueada por algo que no es técnico:** su
    hoja original divide todas las filas por el ST de la *primera*, y tiene una
@@ -1023,11 +1026,19 @@ La base es SQLite y el fichero **no viaja en el repositorio**: hay que crear
 `database/database.sqlite` vacío antes del `migrate`, o Laravel no encuentra la
 conexión.
 
-Y para retomar el trabajo en curso:
+**No hay ninguna rama que retomar: todo está fusionado en `main`.** Esta sección
+decía durante meses «`git checkout guardado-parcial`, comprueba que da 209
+tests», y era la instrucción más dañina del documento — quien la siguiera se
+llevaría una rama antigua y creería que el clon salió mal.
+
+Comprobar que la suite da **394 tests** antes de tocar nada. Si da menos, algo
+no llegó; si fallan unos 57 de golpe, faltó el `npm run build` (ver §2).
 
 ```bash
-git checkout guardado-parcial
+php artisan test
 ```
 
-Comprobar que la suite da **209 tests** antes de tocar nada. Si da menos, algo
-no llegó; si fallan unos 57 de golpe, faltó el `npm run build` (ver §2).
+**Este número hay que actualizarlo cada vez que se fusione algo**, o vuelve a
+mentir como acaba de hacerlo. Es el mismo tipo de deriva que esta sesión
+encontró cuatro veces en el propio código: documentación que se quedó atrás sin
+que nada fallara.
