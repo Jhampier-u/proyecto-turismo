@@ -175,4 +175,35 @@ class AlmacenamientoImagenesTest extends TestCase
         $this->actingAs($this->admin)->get('/admin/zonas')->assertOk();
         $this->actingAs($this->jefe)->get('/mis-zonas')->assertOk();
     }
+
+    /**
+     * AUDITORIA.md M9: enviar una imagen nueva y marcar "quitar imagen" en la
+     * misma petición guardaba el archivo nuevo y luego anulaba la referencia,
+     * dejándolo huérfano en disco y perdiendo el cambio. ZonaController::update()
+     * ahora resuelve la petición contradictoria a favor de la imagen nueva
+     * (ver el comentario "Gana la imagen nueva").
+     */
+    public function test_subir_imagen_nueva_y_marcar_quitar_imagen_a_la_vez_conserva_la_nueva(): void
+    {
+        $vieja = $this->imagenFalsa('vieja.jpg')->store('zonas');
+        $this->zona->update(['imagen_path' => $vieja]);
+
+        $this->actingAs($this->admin)->put("/admin/zonas/{$this->zona->id}", [
+            'nombre'         => $this->zona->nombre,
+            'lugar_id'       => $this->zona->lugar_id,
+            'jefe_user_id'   => $this->jefe->id,
+            'imagen'         => $this->imagenFalsa('nueva.jpg'),
+            'quitar_imagen'  => '1',
+        ])->assertRedirect(route('admin.zonas.index'));
+
+        $rutaFinal = $this->zona->fresh()->imagen_path;
+
+        // Gana la imagen nueva: no queda null.
+        $this->assertNotNull($rutaFinal);
+        $this->assertNotSame($vieja, $rutaFinal);
+        Storage::assertExists($rutaFinal);
+
+        // La vieja se borra, no queda huérfana en disco.
+        Storage::assertMissing($vieja);
+    }
 }
