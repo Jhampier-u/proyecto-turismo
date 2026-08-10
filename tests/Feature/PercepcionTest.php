@@ -97,6 +97,12 @@ class PercepcionTest extends TestCase
         // niveles genéricos sin el texto de cada atributo, esto no aparecería.
         $respuesta->assertSee('Posición frente a la actividad turística en el lugar');
         $respuesta->assertSee('Presencia de conflictos entre actores y grupos sociales');
+
+        // Prueba de verdad de que el control es <x-criterio-pildoras> y no el
+        // <select> anterior: 16 criterios × 3 niveles = 48 radios. Un simple
+        // assertSee del nombre del campo no lo distinguiría, porque un
+        // <select name="..."> también lo cumpliría.
+        $this->assertSame(48, substr_count($respuesta->getContent(), 'type="radio"'));
     }
 
     public function test_no_se_accede_desde_una_zona_ajena(): void

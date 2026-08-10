@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Matrices\Involucrados;
 use App\Matrices\Paisaje;
+use App\Matrices\Percepcion;
 use App\Matrices\Registro;
 use App\Models\EvaluacionFit;
 use App\Models\EvaluacionPaisaje;
@@ -373,6 +374,38 @@ class GuardadoParcialTest extends TestCase
         $this->assertNull($estado['recursos_culturales'], 'el criterio que faltaba debe volver sin responder');
 
         unset($estado['recursos_culturales']);
+        foreach ($estado as $campo => $valor) {
+            $this->assertSame(3, $valor, "{$campo} debería conservar la respuesta que el usuario acababa de escribir");
+        }
+    }
+
+    /**
+     * Mismo caso que FIT, para Percepción: migró de <select> a
+     * <x-criterio-pildoras> en la rama percepcion-componentes. Aquí hay
+     * cuatro bloques x-data (uno por categoría DS/PL/PE/NO) en vez de uno
+     * solo; estadoInicial() los funde igual, porque recorre TODAS las
+     * coincidencias de JSON.parse(...) de la página.
+     */
+    public function test_un_error_al_validar_no_borra_lo_ya_respondido_en_percepcion(): void
+    {
+        $url = "/operativo/zona/{$this->zona->id}/evaluacion-percepcion";
+
+        $campos = array_keys(Percepcion::todos());
+        $datos  = array_fill_keys($campos, 3) + ['accion_estado' => 'confirmado'];
+        unset($datos['ds1_posicion_turistica']);
+
+        $this->actingAs($this->jefe)->from($url)->post($url, $datos)
+            ->assertSessionHasErrors('ds1_posicion_turistica');
+
+        $this->assertDatabaseCount('evaluaciones_percepcion', 0);
+
+        $pagina = $this->actingAs($this->jefe)->get($url)->assertOk();
+
+        $estado = $this->estadoInicial($pagina->getContent());
+
+        $this->assertNull($estado['ds1_posicion_turistica'], 'el criterio que faltaba debe volver sin responder');
+
+        unset($estado['ds1_posicion_turistica']);
         foreach ($estado as $campo => $valor) {
             $this->assertSame(3, $valor, "{$campo} debería conservar la respuesta que el usuario acababa de escribir");
         }
