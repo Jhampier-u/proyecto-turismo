@@ -318,6 +318,43 @@ class PotencialidadCalculoTest extends TestCase
         $this->assertDatabaseCount('evaluaciones_potencialidad', 0);
     }
 
+    /**
+     * AUDITORIA.md M6: PotencialidadCamposActivos::updateOrCreate() corría
+     * antes de validar los criterios, así que un envío que cambiaba la
+     * selección de campos y fallaba la validación dejaba la configuración ya
+     * modificada sin que la evaluación se guardara. prepararDatos() ahora
+     * valida los criterios (línea con $request->validate($reglas, ...))
+     * antes de persistir campos_activos: este test lo fija para que un
+     * reordenamiento futuro no la reintroduzca en silencio.
+     */
+    public function test_una_validacion_fallida_no_deja_la_configuracion_de_campos_a_medio_cambiar(): void
+    {
+        $original = $this->camposDe('Afluencia Turística');
+        $this->guardar(array_fill_keys($original, 1), $original);
+
+        $config = PotencialidadCamposActivos::where('zona_id', $this->zona->id)->firstOrFail();
+        $this->assertSame($original, $config->campos_activos);
+
+        // Un segundo envío cambia la selección de campos Y falla la
+        // validación de criterios (falta uno, y se exige "confirmado").
+        $nuevos = $this->camposDe('Marketing Turístico');
+        $datos = ['campos' => $nuevos, 'accion_estado' => 'confirmado'];
+        foreach ($nuevos as $campo) {
+            $datos[$campo] = 2;
+        }
+        unset($datos[$nuevos[0]]);
+
+        $this->actingAs($this->jefe)->post($this->url(), $datos)
+            ->assertSessionHasErrors($nuevos[0]);
+
+        // La configuración persistida sigue siendo la original: el envío
+        // fallido no la tocó.
+        $this->assertSame(
+            $original,
+            $config->fresh()->campos_activos
+        );
+    }
+
     public function test_confirmar_completa_calcula_los_totales(): void
     {
         $activos = $this->camposDe('Afluencia Turística');

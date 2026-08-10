@@ -2,10 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\EvaluacionFet;
 use App\Models\EvaluacionFit;
+use App\Models\EvaluacionPercepcion;
+use App\Models\EvaluacionPotencialidad;
 use App\Models\Inventario;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\VocacionTuristicaTerritorio;
 use App\Models\Zona;
 use Database\Seeders\SystemSeeder;
 use Illuminate\Database\QueryException;
@@ -17,6 +21,7 @@ use Tests\TestCase;
  * Cubre las restricciones de integridad añadidas:
  *  - unique(zona_id) en las tablas que el código trata como 1:1
  *  - nullOnDelete en las claves foráneas hacia users
+ *  - casts a float en las columnas numeric/decimal (AUDITORIA.md M11)
  */
 class IntegridadDatosTest extends TestCase
 {
@@ -127,5 +132,22 @@ class IntegridadDatosTest extends TestCase
 
         $this->assertGuest();
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
+    }
+
+    /**
+     * AUDITORIA.md M11: PostgreSQL devuelve las columnas numeric/decimal como
+     * string; sin un cast a float, el mismo código se comporta distinto en
+     * local (SQLite) y en producción. Esto fija la declaración del cast en
+     * el modelo -no depende del driver- para que quitarla por accidente
+     * rompa un test en cualquier entorno, no solo en producción.
+     */
+    public function test_los_totales_calculados_se_castean_a_float(): void
+    {
+        $this->assertSame('float', (new EvaluacionFit())->getCasts()['fit'] ?? null);
+        $this->assertSame('float', (new EvaluacionFet())->getCasts()['fet'] ?? null);
+        $this->assertSame('float', (new EvaluacionPercepcion())->getCasts()['percepcion_total'] ?? null);
+        $this->assertSame('float', (new EvaluacionPotencialidad())->getCasts()['fn_total'] ?? null);
+        $this->assertSame('float', (new EvaluacionPotencialidad())->getCasts()['fx_total'] ?? null);
+        $this->assertSame('float', (new VocacionTuristicaTerritorio())->getCasts()['vtt'] ?? null);
     }
 }
