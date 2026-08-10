@@ -1,6 +1,6 @@
 # Estado del proyecto — traspaso entre máquinas
 
-**Fecha:** 9 de agosto de 2026 (actualizado al terminar `reabrir-matriz`)
+**Fecha:** 10 de agosto de 2026 (actualizado al terminar `fit-fet-componentes`)
 **Para:** continuar en otro ordenador sin perder contexto.
 
 Este documento reemplaza a `ESTADO-MATRICES.md`, que quedó desfasado.
@@ -293,14 +293,15 @@ argumento de `validate()`.
 Render. El `fallback_locale` se deja en inglés a propósito, para que una regla sin
 traducir se note en vez de romper.
 
-**Siete de las nueve matrices** dan la etiqueta del instrumento. **FIT y FET no**,
-y no es un olvido: sus controladores solo declaran `dimensión => [campos]`, sin
-texto, y los nombres que ve el evaluador existen **únicamente como literales
-sueltos en sus dos vistas Blade**. Derivarlos exigiría copiarlos a mano —la
-segunda fuente de verdad que este cambio evita— o refactorizar dos formularios en
-producción. Se quedan con el mensaje en castellano y el campo legible
-(«recursos culturales»), y su turno es la tarea de migrar FIT y FET a los
-componentes de criterio nuevos.
+**Siete de las nueve matrices** dan la etiqueta del instrumento al escribir esta
+rama. **FIT y FET no**, y no era un olvido: sus controladores solo declaraban
+`dimensión => [campos]`, sin texto, y los nombres que ve el evaluador existían
+**únicamente como literales sueltos en sus dos vistas Blade**. Derivarlos exigía
+copiarlos a mano —la segunda fuente de verdad que este cambio evita— o
+refactorizar los dos formularios en producción. Se quedaron con el mensaje en
+castellano y el campo legible («recursos culturales»), hasta que la rama
+`fit-fet-componentes` (ver §3) les dio una clase en `App\Matrices` igual que a
+las otras: ahora dan las nueve de nueve.
 
 **Una limitación del lenguaje, no del diseño:** el test ideal cambiaría una
 etiqueta del instrumento y comprobaría que el mensaje cambia con ella. Cinco de
@@ -415,6 +416,85 @@ anterior a esta rama y con su propio aviso explícito en el mensaje de éxito,
 que esta rama no necesitaba replicar en las ocho matrices de formulario —ahí
 el mecanismo es transparente (el propio botón de guardar) en vez de una
 advertencia aparte, y ningún test pedía unificarlos—.
+
+### Rama `fit-fet-componentes` — FIT y FET migrados, terminada
+
+Las dos matrices más pequeñas —FIT (18 criterios) y FET (9)— pasaron de
+`<select>` a los componentes de tarjeta nuevos. Quedan Percepción y
+Potencialidad, que siguen en desplegables; ver el punto 4 de §6 más abajo.
+
+**Antes de tocar nada se comprobó que los componentes encajaban de verdad**,
+no se asumió: `criterio-escala` y `criterio-pildoras` colorean por POSICIÓN en
+la escala dando por hecho que el valor más alto es el mejor. Se repasaron los
+27 nombres de campo de FIT y FET uno a uno —son «presencia/calidad de X»:
+recursos, prestadores, infraestructura, imagen, seguridad...— y ninguno está
+formulado al revés, así que la dirección es la esperada.
+
+Lo que **no** encajaba de fábrica: los dos componentes están escritos para
+exactamente 3 niveles (un array `$estilos`/`$colores` con 3 posiciones fijas),
+y FIT/FET usan una escala genérica de **4** (Nulo/Bajo/Medio/Alto, igual para
+los 27 criterios, a diferencia de Paisaje o Valoración Territorial, donde cada
+criterio describe su propio nivel con texto distinto). Se resolvió añadiendo
+una paleta de 4 colores (rojo→naranja→ámbar→verde) elegida por
+`count($niveles)` en `criterio-pildoras.blade.php` y en `leyenda-escala.blade.php`,
+dejando la paleta de 3 niveles bit a bit igual —verificado con la suite de
+Paisaje y Valoración Territorial en verde sin cambios—. `criterio-escala.blade.php`
+no se tocó: esta rama no lo usa.
+
+**Las definiciones viven en `App\Matrices\Fit` y `App\Matrices\Fet`**, con la
+misma forma que `Paisaje`/`ValoracionTerritorial`: `BLOQUES` (bloque => nombre,
+peso, criterios) y `todos()`. El peso de cada bloque se movió ahí también —antes
+vivía en una `private const PESOS` aparte de cada controlador— para no dejar dos
+listas del mismo número que se pudieran desincronizar.
+
+**La mitad del valor de esta rama, y la que no era solo un cambio visual**: FIT
+y FET ya dan la etiqueta del instrumento en sus mensajes de validación, con el
+mismo hook `etiquetas()` que las otras siete matrices. Antes de esta rama eran
+las dos únicas sin etiqueta —ver más arriba, rama `mensajes-validacion`—, porque
+sus nombres de campo solo existían como literales en el Blade. Ahora
+`EvaluacionFitController::etiquetas()`/`EvaluacionFetController::etiquetas()`
+leen `Fit::todos()`/`Fet::todos()`, igual que Paisaje lee `Paisaje::todos()`: una
+sola fuente, sin copiar nada.
+
+**Tres hallazgos de etiquetas que no casaban, reportados y no corregidos en
+silencio** —el encargo no pedía tocar `ponderacion.blade.php`, solo el
+formulario y el mensaje de error—:
+
+- FET: el formulario dice «Grado de Apertura de la Comunidad» y «Seguridad del
+  Destino»; la tabla de ponderación dice «...de la Comunidad **Local**» y
+  «Seguridad del Destino **o Sitio de Visita**».
+- FIT: el formulario dice «Productos Territoriales»; la ponderación dice
+  «Producto Turístico Territorial».
+- FET conserva su aviso de formulario bloqueado sin cambios («Evaluación FET
+  cerrada.») en vez de unificarlo con `x-aviso-bloqueo-matriz` como ya usa FIT:
+  es la deuda que `deudas-registro` dejó anotada a propósito para «el día que se
+  toque ese formulario» (ver arriba). Tocar ese aviso no era parte de esta
+  tarea —etiquetas y componentes de criterio—, así que se dejó igual.
+
+**Dos tests quedaron rotos por el cambio de `<select>` a `<input type="radio">`,
+y se actualizaron en el sitio en vez de dejarlos caer**: los dos
+`test_el_admin_recibe_el_formulario_fit/fet_bloqueado_aunque_este_en_borrador`
+de `EvaluacionesTest.php` comprobaban el literal `disabled>`, que ya no puede
+aparecer con la nueva estructura de atributos; ahora cuentan los radios
+deshabilitados (72 en FIT, 36 en FET), que es la misma comprobación que ya pedía
+esta tarea para el test nuevo. Y `GuardadoParcialTest::test_un_error_al_validar_no_borra_lo_ya_respondido`
+comprobaba `<option value="3" selected>` en el HTML; con Alpine.js la selección
+vive en el `x-data`, no en un atributo del HTML servido, así que pasó a leer ese
+JSON con el mismo método que ya usa `ValoracionTerritorialTest::estadoInicial()`.
+El comportamiento que fijan los tres —el formulario queda bloqueado del todo; una
+respuesta no se pierde al fallar la validación— no cambió; cambió cómo se observa
+desde fuera. `MensajesValidacionTest::test_sin_etiqueta_el_campo_al_menos_se_ve_legible_y_en_castellano`
+se sustituyó por su espejo (`test_fit/fet_nombra_el_campo_con_la_etiqueta_del_instrumento`):
+fijaba justo la ausencia de etiqueta que esta rama cierra.
+
+Ningún otro test de FIT o FET se tocó: los de cálculo, guardado parcial,
+bloqueo por rol/estado, mensajes de cierre y el resto de `EvaluacionesTest.php`,
+`IntegridadDatosTest.php`, `ReabrirMatrizTest.php` y `EstadoZonaTest.php`
+siguen verdes sin ninguna edición, porque no cambió qué se guarda ni qué se
+valida —solo dónde viven las definiciones y cómo se pintan—.
+
+Suite: **376 tests** (365 en `main` + 10 en `FitTest.php`/`FetTest.php` + 1 neto
+en `MensajesValidacionTest.php`, que cambió un test por dos).
 
 ## 4. Lo que hay que saber para continuar
 
@@ -589,9 +669,15 @@ niveles de anidamiento— y ninguno se movió con el cambio.
    El solapamiento con el módulo de Inventario, que era la duda que lo tenía
    parado, se resolvió a propósito **no** derivando uno del otro; el motivo está
    arriba y en el diseño.
-4. **Migrar FIT, FET, Percepción y Potencialidad** a los componentes de criterio
-   nuevos (`criterio-escala`, `criterio-pildoras`). Siguen usando desplegables
-   mientras Paisaje y Valoración Territorial ya usan tarjetas. Sin plan escrito.
+4. **Migrar Percepción y Potencialidad** a los componentes de criterio nuevos
+   (`criterio-escala`, `criterio-pildoras`). Siguen usando desplegables.
+   FIT y FET ya migraron —rama `fit-fet-componentes`, ver §3— y de paso
+   empezaron a dar la etiqueta del instrumento en sus mensajes de validación,
+   que antes no tenían. Sin plan escrito para las dos que quedan. Antes de
+   asumir qué componente usar, comprobar de verdad —no dar por hecho— si su
+   escala tiene 3 niveles (como Paisaje/ValoracionTerritorial, que ya encajan
+   con los componentes tal cual) o si haría falta la paleta de 4 que esta rama
+   añadió a `criterio-pildoras`/`leyenda-escala`, u otra distinta.
 5. ~~**«Reabrir» una matriz validada**~~ — resuelto en `reabrir-matriz`: no
    estaba «en el diseño, sin implementar» como decía esta lista, ya
    funcionaba end-to-end en las ocho matrices de formulario. Ver esa rama en
