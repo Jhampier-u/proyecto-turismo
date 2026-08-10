@@ -1,6 +1,6 @@
 # Estado del proyecto — traspaso entre máquinas
 
-**Fecha:** 9 de agosto de 2026 (actualizado al terminar `concentracion`)
+**Fecha:** 9 de agosto de 2026 (actualizado al terminar `deudas-registro`)
 **Para:** continuar en otro ordenador sin perder contexto.
 
 Este documento reemplaza a `ESTADO-MATRICES.md`, que quedó desfasado.
@@ -177,13 +177,14 @@ Dos cosas que la revisión final dejó anotadas y conviene no perder:
   declarada. Hoy sobra, pero si alguna vez se ensancha la escala, PostgreSQL dará
   error donde SQLite calla.
 
-### Deuda conocida, no de esta rama
+### Deuda conocida, no de esta rama — RESUELTA en `deudas-registro`
 
-El mensaje de formulario bloqueado dice «Solo el Jefe de Zona puede reabrir o
-editar una matriz validada» **también cuando la matriz no está validada** y el
-bloqueo es por rol —el caso del admin sobre un borrador—. Está igual en los
-formularios de FIT y Percepción desde antes; con Irritación son tres. No es
-grave, pero le dice al admin algo que no es cierto.
+El mensaje de formulario bloqueado decía «Solo el Jefe de Zona puede reabrir o
+editar una matriz validada» **también cuando la matriz no estaba validada** y el
+bloqueo era por rol —el caso del admin sobre un borrador—. Estaba igual en los
+formularios de FIT y Percepción desde antes; con Irritación eran tres. Para
+cuando se corrigió, con Concentración ya eran cuatro: ver §3, rama
+`deudas-registro`.
 
 ### Rama `involucrados` — octava matriz, terminada
 
@@ -307,6 +308,48 @@ las siete las declaran como `public const`, que PHP no deja reasignar ni por
 Reflection. Para esas, el test **lee** la etiqueta vigente y construye el mensaje
 esperado con ella; detecta la deriva, que es el riesgo real. Percepción sí las
 tiene en una propiedad estática, y ahí el test hace la mutación de verdad.
+
+### Rama `deudas-registro` — dos deudas pequeñas, terminada
+
+Dos correcciones puntuales, agrupadas porque las dos son la misma familia de
+bug: **el sistema afirmando algo que no es cierto**. Suite: **356 tests**.
+
+**1. Guardián inverso de rutas.** `RegistroMatricesTest` solo comprobaba que
+cada ruta *declarada en el registro* existiera; le faltaba la dirección
+contraria —que toda ruta de matriz *declarada en `routes/web.php`* tuviera una
+entrada en el registro—. Sin ella, alguien puede añadir un controlador y sus
+rutas, olvidarse de `Registro::ENTRADAS`, y la suite queda verde con la matriz
+invisible desde la página de zona: el bug de Paisaje, entrando por la puerta de
+atrás. Los planes de Involucrados y Concentración ya lo habían anotado como
+guardián pendiente sin implementar.
+
+El nuevo `test_toda_ruta_de_matriz_pertenece_a_una_entrada_del_registro`
+compara por **espacio de nombres** de ruta (`operativo.evaluacion_fit.edit` →
+`evaluacion_fit`), no por ruta exacta ni por patrón de texto: el registro solo
+guarda dos rutas por entrada («editar» y «ver»), nunca el POST de guardado ni
+las rutas internas de un CRUD como Involucrados, así que exigir una
+coincidencia exacta habría fallado hoy mismo con el sistema sano. Dos
+excepciones explícitas y comentadas (`operativo.dashboard`,
+`operativo.zona.panel`): son puntos de navegación hacia las matrices, no
+matrices. Verificado a mano que el test falla si se agrega una ruta de matriz
+sin su entrada.
+
+**2. El aviso de formulario bloqueado mentía sobre su motivo.** Documentado
+arriba como deuda de FIT, Percepción e Irritación; con Concentración ya eran
+**cuatro**. El bloqueo tiene dos causas distintas —el admin nunca edita
+evaluaciones (por rol), el equipo deja de poder hacerlo en cuanto se confirma
+(por estado)— y las cuatro vistas mostraban la frase de la segunda causa
+también en la primera. `$bloqueadoPorRol` separa el motivo en la vista, y
+`x-aviso-bloqueo-matriz` centraliza las dos frases correctas en un componente
+—como ya hacían `x-matriz-sin-resultados` y `x-flash-exito`— para que no
+queden cuatro copias ligeramente distintas divergiendo con el tiempo.
+
+Paisaje y Valoración Territorial no se tocaron: cuando el bloqueo no es por
+validación, simplemente no pintan ningún aviso —no dicen nada falso, aunque
+tampoco expliquen el motivo—. Potencialidad e Involucrados ya distinguían bien
+las dos causas. FET quedó igual: su «Evaluación FET cerrada» es vago pero no
+atribuye una causa incorrecta, así que no es esta deuda; queda anotado por si
+alguien quiere unificarlo el día que se toque ese formulario.
 
 ## 4. Lo que hay que saber para continuar
 
