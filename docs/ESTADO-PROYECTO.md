@@ -1,6 +1,6 @@
 # Estado del proyecto — traspaso entre máquinas
 
-**Fecha:** 10 de agosto de 2026 (actualizado al terminar `percepcion-componentes`)
+**Fecha:** 10 de agosto de 2026 (actualizado al terminar `potencialidad-componentes`)
 **Para:** continuar en otro ordenador sin perder contexto.
 
 Este documento reemplaza a `ESTADO-MATRICES.md`, que quedó desfasado.
@@ -576,6 +576,141 @@ Ningún test de cálculo, guardado parcial a nivel de base de datos, bloqueo por
 rol/estado o mensajes de cierre se tocó: no cambió qué se guarda ni qué se
 valida, solo dónde vive la definición y cómo se pinta.
 
+### Rama `potencialidad-componentes` — Potencialidad migrada, cuarta y última, terminada
+
+La **Matriz de Potencialidad Turística** (156 criterios, la más grande del
+sistema) pasó de `<select>` a `<x-criterio-pildoras>`, igual que FIT, FET y
+Percepción. Suite: **389 tests**.
+
+**Es la migración difícil de las cuatro, y no encajaba en el molde de las
+otras tres sin más**: Potencialidad no hereda de `MatrizPonderadaController`
+—tiene su propio `EvaluacionZonaController` con `prepararDatos()`,
+`calcular()` y `estaCompleta()` propios—, y tiene una funcionalidad que
+ninguna otra matriz tiene, la **configuración de campos activos**
+(`PotencialidadCamposActivos`): el Jefe elige qué criterios aplican a su zona
+y el cálculo se hace solo sobre esos, redistribuyendo pesos en cuatro niveles
+de anidamiento. Nada de eso se tocó; la migración fue estrictamente el
+control de calificación, campo por campo.
+
+**Antes de tocar nada se comprobaron los tres puntos de parada del
+encargo, contra el instrumento original**
+(`Documentación/IMPLEMENTADA MATRIZ DE POTENCIALIDAD TURÍSTICA TUR.xlsx`), no
+se asumieron:
+
+- **Dirección de la escala.** Las 17 hojas de criterios fijan la misma
+  leyenda ("Rojo o Ausencia"=0, "Amarillo o Fragilidad"=1, "Verde o
+  Aprovechable"=2) y, revisando las 156 descripciones, ninguna puntúa al
+  revés —incluidas las dos que suenan ambiguas a primera vista,
+  "Explotaciones Mineras" y "Complejos Industriales" (RC — Expresiones
+  Contemporáneas): no miden contaminación, miden si el sitio está abierto y
+  acondicionado para recibir visitantes, así que 2 sigue siendo el mejor
+  valor—. `<x-criterio-pildoras>`/`<x-leyenda-escala>`, que colorean por
+  posición asumiendo que más alto es mejor, encajan sin necesidad de un
+  control propio como el que sí necesitó Irritación.
+- **Número de niveles.** 3 (Ausencia/Fragilidad/Aprovechable), no 4: la
+  paleta que `fit-fet-componentes` añadió no hizo falta. Es la misma paleta
+  de 3 que ya usan Paisaje, Valoración Territorial y Percepción, sin tocar
+  ningún componente compartido.
+- **Una errata del propio instrumento, verificada y descartada.** La hoja
+  "TT — Productos Turísticos" marca un 3 en la fila "Turismo Cultural" en vez
+  de un 2 —único caso en las 17 hojas—, pero la descripción de esa fila es la
+  de "Aprovechable", igual que las demás filas de la misma hoja: es un
+  tecleo suelto, no un cuarto nivel real, y el sistema ya validaba 0-2 para
+  los 156 por igual desde antes de esta rama.
+
+**La definición vive ahora en `App\Matrices\Potencialidad`**, con
+`SECCIONES` (título de sección => [campo => etiqueta]) y `NIVELES`, movida
+tal cual desde `EvaluacionPotencialidadController::$secciones`. A
+diferencia de `Fit::BLOQUES`, `SECCIONES` **no declara pesos**: el cálculo de
+Potencialidad tiene cuatro niveles de anidamiento que ya viven, comentados y
+cubiertos por `PotencialidadCalculoTest`, dentro de
+`EvaluacionPotencialidadController::calcular()`; forzarlos a una forma
+"bloque => peso, criterios" habría significado reescribir ese cálculo para
+leer de una estructura nueva, justo el riesgo de comportamiento que esta
+migración —de presentación, no de cálculo— tenía que evitar.
+`EvaluacionPotencialidadController::$secciones` se conserva como propiedad
+estática pública, delegada a `Potencialidad::SECCIONES` (`public static
+array $secciones = Potencialidad::SECCIONES;`, una expresión constante válida
+en PHP), en vez de sustituir cada referencia interna: `PotencialidadCalculoTest`
+y `MensajesValidacionTest` ya la usaban como
+`EvaluacionPotencialidadController::$secciones`, y ninguna de las dos tenía
+que tocarse por un cambio de presentación.
+
+**Lo que no encajaba, y no se forzó:**
+
+- **El toggle de activar/desactivar un campo ya no deshabilita el control en
+  vivo.** El `<select>` anterior se deshabilitaba con Alpine (`:disabled`,
+  reactivo); `<x-criterio-pildoras>` deshabilita con `@disabled($bloqueado)`,
+  fijado en el servidor al renderizar. Añadir una segunda vía de
+  deshabilitado reactivo al componente compartido —usado también por FIT,
+  FET y Percepción, con sus propios tests contando `disabled`— no valía el
+  riesgo para una garantía que ya está cubierta de otro modo: el toggle sigue
+  aplicando opacidad reactiva a toda la fila (`:class="{'pt-inactive': ...}"`,
+  sin cambios), y el servidor descarta la calificación de un campo inactivo
+  sin importar qué se envíe (`prepararDatos()` conserva el valor guardado en
+  vez de leer la petición). Un pildora clicable en un campo inactivo no
+  corrompe nada; solo deja de fruncirse sola sin recargar la página.
+  Verificado a mano en el navegador: el toggle sigue fundiendo la fila a
+  opacidad 0.55 al desactivar un campo.
+- **La insignia de solo lectura se sustituyó por píldoras deshabilitadas**,
+  siguiendo el mismo patrón que FIT/FET/Percepción, en vez de mantener el
+  `<span class="pt-ro-badge">` anterior. Como consecuencia, el único test que
+  afirmaba sobre el `<select>` anterior —`EvaluacionesTest::test_el_admin_recibe_
+  el_formulario_potencialidad_bloqueado_aunque_este_en_borrador`, que
+  comprobaba la AUSENCIA de cualquier `name="rn_agua_lagos"` en modo
+  lectura— se volvió falso con el cambio de control: los radios sí llevan
+  `name="..."`, deshabilitados. Se sustituyó por una comprobación más
+  estricta, no más laxa: cuenta los radios reales (`<input type="radio">`) y
+  exige que los 9 de los 3 campos activos estén deshabilitados, evitando el
+  error ya documentado de Percepción (`assertSee('disabled', false)` cuenta
+  clases `disabled:` de Tailwind que no significan nada deshabilitado).
+- **La leyenda de la barra lateral no se sustituyó por `<x-leyenda-escala>`.**
+  Potencialidad ya tenía su propia tarjeta "Escala de calificación" en el
+  sidebar, con una descripción por nivel ("No existe o es inexistente",
+  "Existe pero es débil / incipiente", "Consolidado y funcional") más
+  detallada que la leyenda genérica. Sustituirla habría sido peor, no mejor
+  presentación; se deja igual.
+
+**Efecto colateral, no buscado pero correcto: se corrigió un "hueco que se
+enviaba como cero".** El `<select>` anterior preseleccionaba con
+`$val = $evaluacion->$campo ?? 0`: un criterio activo que nadie llegó a
+tocar no tenía una opción "sin responder" —el `<select>` solo ofrecía
+0/1/2— así que el navegador lo enviaba como `0` ("Ausencia") aunque nunca se
+hubiera mirado. `<x-criterio-pildoras>` usa radios sin ninguno marcado por
+defecto más un botón "Borrar respuesta", así que un criterio sin tocar viaja
+como `null` de verdad. `GuardadoParcialTest::test_un_error_al_validar_no_borra_
+lo_ya_respondido_en_potencialidad` fija este comportamiento a través del
+formulario real -no de una petición fabricada a mano- y habría fallado
+contra la versión anterior del `<select>`.
+
+**Lo que no se tocó, verificado con la suite en verde sin editar ningún
+test de comportamiento:** `PotencialidadCalculoTest.php` completo -sus 20
+tests, incluidos los dos hallazgos de auditoría que el encargo pedía
+proteger explícitamente-:
+
+- **M6** (`test_una_validacion_fallida_no_deja_la_configuracion_de_campos_a_
+  medio_cambiar`): el orden validar-antes-de-persistir `campos_activos` en
+  `prepararDatos()` no se movió.
+- **La distinción hueco/cero** (`test_cero_campos_activos_no_revienta_y_no_
+  hay_totales`, que afirma `assertNull` en vez de `assertEqualsWithDelta`):
+  el cálculo de `fn_total`/`fx_total` no se tocó.
+
+**Dos tests nuevos, siguiendo el patrón de FIT/FET/Percepción:**
+`PotencialidadTest.php` fija que el instrumento declara 156 criterios en sus
+secciones, que los 3 niveles son genéricos, que el formulario del Jefe los
+recorre desde `Potencialidad::SECCIONES` -no tecleados- contando los 468
+radios reales (156×3), y que el equipo solo ve píldoras de los campos
+activos (contando 15 radios para un subconjunto de 5 campos activos, ni uno
+más). `RegistroMatricesTest::test_los_criterios_declarados_coinciden_con_el_
+instrumento` se amplió con `'potencialidad' => App\Matrices\Potencialidad::class`,
+cerrando el último hueco de ese guardián -las nueve matrices con `todos()`
+quedan verificadas contra el registro-.
+
+Ningún test de cálculo, guardado parcial a nivel de base de datos, bloqueo
+por rol/estado o mensajes de cierre se tocó, salvo el de la insignia de
+solo lectura ya descrito: no cambió qué se guarda ni qué se valida, solo
+dónde vive la definición y cómo se pinta.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -749,16 +884,13 @@ niveles de anidamiento— y ninguno se movió con el cambio.
    El solapamiento con el módulo de Inventario, que era la duda que lo tenía
    parado, se resolvió a propósito **no** derivando uno del otro; el motivo está
    arriba y en el diseño.
-4. ~~**Migrar Percepción y Potencialidad**~~ — Percepción hecha, ver rama
-   `percepcion-componentes` en §3. Queda solo **Potencialidad**, que sigue
-   usando desplegables y sin plan escrito. Antes de asumir qué componente
-   usar, comprobar de verdad —no dar por hecho— tanto la dirección de su
-   escala como si tiene 3 niveles (como Paisaje/ValoracionTerritorial, que ya
-   encajan con los componentes tal cual) o si haría falta la paleta de 4 que
-   `fit-fet-componentes` añadió a `criterio-pildoras`/`leyenda-escala`, u otra
-   distinta. Con 156 criterios, es la más grande del sistema; Percepción (16)
-   y FIT (18) no dan una idea real de cómo escalará el formulario ni de si
-   conviene alguna agrupación visual adicional.
+4. ~~**Migrar Percepción y Potencialidad**~~ — hecho. Percepción en la rama
+   `percepcion-componentes`, Potencialidad en `potencialidad-componentes`
+   (§3): 3 niveles, sin cuarto nivel real ni escala invertida en los 156
+   criterios, verificado contra el instrumento original antes de asumirlo.
+   No heredaba de `MatrizPonderadaController` y tenía la configuración de
+   campos activos, que se quedó intacta -solo cambió el control de
+   calificación-.
 5. ~~**«Reabrir» una matriz validada**~~ — resuelto en `reabrir-matriz`: no
    estaba «en el diseño, sin implementar» como decía esta lista, ya
    funcionaba end-to-end en las ocho matrices de formulario. Ver esa rama en
