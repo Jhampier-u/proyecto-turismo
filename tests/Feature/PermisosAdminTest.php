@@ -5,12 +5,15 @@ namespace Tests\Feature;
 use App\Matrices\Concentracion;
 use App\Matrices\Fet;
 use App\Matrices\Fit;
+use App\Matrices\Involucrados;
 use App\Matrices\Irritacion;
 use App\Matrices\Paisaje;
 use App\Matrices\Percepcion;
 use App\Matrices\Potencialidad;
 use App\Matrices\Registro;
 use App\Matrices\ValoracionTerritorial;
+use App\Models\Involucrado;
+use App\Models\PotencialidadCamposActivos;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Zona;
@@ -141,29 +144,169 @@ class PermisosAdminTest extends TestCase
     }
 
     /**
+     * Lista blanca de las rutas de escritura del grupo `operativo/zona`.
+     *
+     * El filtro anterior («¿el nombre contiene 'validar'?») dejaba fuera
+     * `evaluacion_potencialidad.reconfigurar` -que no valida nada, pero solo
+     * el Jefe de Zona puede tocarla, ver Hallazgo 1- sin que nada lo avisara.
+     * Una lista blanca por nombre, comprobada contra TODAS las rutas de
+     * escritura reales del grupo, no tiene ese punto ciego: una ruta nueva
+     * que no esté en ninguna de las dos listas hace fallar el test de
+     * clasificación de abajo en vez de colarse por omisión.
+     *
+     * @return array{permitidas: list<string>, prohibidas: list<string>}
+     */
+    private function rutasDeEscrituraClasificadas(): array
+    {
+        return [
+            // Las ocho matrices, el inventario y el CRUD de actores: el admin
+            // rellena formularios y gestiona recursos/actores como el equipo.
+            'permitidas' => [
+                'operativo.evaluacion_fit.update',
+                'operativo.evaluacion_fet.update',
+                'operativo.evaluacion_potencialidad.update',
+                'operativo.evaluacion_percepcion.update',
+                'operativo.evaluacion_paisaje.update',
+                'operativo.evaluacion_valoracion_territorial.update',
+                'operativo.evaluacion_irritacion.update',
+                'operativo.evaluacion_concentracion.update',
+                'operativo.inventarios.store',
+                'operativo.inventarios.update',
+                'operativo.inventarios.destroy',
+                'operativo.involucrados.store',
+                'operativo.involucrados.update',
+                'operativo.involucrados.destroy',
+            ],
+            // Validar, y la única acción de Potencialidad que no pasa por
+            // update(): reconfigurar reescribe en silencio la selección de
+            // campos del jefe si no se guarda igual que las demás (Hallazgo 1).
+            'prohibidas' => [
+                'operativo.involucrados.validar',
+                'operativo.evaluacion_potencialidad.reconfigurar',
+            ],
+        ];
+    }
+
+    /**
      * El guardián del riesgo que abre esta tarea: al quitar la restricción del
      * middleware, cualquier ruta de escritura nueva del grupo queda permitida
-     * al admin por omisión. Las que validen tienen que guardarse en su
-     * controlador, y este test lo comprueba recorriendo las rutas en vez de
-     * fiarse de que alguien se acuerde.
+     * al admin por omisión. Este test no confía en que el nombre de la ruta
+     * diga lo que hace -ese fue el punto ciego que dejó pasar `reconfigurar`-:
+     * recorre TODAS las rutas de escritura reales (POST/PUT/PATCH/DELETE) del
+     * grupo y exige que cada una esté, a mano, en una de las dos listas.
      */
-    public function test_toda_ruta_de_validacion_sigue_exigiendo_jefe(): void
+    public function test_toda_ruta_de_escritura_del_grupo_zona_esta_clasificada(): void
     {
-        $rutasDeValidacion = collect(Route::getRoutes())
+        ['permitidas' => $permitidas, 'prohibidas' => $prohibidas] = $this->rutasDeEscrituraClasificadas();
+
+        $rutasDeEscritura = collect(Route::getRoutes())
             ->filter(fn($r) => str_starts_with($r->getName() ?? '', 'operativo.'))
-            ->filter(fn($r) => str_contains($r->getName(), 'validar'))
-            ->pluck('uri');
+            ->filter(fn($r) => array_intersect($r->methods(), ['POST', 'PUT', 'PATCH', 'DELETE']) !== []);
 
         $this->assertNotEmpty(
-            $rutasDeValidacion,
-            'No se encontró ninguna ruta de validación; el filtro de este test se ha quedado obsoleto.'
+            $rutasDeEscritura,
+            'No se encontró ninguna ruta de escritura; el filtro de este test se ha quedado obsoleto.'
         );
 
-        foreach ($rutasDeValidacion as $uri) {
-            $url = str_replace('{zona}', (string) $this->zona->id, $uri);
+        foreach ($rutasDeEscritura as $ruta) {
+            $nombre = $ruta->getName();
 
-            $this->actingAs($this->admin)->post("/{$url}")->assertForbidden("POST /{$url}");
+            $this->assertTrue(
+                in_array($nombre, $permitidas, true) || in_array($nombre, $prohibidas, true),
+                "La ruta de escritura «{$nombre}» no está clasificada: decide si el admin puede "
+                . 'usarla y añádela a la lista que corresponda en rutasDeEscrituraClasificadas().'
+            );
         }
+
+        // Y al revés: que ninguna de las dos listas cargue un nombre que ya
+        // no existe, o el test estaría comprobando una ruta fantasma.
+        $nombresReales = $rutasDeEscritura->map(fn($r) => $r->getName())->all();
+        foreach ([...$permitidas, ...$prohibidas] as $nombre) {
+            $this->assertContains(
+                $nombre,
+                $nombresReales,
+                "«{$nombre}» está en la lista blanca de este test pero ya no existe como ruta de escritura."
+            );
+        }
+    }
+
+    /** Las ocho matrices, el inventario y el CRUD de actores aceptan la escritura del admin. */
+    public function test_el_admin_puede_usar_todas_las_rutas_de_escritura_permitidas(): void
+    {
+        foreach ($this->instrumentosDeMatriz() as $clave => $info) {
+            $this->actingAs($this->admin)
+                ->post(route($info['guardar'], $this->zona->id), $info['criterios'])
+                ->assertSessionHasNoErrors("La matriz «{$clave}» debería aceptar la escritura del admin.");
+        }
+
+        $categoria = DB::table('categorias_recurso')->whereNotNull('parent_id')->value('id');
+        $propietario = DB::table('tipos_propietario')->value('id');
+        $payloadInventario = [
+            'nombre_recurso' => 'Recurso del admin',
+            'categoria_id' => $categoria,
+            'propietario_id' => $propietario,
+            'descripcion' => 'Descripción de prueba',
+            'estado_conservacion' => 'Bueno',
+        ];
+
+        $this->actingAs($this->admin)
+            ->post(route('operativo.inventarios.store', $this->zona->id), $payloadInventario)
+            ->assertSessionHasNoErrors();
+        $inventario = \App\Models\Inventario::where('zona_id', $this->zona->id)->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->put(route('operativo.inventarios.update', [$this->zona->id, $inventario->id]), $payloadInventario)
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($this->admin)
+            ->delete(route('operativo.inventarios.destroy', [$this->zona->id, $inventario->id]))
+            ->assertSessionHasNoErrors();
+
+        $payloadActor = ['nombre' => 'Actor del admin'] + array_fill_keys(Involucrados::campos(), 1);
+
+        $this->actingAs($this->admin)
+            ->post(route('operativo.involucrados.store', $this->zona->id), $payloadActor)
+            ->assertSessionHasNoErrors();
+        $actor = Involucrado::where('zona_id', $this->zona->id)->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->put(route('operativo.involucrados.update', [$this->zona->id, $actor->id]), $payloadActor)
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($this->admin)
+            ->delete(route('operativo.involucrados.destroy', [$this->zona->id, $actor->id]))
+            ->assertSessionHasNoErrors();
+    }
+
+    /**
+     * Las dos rutas prohibidas siguen exigiendo Jefe de Zona.
+     *
+     * No responden igual: `involucrados.validar` aborta con 403 (guarda
+     * dedicada, ver InvolucradosController::validar()); `reconfigurar`
+     * degrada como el resto de guardas de rol de este controlador -un
+     * back()->with('error'), no un 403-, así que la prueba de que el admin
+     * no pudo es que la configuración del jefe sigue intacta después.
+     */
+    public function test_el_admin_no_puede_usar_ninguna_ruta_prohibida(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('operativo.involucrados.validar', $this->zona->id))
+            ->assertForbidden();
+
+        $seleccionDelJefe = array_slice(array_keys(Potencialidad::todos()), 0, 3);
+        PotencialidadCamposActivos::create([
+            'zona_id' => $this->zona->id,
+            'campos_activos' => $seleccionDelJefe,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('operativo.evaluacion_potencialidad.reconfigurar', $this->zona->id));
+
+        $this->assertSame(
+            $seleccionDelJefe,
+            PotencialidadCamposActivos::where('zona_id', $this->zona->id)->value('campos_activos'),
+            'El admin no puede reconfigurar los campos activos: solo el Jefe de Zona.'
+        );
     }
 
     public function test_el_equipo_conserva_su_comportamiento(): void

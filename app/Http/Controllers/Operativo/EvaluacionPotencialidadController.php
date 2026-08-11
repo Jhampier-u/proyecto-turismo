@@ -210,7 +210,13 @@ class EvaluacionPotencialidadController extends EvaluacionZonaController
     public function reconfigurarCampos($zonaId)
     {
         $user = Auth::user();
-        if ($user->esEquipo()) {
+        // ! esJefe() y no esEquipo(): tercera copia del mismo predicado que
+        // EvaluacionZonaController::update() e InvolucradosController::
+        // bloqueoSiCerrada(). Con esEquipo() el admin también pasaba, y desde
+        // que escribe (PermisosAdminTest) podía reescribir en silencio la
+        // selección de campos del Jefe de Zona -justo lo que esta guarda
+        // existe para impedir-.
+        if (! $user->esJefe()) {
             return back()->with('error', 'Solo el Jefe de Zona puede reconfigurar los campos.');
         }
 
