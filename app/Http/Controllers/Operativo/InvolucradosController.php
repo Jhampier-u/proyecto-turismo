@@ -309,17 +309,21 @@ class InvolucradosController extends Controller
     }
 
     /**
-     * Solo el equipo queda cerrado por una lista confirmada; el jefe conserva
-     * la edición, igual que EvaluacionZonaController::update() solo bloquea
-     * a esEquipo(). Se devuelve al listado con el mensaje de cerrada en vez
-     * de un 403: el middleware `zona` ya cubre el caso de quien no tiene
-     * ningún acceso a la zona, esto es una regla de negocio distinta.
+     * ! esJefe() y no esEquipo(): desde que el admin escribe (PermisosAdminTest),
+     * él también tiene que encontrarse la lista cerrada, igual que
+     * EvaluacionZonaController::update() desde su mismo cambio. Con
+     * esEquipo() el admin podía borrar, crear o editar actores de una lista
+     * ya validada -reabriéndola por el camino, vía reabrirSiConfirmada()-,
+     * justo lo que esta guarda existe para impedir. Se devuelve al listado
+     * con el mensaje de cerrada en vez de un 403: el middleware `zona` ya
+     * cubre el caso de quien no tiene ningún acceso a la zona, esto es una
+     * regla de negocio distinta.
      */
     private function bloqueoSiCerrada($zonaId): ?RedirectResponse
     {
         $config = InvolucradosConfig::where('zona_id', $zonaId)->first();
 
-        if ($config?->estado === 'confirmado' && Auth::user()->esEquipo()) {
+        if ($config?->estado === 'confirmado' && ! Auth::user()->esJefe()) {
             return redirect()->route('operativo.involucrados.index', $zonaId)
                 ->with('error', $this->mensajeCerrada());
         }

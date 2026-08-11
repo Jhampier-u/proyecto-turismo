@@ -531,6 +531,54 @@ class InvolucradosTest extends TestCase
         $this->assertDatabaseMissing('involucrados', ['nombre' => 'Actor nuevo tras validar']);
     }
 
+    /**
+     * bloqueoSiCerrada() solo comprobaba esEquipo(): desde que el middleware
+     * de zona deja escribir al admin (PermisosAdminTest), ese guardián lo
+     * dejaba pasar igual que al jefe, pudiendo borrar o crear actores de una
+     * lista ya validada y reabrirla de paso -mismo patrón que el fallo que
+     * ReabrirMatrizTest fija para las siete matrices de formulario-. Ahora
+     * comprueba ! esJefe(), así que cierra al admin igual que al equipo.
+     */
+    public function test_el_admin_no_puede_editar_una_lista_de_involucrados_validada(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $actor = Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor ya validado',
+        ]);
+
+        InvolucradosConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'confirmado',
+        ]);
+
+        $this->actingAs($admin)
+            ->from($this->urlIndex($this->zona))
+            ->delete("{$this->urlIndex($this->zona)}/{$actor->id}")
+            ->assertRedirect($this->urlIndex($this->zona))
+            ->assertSessionHas('error', fn(string $m) => str_contains($m, 'ya fue validada'));
+
+        // Ni el actor se borró ni la lista se reabrió.
+        $this->assertDatabaseHas('involucrados', ['id' => $actor->id]);
+        $this->assertSame(
+            'confirmado',
+            InvolucradosConfig::where('zona_id', $this->zona->id)->value('estado')
+        );
+
+        $this->actingAs($admin)
+            ->from($this->urlIndex($this->zona))
+            ->post($this->urlIndex($this->zona), [
+                'nombre' => 'Actor colado por el admin',
+            ] + $this->todosEn(1))
+            ->assertSessionHas('error', fn(string $m) => str_contains($m, 'ya fue validada'));
+
+        $this->assertDatabaseMissing('involucrados', ['nombre' => 'Actor colado por el admin']);
+    }
+
     public function test_validar_exige_al_menos_un_actor_y_ninguno_incompleto(): void
     {
         $this->actingAs($this->jefe)
