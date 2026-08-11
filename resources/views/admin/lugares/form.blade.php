@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-2xl text-gray-800 leading-tight">
             {{ $lugar->exists ? 'Editar Lugar: ' . $lugar->nombre : 'Registrar Nuevo Lugar' }}
         </h2>
     </x-slot>
@@ -14,15 +14,15 @@
                     @if($lugar->exists) @method('PUT') @endif
 
                     <div class="mb-4">
-                        <label class="block text-gray-700 font-bold mb-2">Nombre del Lugar</label>
-                        <input type="text" name="nombre" class="w-full border-gray-300 rounded-md shadow-sm" 
+                        <label class="block text-sm text-gray-700 font-bold mb-2">Nombre del Lugar</label>
+                        <input type="text" name="nombre" class="w-full border-gray-300 rounded-md shadow-sm text-base" 
                                value="{{ old('nombre', $lugar->nombre) }}" required placeholder="Ej: San Fernando">
                         <x-input-error :messages="$errors->get('nombre')" class="mt-2" />
                     </div>
 
                     <div class="mb-4">
-                        <label class="block text-gray-700 font-bold mb-2">Provincia</label>
-                        <select name="provincia_id" class="w-full border-gray-300 rounded-md shadow-sm">
+                        <label class="block text-sm text-gray-700 font-bold mb-2">Provincia</label>
+                        <select name="provincia_id" class="w-full border-gray-300 rounded-md shadow-sm text-base">
                             <option value="" disabled selected>Seleccione provincia...</option>
                             @foreach($provincias as $prov)
                                 <option value="{{ $prov->id }}" {{ old('provincia_id', $lugar->provincia_id) == $prov->id ? 'selected' : '' }}>
@@ -34,13 +34,13 @@
                     </div>
 
                     <div class="mb-6">
-                        <label class="block text-gray-700 font-bold mb-2">Descripción (Opcional)</label>
-                        <textarea name="descripcion" rows="3" class="w-full border-gray-300 rounded-md shadow-sm">{{ old('descripcion', $lugar->descripcion) }}</textarea>
+                        <label class="block text-sm text-gray-700 font-bold mb-2">Descripción (Opcional)</label>
+                        <textarea name="descripcion" rows="3" class="w-full border-gray-300 rounded-md shadow-sm text-base">{{ old('descripcion', $lugar->descripcion) }}</textarea>
                     </div>
 
                     <div class="flex items-center justify-end">
-                        <a href="{{ route('admin.lugares.index') }}" class="text-gray-600 hover:text-gray-900 mr-4">Cancelar</a>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">
+                        <a href="{{ route('admin.lugares.index') }}" class="text-base text-gray-600 hover:text-gray-900 mr-4">Cancelar</a>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-base py-2 px-4 rounded shadow">
                             {{ $lugar->exists ? 'Actualizar' : 'Guardar' }}
                         </button>
                     </div>

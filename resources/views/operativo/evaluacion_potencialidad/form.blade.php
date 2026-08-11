@@ -363,6 +363,16 @@
 
               {{-- ── Footer de acciones ──────────────────────────────── --}}
               @if(!$soloLectura)
+              {{-- El jefe siempre pasa por aquí (nunca está $soloLectura
+                   para él), así que es el único sitio donde puede pulsar
+                   "Guardar borrador" sobre una evaluación ya validada sin
+                   saber que la reabre. --}}
+              @if($isConfirmado && $user->esJefe())
+                <p class="text-sm text-amber-700 mb-3">
+                    <strong>Esta evaluación está validada.</strong>
+                    Guardarla la devolverá a borrador y habrá que validarla de nuevo.
+                </p>
+              @endif
               <div class="pt-footer">
                 <div>
                   <div style="font-weight:700;font-size:.88rem;color:#1e293b;">

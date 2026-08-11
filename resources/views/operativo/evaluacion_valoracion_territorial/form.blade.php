@@ -160,6 +160,16 @@
                 </section>
 
                 @unless($bloqueado)
+                    {{-- El jefe siempre pasa por aquí (nunca está $bloqueado
+                         para él), así que es el único sitio donde puede
+                         pulsar "Guardar Borrador" sobre una matriz ya
+                         validada sin saber que la reabre. --}}
+                    @if($estaConfirmado && $esJefe)
+                        <p class="text-sm text-amber-700 mb-3">
+                            <strong>Esta matriz está validada.</strong>
+                            Guardarla la devolverá a borrador y habrá que validarla de nuevo.
+                        </p>
+                    @endif
                     <div class="flex justify-end gap-3">
                         <button type="submit"
                                 class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">

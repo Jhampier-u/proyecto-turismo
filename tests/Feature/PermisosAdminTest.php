@@ -258,4 +258,27 @@ class PermisosAdminTest extends TestCase
             ->assertOk()
             ->assertSee('+ Nuevo actor');
     }
+
+    public function test_el_jefe_ve_que_guardar_una_matriz_validada_la_reabre(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            $this->urlPaisaje(),
+            $this->criteriosDePaisaje(5) + ['accion_estado' => 'confirmado']
+        );
+
+        $this->actingAs($this->jefe)
+            ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
+            ->assertOk()
+            ->assertSee('la devolverá a borrador');
+    }
+
+    public function test_una_matriz_en_borrador_no_muestra_ese_aviso(): void
+    {
+        $this->actingAs($this->jefe)->post($this->urlPaisaje(), $this->criteriosDePaisaje(3));
+
+        $this->actingAs($this->jefe)
+            ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
+            ->assertOk()
+            ->assertDontSee('la devolverá a borrador');
+    }
 }

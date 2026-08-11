@@ -109,6 +109,16 @@
 
                 <div class="flex justify-end mt-8 gap-4 pt-4 border-t">
                     @if(!$bloqueado)
+                    {{-- El jefe siempre pasa por aquí (nunca está $bloqueado
+                         para él), así que es el único sitio donde puede
+                         pulsar "Guardar Borrador" sobre una matriz ya
+                         validada sin saber que la reabre. --}}
+                    @if($estaConfirmado && $esJefe)
+                        <p class="w-full text-sm text-amber-700 mb-1">
+                            <strong>Esta matriz está validada.</strong>
+                            Guardarla la devolverá a borrador y habrá que validarla de nuevo.
+                        </p>
+                    @endif
                     <button type="submit" name="accion_estado" value="borrador" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded shadow-lg">
                         Guardar Borrador
                     </button>

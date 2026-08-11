@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-2xl text-gray-800 leading-tight">
             {{ $zona->exists ? 'Editar Zona: ' . $zona->nombre : 'Crear Nueva Zona' }}
         </h2>
     </x-slot>
@@ -22,15 +22,15 @@
                             <h3 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Datos Generales</h3>
 
                             <div class="mb-4">
-                                <label class="block text-gray-700 font-bold mb-2">Nombre de la Zona</label>
-                                <input type="text" name="nombre" class="w-full border-gray-300 rounded-md shadow-sm"
+                                <label class="block text-sm text-gray-700 font-bold mb-2">Nombre de la Zona</label>
+                                <input type="text" name="nombre" class="w-full border-gray-300 rounded-md shadow-sm text-base"
                                        value="{{ old('nombre', $zona->nombre) }}" required>
                                 <x-input-error :messages="$errors->get('nombre')" class="mt-2" />
                             </div>
 
                             <div class="mb-4">
-                                <label class="block text-gray-700 font-bold mb-2">Ubicación (Lugar)</label>
-                                <select name="lugar_id" class="w-full border-gray-300 rounded-md shadow-sm" required>
+                                <label class="block text-sm text-gray-700 font-bold mb-2">Ubicación (Lugar)</label>
+                                <select name="lugar_id" class="w-full border-gray-300 rounded-md shadow-sm text-base" required>
                                     <option value="" disabled selected>Seleccione...</option>
                                     @foreach($lugares as $lugar)
                                         <option value="{{ $lugar->id }}" {{ old('lugar_id', $zona->lugar_id) == $lugar->id ? 'selected' : '' }}>
@@ -41,13 +41,13 @@
                             </div>
 
                             <div class="mb-4">
-                                <label class="block text-gray-700 font-bold mb-2">Descripción</label>
-                                <textarea name="descripcion" rows="4" class="w-full border-gray-300 rounded-md shadow-sm">{{ old('descripcion', $zona->descripcion) }}</textarea>
+                                <label class="block text-sm text-gray-700 font-bold mb-2">Descripción</label>
+                                <textarea name="descripcion" rows="4" class="w-full border-gray-300 rounded-md shadow-sm text-base">{{ old('descripcion', $zona->descripcion) }}</textarea>
                             </div>
 
                             {{-- IMAGEN DE ZONA --}}
                             <div class="mb-4">
-                                <label class="block text-gray-700 font-bold mb-2">Imagen de la Zona</label>
+                                <label class="block text-sm text-gray-700 font-bold mb-2">Imagen de la Zona</label>
 
                                 @if($zona->exists && $zona->imagen_path)
                                     <div class="mb-3">
@@ -64,8 +64,9 @@
                                 @endif
 
                                 <input type="file" name="imagen" accept="image/*"
-                                       class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                                <p class="text-xs text-gray-400 mt-1">JPG, PNG, WEBP · máx. 3 MB</p>
+                                       class="w-full text-base text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-base file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                {{-- Antes de 12px: por debajo del mínimo de 14px del proyecto. --}}
+                                <p class="text-sm text-gray-400 mt-1">JPG, PNG, WEBP · máx. 3 MB</p>
                                 <x-input-error :messages="$errors->get('imagen')" class="mt-2" />
                             </div>
                         </div>
@@ -75,8 +76,8 @@
                             <h3 class="text-lg font-bold text-blue-800 mb-4 border-b pb-2">Equipo de Trabajo</h3>
 
                             <div class="mb-6 bg-blue-50 p-4 rounded border border-blue-200">
-                                <label class="block text-blue-900 font-bold mb-2">Jefe de Zona</label>
-                                <select name="jefe_user_id" class="w-full border-blue-300 rounded-md shadow-sm" required>
+                                <label class="block text-sm text-blue-900 font-bold mb-2">Jefe de Zona</label>
+                                <select name="jefe_user_id" class="w-full border-blue-300 rounded-md shadow-sm text-base" required>
                                     <option value="" disabled selected>Seleccione responsable...</option>
                                     @foreach($jefes as $jefe)
                                         <option value="{{ $jefe->id }}" {{ old('jefe_user_id', $zona->jefe_user_id) == $jefe->id ? 'selected' : '' }}>
@@ -87,7 +88,7 @@
                             </div>
 
                             <div class="mb-4">
-                                <label class="block text-gray-700 font-bold mb-2">Estudiantes Asignados</label>
+                                <label class="block text-sm text-gray-700 font-bold mb-2">Estudiantes Asignados</label>
                                 <div class="max-h-64 overflow-y-auto border border-gray-200 rounded p-3 bg-gray-50">
                                     @if($estudiantes->isEmpty())
                                         <p class="text-sm text-red-500">No hay estudiantes registrados.</p>
@@ -108,8 +109,8 @@
                     </div>
 
                     <div class="flex items-center justify-end mt-6">
-                        <a href="{{ route('admin.zonas.index') }}" class="text-gray-600 hover:text-gray-900 mr-4">Cancelar</a>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded shadow">
+                        <a href="{{ route('admin.zonas.index') }}" class="text-base text-gray-600 hover:text-gray-900 mr-4">Cancelar</a>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-base py-2 px-6 rounded shadow">
                             {{ $zona->exists ? 'Actualizar Zona' : 'Guardar Zona' }}
                         </button>
                     </div>
