@@ -243,10 +243,10 @@ class FrecuentacionController extends Controller
         $sitios = $zona->frecuentacionSitios()->get();
         $config = FrecuentacionConfig::where('zona_id', $zonaId)->first();
 
-        $completa = $sitios->isNotEmpty()
-            && ! $sitios->contains(fn(SitioFrecuentacion $s) => ! $s->estaCompleto())
-            && ($config?->st ?? null) !== null
-            && $config->st > 0;
+        $incompletos = $sitios->contains(fn(SitioFrecuentacion $s) => ! $s->estaCompleto());
+        $stValida    = ($config?->st ?? null) !== null && $config->st > 0;
+
+        $completa = $sitios->isNotEmpty() && ! $incompletos && $stValida;
 
         $filas = collect();
         $ieft  = null;
@@ -266,7 +266,30 @@ class FrecuentacionController extends Controller
             'config'   => $config,
             'filas'    => $filas,
             'ieft'     => $ieft,
+            'motivoSinResultados' => $completa ? null : $this->motivoSinResultados($sitios, $incompletos, $stValida),
         ]);
+    }
+
+    /**
+     * Por qué no hay resultados que enseñar, en una frase -no "no aplica"
+     * fila por fila-: la lista vacía o con sitios a medias es un motivo
+     * (faltan sitios por responder), y la ST ausente o en cero es otro
+     * (falta un dato de la zona entera, no de un sitio). Son causas
+     * distintas y pueden darse las dos a la vez, mismo criterio que
+     * EstadoZona::filaSitios() ya usa para el detalle de la página de zona.
+     *
+     * @param \Illuminate\Support\Collection<int, SitioFrecuentacion> $sitios
+     */
+    private function motivoSinResultados($sitios, bool $incompletos, bool $stValida): string
+    {
+        $faltanSitios = $sitios->isEmpty() || $incompletos;
+        $faltaSt      = ! $stValida;
+
+        return match (true) {
+            $faltanSitios && $faltaSt => 'Faltan sitios por responder, y además falta la Superficie Territorial, o es cero.',
+            $faltanSitios             => 'Faltan sitios por responder.',
+            default                   => 'Falta la Superficie Territorial, o es cero.',
+        };
     }
 
     /**

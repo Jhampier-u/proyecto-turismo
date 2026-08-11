@@ -626,4 +626,151 @@ class FrecuentacionTest extends TestCase
             ->assertOk()
             ->assertSee('value="0"', false);
     }
+
+    // ── Tarea 5: resultados ─────────────────────────────────────────────────
+
+    private function urlResultados(): string
+    {
+        return route('operativo.frecuentacion.resultados', $this->zona->id);
+    }
+
+    /**
+     * La cara positiva, no solo el assertDontSee del caso incompleto: con
+     * datos completos, la tabla pinta el ÍETP real de cada sitio y el ÍEFT
+     * del territorio con números concretos que se pueden verificar a mano.
+     */
+    public function test_resultados_pinta_los_numeros_reales_con_datos_completos(): void
+    {
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Malecón 2000',
+            'det'     => 10.0,
+        ]);
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Cerro las Peñas',
+            'det'     => 5.0,
+        ]);
+        FrecuentacionConfig::create(['zona_id' => $this->zona->id, 'st' => 2.0]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertSee('Malecón 2000')
+            ->assertSee('Cerro las Peñas')
+            // ÍETP de cada sitio: 10/2 = 5.0000, 5/2 = 2.5000.
+            ->assertSee('5.0000')
+            ->assertSee('2.5000')
+            // ÍEFT del territorio: 5.0 + 2.5 = 7.5000.
+            ->assertSee('7.5000');
+    }
+
+    /**
+     * Un tercer sitio con un DET distinto, para que un ensamblado que
+     * confundiera el ÍETP de un sitio con el de otro -o que sumara mal- se
+     * note: con estos tres valores, ninguna suma parcial da la misma cifra
+     * que el total correcto.
+     */
+    public function test_ieft_es_la_suma_correcta_de_los_ietp_de_tres_sitios(): void
+    {
+        SitioFrecuentacion::create(['zona_id' => $this->zona->id, 'nombre' => 'A', 'det' => 8.0]);
+        SitioFrecuentacion::create(['zona_id' => $this->zona->id, 'nombre' => 'B', 'det' => 3.0]);
+        SitioFrecuentacion::create(['zona_id' => $this->zona->id, 'nombre' => 'C', 'det' => 1.0]);
+        FrecuentacionConfig::create(['zona_id' => $this->zona->id, 'st' => 4.0]);
+
+        // ÍETP: 8/4=2.0, 3/4=0.75, 1/4=0.25. ÍEFT = 2.0+0.75+0.25 = 3.0.
+        $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertSee('2.0000')
+            ->assertSee('0.7500')
+            ->assertSee('0.2500')
+            ->assertSee('3.0000');
+    }
+
+    /**
+     * Sin ningún sitio registrado: la página cae en <x-matriz-sin-resultados>
+     * sin reventar, y el motivo es sobre los sitios, no sobre la ST.
+     */
+    public function test_resultados_con_la_lista_vacia_dice_que_faltan_sitios(): void
+    {
+        // ST ya guardada, para aislar el motivo: sin esto, una zona nueva
+        // fallaría los DOS requisitos a la vez y no probaría nada distinto
+        // del test de "los dos motivos a la vez" de más abajo.
+        FrecuentacionConfig::create(['zona_id' => $this->zona->id, 'st' => 5.0]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertSee('Frecuentación turística sin resultados')
+            ->assertSee('Faltan sitios por responder', false)
+            ->assertDontSee('falta la Superficie Territorial', false);
+    }
+
+    /**
+     * ST ausente, o guardada en 0 -por otro camino que no sea el formulario,
+     * que ya lo rechaza con gt:0-: la página entera cae en el aviso, con el
+     * motivo puesto sobre la ST y no sobre los sitios, y sin ningún
+     * DivisionByZeroError.
+     */
+    public function test_resultados_con_st_ausente_o_en_cero_cae_en_sin_resultados_sin_reventar(): void
+    {
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Sitio completo',
+            'det'     => 3.0,
+        ]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertSee('Falta la Superficie Territorial, o es cero', false)
+            ->assertDontSee('Faltan sitios por responder', false);
+
+        // ST guardada en 0 -no debería poder llegar así por el formulario,
+        // pero Frecuentacion::ietp() y esta página son la segunda defensa si
+        // llega por otro camino (migración, factory, un dato antiguo)-.
+        FrecuentacionConfig::create(['zona_id' => $this->zona->id, 'st' => 0]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertSee('Falta la Superficie Territorial, o es cero', false);
+    }
+
+    /** Con un sitio a medias y la ST también sin definir, se citan los dos motivos. */
+    public function test_resultados_cita_los_dos_motivos_cuando_los_dos_faltan(): void
+    {
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Sitio a medias',
+        ]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertSee('Faltan sitios por responder', false)
+            ->assertSee('falta la Superficie Territorial, o es cero', false);
+    }
+
+    /** No hay anotación "no aplica" fila por fila: el aviso se resuelve una vez, antes de la tabla. */
+    public function test_resultados_no_pinta_ninguna_tabla_con_la_lista_incompleta(): void
+    {
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Sitio completo',
+            'det'     => 1.0,
+        ]);
+        $incompleto = SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Sitio incompleto',
+        ]);
+        FrecuentacionConfig::create(['zona_id' => $this->zona->id, 'st' => 5.0]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlResultados())
+            ->assertOk()
+            ->assertDontSee('ÍETP')
+            ->assertDontSee('ÍEFT');
+    }
 }
