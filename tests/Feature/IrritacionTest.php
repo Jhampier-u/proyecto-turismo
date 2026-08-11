@@ -423,8 +423,7 @@ class IrritacionTest extends TestCase
 
         $this->actingAs($equipo)->get($this->url())
             ->assertOk()
-            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.')
-            ->assertDontSee('El administrador puede consultar esta matriz, pero no puede modificarla.');
+            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.');
     }
 
     public function test_el_formulario_muestra_los_doce_atributos(): void

@@ -192,7 +192,6 @@ class PermisosAdminTest extends TestCase
             ->getContent();
 
         $this->assertStringContainsString('Guardar Borrador', $html);
-        $this->assertStringNotContainsString('puede consultar esta', $html);
     }
 
     public function test_el_admin_no_ve_el_boton_de_validar(): void

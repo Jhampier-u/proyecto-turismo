@@ -198,15 +198,17 @@
                 </div>
 
                 <div class="mt-6 text-center">
+                    {{-- El destino (a dónde vuelve cada rol) lo decide <x-boton-volver>, no esta vista.
+                         El texto y el color siguen siendo propios de esta página, así que se
+                         sobreescriben con el modificador "!" de Tailwind: fuerza la victoria sobre
+                         las clases por defecto del componente sin depender del orden de fusión. --}}
                     @php $user = Auth::user(); @endphp
                     @if($user->esAdmin())
-                        <a href="{{ route('admin.zonas.index') }}" class="inline-block px-5 py-2 bg-red-600 text-white font-bold text-lg rounded-lg hover:bg-red-700 shadow-md">
-                            Volver a Gestión de Zonas
-                        </a>
+                        <x-boton-volver texto="Volver a Gestión de Zonas"
+                            class="!inline-block !border-0 !px-5 !bg-red-600 !text-white !font-bold !text-lg hover:!bg-red-700 !shadow-md" />
                     @else
-                        <a href="{{ route('operativo.dashboard') }}" class="inline-block px-5 py-2 bg-blue-600 text-white font-bold text-lg rounded-lg hover:bg-blue-700 shadow-md">
-                            Volver a Mis Zonas
-                        </a>
+                        <x-boton-volver texto="Volver a Mis Zonas"
+                            class="!inline-block !border-0 !px-5 !bg-blue-600 !text-white !font-bold !text-lg hover:!bg-blue-700 !shadow-md" />
                     @endif
                 </div>
 

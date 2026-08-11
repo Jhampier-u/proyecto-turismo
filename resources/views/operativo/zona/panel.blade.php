@@ -72,11 +72,7 @@
             @endforeach
 
             <div class="flex justify-end">
-                <a href="{{ $estado->papel() === 'admin' ? route('admin.zonas.index') : route('operativo.dashboard') }}"
-                   class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 bg-white
-                          text-base text-gray-700 hover:bg-gray-50 shadow-sm">
-                    ← Volver
-                </a>
+                <x-boton-volver texto="← Volver" />
             </div>
 
         </div>

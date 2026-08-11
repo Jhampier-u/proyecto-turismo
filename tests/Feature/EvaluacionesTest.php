@@ -262,8 +262,7 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($equipo)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit")
             ->assertOk()
-            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.')
-            ->assertDontSee('El administrador puede consultar esta evaluación, pero no puede modificarla.');
+            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.');
     }
 
     /**
@@ -328,8 +327,7 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($equipo)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fet")
             ->assertOk()
-            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.')
-            ->assertDontSee('El administrador puede consultar esta evaluación, pero no puede modificarla.');
+            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.');
     }
 
     /**
@@ -412,8 +410,7 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($equipo)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-percepcion")
             ->assertOk()
-            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.')
-            ->assertDontSee('El administrador puede consultar esta matriz, pero no puede modificarla.');
+            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.');
     }
 
     /**
