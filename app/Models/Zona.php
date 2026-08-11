@@ -17,4 +17,9 @@ class Zona extends Model {
     {
         return $this->hasMany(Involucrado::class)->orderBy('orden')->orderBy('id');
     }
+
+    public function frecuentacionSitios()
+    {
+        return $this->hasMany(SitioFrecuentacion::class)->orderBy('orden')->orderBy('id');
+    }
 }
