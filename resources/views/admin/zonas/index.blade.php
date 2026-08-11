@@ -8,14 +8,25 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
+    {{-- Clave propia 'zonas_vista': la misma que usa «Mis Zonas», así que el
+         admin y el jefe recuerdan cada uno su formato preferido sin pisarse
+         (el admin no ve /mis-zonas y el jefe no ve /admin/zonas, pero
+         comparten localStorage si son la misma persona en dos pestañas). --}}
+    <div class="py-12" x-data="{ vista: localStorage.getItem('zonas_vista') || 'lista' }"
+         x-init="$watch('vista', v => localStorage.setItem('zonas_vista', v))">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             @if(session('success'))
             <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">{{ session('success') }}</div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+            <div class="flex justify-end mb-4">
+                <x-conmutador-vista modelo="vista" />
+            </div>
+
+            {{-- ═══ VISTA LISTA ══════════════════════════════════════════════════ --}}
+            <div x-show="vista === 'lista'" x-transition
+                 class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
@@ -78,8 +89,74 @@
                         @endforeach
                     </tbody>
                 </table>
-                <div class="mt-4">{{ $zonas->links() }}</div>
             </div>
+
+            {{-- ═══ VISTA TARJETAS ═══════════════════════════════════════════════ --}}
+            <div x-show="vista === 'tarjetas'" x-transition
+                 class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach ($zonas as $zona)
+                <div class="bg-white shadow-sm sm:rounded-lg hover:shadow-md transition duration-300 border border-gray-100">
+
+                    @if($zona->imagen_path)
+                        <div class="h-40 overflow-hidden rounded-t-lg">
+                            <x-foto :ruta="$zona->imagen_path" :alt="$zona->nombre"
+                                    class="w-full h-full object-cover" />
+                        </div>
+                    @else
+                        <div class="h-40 bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center rounded-t-lg">
+                            <span class="text-5xl font-black text-blue-300 select-none">
+                                {{ strtoupper(substr($zona->nombre, 0, 2)) }}
+                            </span>
+                        </div>
+                    @endif
+
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold text-gray-900">{{ $zona->nombre }}</h3>
+                        <p class="text-sm text-gray-600 mt-1">📍 {{ $zona->lugar->nombre ?? 'N/A' }}</p>
+                        <p class="text-sm text-gray-900 mt-1">{{ $zona->jefe->name ?? 'Sin Asignar' }}</p>
+
+                        <span class="inline-block mt-2 bg-purple-100 text-purple-800 text-sm font-semibold px-2.5 py-0.5 rounded">
+                            {{ $zona->equipo_count }} miembros
+                        </span>
+
+                        @php $p = $progreso[$zona->id]; @endphp
+                        <div class="flex items-center gap-3 mt-5">
+                            <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-green-500 rounded-full"
+                                     style="width: {{ $p['total'] > 0 ? round($p['hechas'] / $p['total'] * 100) : 0 }}%"></div>
+                            </div>
+                            <span class="text-sm text-gray-600 whitespace-nowrap">
+                                {{ $p['hechas'] }} / {{ $p['total'] }}
+                            </span>
+                        </div>
+
+                        <div class="flex gap-2 mt-5">
+                            <a href="{{ route('operativo.zona.panel', $zona->id) }}"
+                               class="flex-1 text-center px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">
+                                Abrir zona
+                            </a>
+                            <a href="{{ route('admin.zonas.edit', $zona->id) }}"
+                               class="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200">
+                                Editar
+                            </a>
+                            <form action="{{ route('admin.zonas.destroy', $zona->id) }}" method="POST"
+                                  onsubmit="return confirm('¿Eliminar esta zona?');">
+                                @csrf @method('DELETE')
+                                <button type="submit"
+                                        class="px-3 py-1.5 rounded-lg bg-red-100 text-red-700 text-sm font-medium hover:bg-red-200">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+
+            {{-- El paginador queda fuera de los dos x-show: el conmutador cambia
+                 la maquetación, no la consulta. La página sigue trayendo diez
+                 zonas y el paginador sigue ahí, se mire como se mire. --}}
+            <div class="mt-4">{{ $zonas->links() }}</div>
         </div>
     </div>
 </x-app-layout>

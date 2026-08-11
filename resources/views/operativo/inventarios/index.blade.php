@@ -22,25 +22,7 @@
                     ← Volver a Mis Zonas
                 </a>
 
-                {{-- Toggle de vista --}}
-                <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
-                    <button @click="vista = 'lista'"
-                            :class="vista === 'lista' ? 'bg-white shadow text-blue-700' : 'text-gray-500 hover:text-gray-700'"
-                            class="px-3 py-1.5 rounded-md text-sm font-semibold transition flex items-center gap-1.5">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                        </svg>
-                        Lista
-                    </button>
-                    <button @click="vista = 'tarjetas'"
-                            :class="vista === 'tarjetas' ? 'bg-white shadow text-blue-700' : 'text-gray-500 hover:text-gray-700'"
-                            class="px-3 py-1.5 rounded-md text-sm font-semibold transition flex items-center gap-1.5">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
-                        </svg>
-                        Tarjetas
-                    </button>
-                </div>
+                <x-conmutador-vista modelo="vista" />
             </div>
 
             @if(session('success'))

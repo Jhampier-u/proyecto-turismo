@@ -5,7 +5,11 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
+    {{-- La preferencia vive en 'zonas_vista', clave propia y separada de la
+         de Inventario ('inventario_vista'), para que cambiar una no afecte
+         a la otra. --}}
+    <div class="py-12" x-data="{ vista: localStorage.getItem('zonas_vista') || 'tarjetas' }"
+         x-init="$watch('vista', v => localStorage.setItem('zonas_vista', v))">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             @if(session('success'))
@@ -18,7 +22,46 @@
             </div>
             @endif
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="flex justify-end mb-4">
+                <x-conmutador-vista modelo="vista" />
+            </div>
+
+            {{-- ═══ VISTA LISTA ══════════════════════════════════════════════════ --}}
+            <div x-show="vista === 'lista'" x-transition
+                 class="bg-white shadow-sm rounded-xl border border-gray-200 divide-y divide-gray-200">
+                @foreach($zonas as $zona)
+                    @php $p = $progreso[$zona->id]; @endphp
+                    <div class="flex items-center gap-4 p-4">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-base text-gray-900">{{ $zona->nombre }}</p>
+                            <p class="text-sm text-gray-600">📍 {{ $zona->lugar->nombre }}</p>
+                        </div>
+
+                        <div class="w-40 shrink-0">
+                            <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-green-500 rounded-full"
+                                     style="width: {{ $p['total'] > 0 ? round($p['hechas'] / $p['total'] * 100) : 0 }}%"></div>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">{{ $p['hechas'] }} / {{ $p['total'] }}</p>
+                        </div>
+
+                        <div class="flex gap-2 shrink-0">
+                            <a href="{{ route('operativo.zona.panel', $zona->id) }}"
+                               class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">
+                                Abrir zona
+                            </a>
+                            <a href="{{ route('operativo.inventarios.index', $zona->id) }}"
+                               class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                Inventario
+                            </a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- ═══ VISTA TARJETAS ═══════════════════════════════════════════════ --}}
+            <div x-show="vista === 'tarjetas'" x-transition
+                 class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($zonas as $zona)
                 <div class="bg-white shadow-sm sm:rounded-lg hover:shadow-md transition duration-300 border border-gray-100">
 
