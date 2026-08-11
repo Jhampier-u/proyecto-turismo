@@ -122,6 +122,7 @@ final class EstadoZona
             'inventario' => $this->filaInventario($clave, $entrada),
             'resultado'  => $this->filaResultado($clave, $entrada),
             'actores'    => $this->filaActores($clave, $entrada),
+            'sitios'     => $this->filaSitios($clave, $entrada),
             default      => $this->filaMatriz($clave, $entrada),
         };
     }
@@ -311,6 +312,82 @@ final class EstadoZona
             accion:  'Continuar',
             puedeValidar:    $incompletos === 0 && $this->usuario->esJefe(),
             avisoValidacion: $incompletos === 0 && $this->usuario->esEquipo()
+                ? 'Lista para validar — avísale a ' . ($this->zona->jefe?->name ?? 'tu Jefe de Zona')
+                : null,
+        );
+    }
+
+    /**
+     * Una lista de sitios no tiene denominador fijo, igual que la de
+     * actores, pero con una condición de más: la Superficie Territorial (ST)
+     * es un escalar de la ZONA, no de cada sitio, y sin ella ningún ÍETP
+     * existe aunque todos los sitios tengan su DET respondido. Por eso no
+     * reutiliza filaActores(): esa rama no sabe nada de un segundo dato de
+     * completitud aparte de la lista.
+     *
+     * El modelo de la entrada es FrecuentacionConfig -la configuración por
+     * zona, que lleva el estado Y la ST-, no el de cada sitio.
+     */
+    private function filaSitios(string $clave, array $entrada): FilaMatriz
+    {
+        $config = $this->evaluaciones[$clave];
+
+        $cuantos = $this->zona->frecuentacionSitios()->count();
+
+        if ($cuantos === 0) {
+            return new FilaMatriz(
+                clave:   $clave,
+                nombre:  $entrada['nombre'],
+                icono:   $entrada['icono'],
+                estado:  'sin_empezar',
+                detalle: 'Todavía sin sitios registrados',
+                url:     route($entrada['rutas']['editar'], $this->zona->id),
+                accion:  'Empezar',
+            );
+        }
+
+        $validada = $config?->estado === 'confirmado';
+        $firma    = $config ? $this->firma($config) : '';
+
+        if ($validada) {
+            return new FilaMatriz(
+                clave:   $clave,
+                nombre:  $entrada['nombre'],
+                icono:   $entrada['icono'],
+                estado:  'validada',
+                detalle: "Validada · {$cuantos} sitios" . $firma,
+                url:     route($entrada['rutas']['ver'], $this->zona->id),
+                accion:  'Ver',
+            );
+        }
+
+        $incompletos = $this->zona->frecuentacionSitios()->incompletos()->count();
+        $stDefinida  = ($config?->st ?? null) !== null && $config->st > 0;
+
+        // Dos motivos de bloqueo, no uno: sitios sin DET, y una ST sin
+        // definir o en cero. Son causas distintas -una es "faltan datos de
+        // sitio", la otra "falta un dato de la zona"- y conviene que el
+        // detalle las distinga en vez de fundirlas en una frase que no dice
+        // cuál de las dos hace falta resolver.
+        $detalle = match (true) {
+            $incompletos > 0 && ! $stDefinida => "Borrador · {$cuantos} sitios, {$incompletos} sin DET, falta la Superficie Territorial",
+            $incompletos > 0                  => "Borrador · {$cuantos} sitios, {$incompletos} sin DET",
+            ! $stDefinida                      => "Borrador · {$cuantos} sitios completos, falta la Superficie Territorial",
+            default                            => "Borrador · {$cuantos} sitios, todos completos",
+        };
+
+        $listaCompleta = $incompletos === 0 && $stDefinida;
+
+        return new FilaMatriz(
+            clave:   $clave,
+            nombre:  $entrada['nombre'],
+            icono:   $entrada['icono'],
+            estado:  'borrador',
+            detalle: $detalle . $firma,
+            url:     route($entrada['rutas']['editar'], $this->zona->id),
+            accion:  'Continuar',
+            puedeValidar:    $listaCompleta && $this->usuario->esJefe(),
+            avisoValidacion: $listaCompleta && $this->usuario->esEquipo()
                 ? 'Lista para validar — avísale a ' . ($this->zona->jefe?->name ?? 'tu Jefe de Zona')
                 : null,
         );

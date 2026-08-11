@@ -442,6 +442,37 @@ class EstadoZonaTest extends TestCase
         $this->assertStringContainsString('sin actores', $fila->detalle);
     }
 
+    /**
+     * El quinto tipo de entrada: un CRUD con estado, hermano de 'actores' y
+     * no una reutilización de él. Frecuentación tiene dos cosas que
+     * 'actores' no contempla: la Superficie Territorial (un escalar de la
+     * zona, no de cada fila) y una relación distinta a
+     * $zona->involucrados(). Reutilizar 'actores' habría hecho que esta fila
+     * contara actores de Involucrados, no sitios propios -filaActores() y su
+     * gemela de pestanas-matriz.blade.php llaman a esa relación a mano-.
+     *
+     * Igual que su hermano de Involucrados, se salta si todavía no hay
+     * ninguna entrada de este tipo: no es este test quien debe vigilar que
+     * exista.
+     */
+    public function test_una_entrada_de_sitios_sin_empezar_lo_dice(): void
+    {
+        $deSitios = array_filter(
+            \App\Matrices\Registro::ENTRADAS,
+            fn(array $e) => $e['tipo'] === 'sitios'
+        );
+
+        if ($deSitios === []) {
+            $this->markTestSkipped('No hay ninguna entrada de tipo sitios.');
+        }
+
+        $clave = array_key_first($deSitios);
+        $fila  = $this->filas()[$clave];
+
+        $this->assertSame('sin_empezar', $fila->estado);
+        $this->assertStringContainsString('sin sitios', $fila->detalle);
+    }
+
     public function test_el_contador_de_criterios_es_reutilizable_desde_fuera(): void
     {
         $evaluacion = \App\Models\EvaluacionPaisaje::create([

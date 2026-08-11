@@ -40,6 +40,15 @@
         // un recuento, es «hay al menos un actor y ninguno a medias».
         $actores  = $zona->involucrados();
         $completa = $actores->count() > 0 && ! $actores->incompletos()->exists();
+    } elseif ($entrada['tipo'] === 'sitios') {
+        // Misma idea que la rama de actores, con una segunda condición: la
+        // ST vive en $evaluacion (el modelo de la entrada es
+        // FrecuentacionConfig, ya cargado arriba), no en cada sitio.
+        $sitios   = $zona->frecuentacionSitios();
+        $completa = $sitios->count() > 0
+            && ! $sitios->incompletos()->exists()
+            && ($evaluacion?->st ?? null) !== null
+            && $evaluacion->st > 0;
     } else {
         $completa = $total !== null && $respondidos >= $total;
     }
@@ -65,6 +74,12 @@
             <x-icono nombre="candado" class="w-4 h-4" />
             Resultados
             <span class="text-sm">— sin actores completos</span>
+        </span>
+    @elseif($entrada['tipo'] === 'sitios')
+        <span class="pb-3 border-b-2 border-transparent text-base text-gray-400 flex items-center gap-2">
+            <x-icono nombre="candado" class="w-4 h-4" />
+            Resultados
+            <span class="text-sm">— sin sitios completos</span>
         </span>
     @else
         <span class="pb-3 border-b-2 border-transparent text-base text-gray-400 flex items-center gap-2">
