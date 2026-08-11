@@ -46,10 +46,27 @@ class PestanasMatrizTest extends TestCase
                 continue;
             }
 
-            $this->actingAs($this->jefe)
+            $html = $this->actingAs($this->jefe)
                 ->get(route($entrada['rutas']['editar'], $this->zona->id))
                 ->assertOk()
-                ->assertSee('Resultados', false);
+                ->getContent();
+
+            // Buscar solo el literal "Resultados" pasaría en verde aunque
+            // <x-pestanas-matriz> no existiera -la palabra podría aparecer por
+            // cualquier otro motivo en la vista-. Con la zona recién creada
+            // ninguna matriz tiene evaluación, así que la pestaña tiene que
+            // estar bloqueada: se comprueba el texto de candado que solo pinta
+            // el componente, y la ausencia del enlace a resultados.
+            $this->assertStringNotContainsString(
+                route($entrada['rutas']['ver'], $this->zona->id),
+                $html,
+                "«{$clave}»: con la zona recién creada no debería haber enlace a resultados."
+            );
+            $this->assertStringContainsString(
+                $entrada['tipo'] === 'actores' ? 'sin actores completos' : "0 de {$entrada['criterios']} criterios",
+                $html,
+                "«{$clave}»: no se encontró el texto de candado de <x-pestanas-matriz>."
+            );
         }
     }
 
@@ -112,6 +129,39 @@ class PestanasMatrizTest extends TestCase
     }
 
     /**
+     * El caso concreto del Hallazgo 5: Potencialidad es configurable -el jefe
+     * puede activar solo una parte de sus 156 criterios-, así que "completa"
+     * no puede seguir siendo solo un recuento contra el total declarado. Con
+     * 20 de 156 activados, respondidos y validados, el recuento por sí solo
+     * seguiría pintando candado sobre una matriz confirmada, con resultados
+     * ya calculados: el estado tiene que ganarle al recuento.
+     */
+    public function test_potencialidad_validada_con_campos_desactivados_ofrece_el_enlace_a_resultados(): void
+    {
+        $campos = array_slice(array_keys(\App\Matrices\Potencialidad::todos()), 0, 20);
+
+        $this->actingAs($this->jefe)->post(
+            route('operativo.evaluacion_potencialidad.update', $this->zona->id),
+            array_fill_keys($campos, 2) + ['campos' => $campos, 'accion_estado' => 'confirmado']
+        )->assertSessionHasNoErrors();
+
+        $eval = \App\Models\EvaluacionPotencialidad::where('zona_id', $this->zona->id)->firstOrFail();
+        $this->assertSame('confirmado', $eval->estado);
+
+        $html = $this->actingAs($this->jefe)
+            ->get(route('operativo.evaluacion_potencialidad.edit', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString(
+            route('operativo.evaluacion_potencialidad.ponderacion', $this->zona->id),
+            $html,
+            'Una Potencialidad validada, aunque tenga campos desactivados, debe ofrecer el enlace a resultados.'
+        );
+        $this->assertStringNotContainsString('de 156 criterios', $html);
+    }
+
+    /**
      * El recuento de las pestañas y el de la ficha de la zona salen del mismo
      * contador. Este test es lo que impide que se separen.
      */
@@ -136,5 +186,33 @@ class PestanasMatrizTest extends TestCase
             ->get(route('operativo.zona.panel', $this->zona->id))
             ->assertOk()
             ->assertSee('21 de 34');
+    }
+
+    /**
+     * La rama de actores del candado no tenía ningún test con actores de por
+     * medio: los existentes dejaban la lista vacía, que cae en la misma rama
+     * pero por el otro motivo ("cuantos === 0"). Este crea un actor a medias
+     * -con algún criterio sin responder- para ejercer el motivo que faltaba:
+     * "hay actores, pero no todos completos".
+     */
+    public function test_actores_incompletos_no_ofrecen_enlace_a_resultados(): void
+    {
+        \App\Models\Involucrado::create([
+            'zona_id'       => $this->zona->id,
+            'nombre'        => 'Actor a medias',
+            'pod_autoridad' => 2,
+            // El resto de los once criterios queda sin responder (null).
+        ]);
+
+        $html = $this->actingAs($this->jefe)
+            ->get(route('operativo.involucrados.index', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringNotContainsString(
+            route('operativo.involucrados.resultados', $this->zona->id),
+            $html
+        );
+        $this->assertStringContainsString('sin actores completos', $html);
     }
 }

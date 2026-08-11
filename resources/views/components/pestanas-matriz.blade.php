@@ -22,14 +22,26 @@
         ? \App\Servicios\EstadoZona::criteriosRespondidos($evaluacion)
         : 0;
 
-    $completa = $total !== null && $respondidos >= $total;
-
-    // Involucrados no es un formulario de criterios sino un CRUD de actores:
-    // su 'criterios' en el registro es null y «completa» no es un recuento,
-    // es «hay al menos un actor y ninguno a medias».
-    if ($entrada['tipo'] === 'actores') {
+    // El estado manda sobre el recuento, no al revés: Potencialidad es
+    // configurable -el Jefe de Zona puede activar solo una parte de sus 156
+    // criterios-, así que puede quedar VALIDADA con muchos menos de 156
+    // respondidos. Contar primero pintaba candado y «20 de 156 criterios»
+    // sobre una matriz confirmada con resultados ya calculados. Confirmado
+    // siempre implica que hay resultados que enseñar; el recuento solo
+    // decide mientras la matriz sigue sin validar. Esto deja coherentes tres
+    // respuestas a la misma pregunta: EstadoZona::filaMatriz() ya mira el
+    // estado primero, y evaluacion_potencialidad/ponderacion.blade.php mira
+    // si los totales (fn_total/fx_total) son nulos.
+    if ($evaluacion && $evaluacion->estado === 'confirmado') {
+        $completa = true;
+    } elseif ($entrada['tipo'] === 'actores') {
+        // Involucrados no es un formulario de criterios sino un CRUD de
+        // actores: su 'criterios' en el registro es null y «completa» no es
+        // un recuento, es «hay al menos un actor y ninguno a medias».
         $actores  = $zona->involucrados();
         $completa = $actores->count() > 0 && ! $actores->incompletos()->exists();
+    } else {
+        $completa = $total !== null && $respondidos >= $total;
     }
 
     // Clases completas: Tailwind purga las construidas por concatenación.

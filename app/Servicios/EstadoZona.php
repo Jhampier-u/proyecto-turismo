@@ -319,6 +319,12 @@ final class EstadoZona
     /**
      * Criterios respondidos de una evaluación.
      *
+     * Cuenta las columnas de criterio que no están en null, filtrando
+     * getAttributes() en vez de mantener una lista de campos propia: el
+     * registro sabe cuántos criterios tiene cada matriz, pero no cuáles, y
+     * repetir esa lista aquí sería una segunda fuente de verdad que se
+     * desincroniza sola.
+     *
      * Pública y estática porque la usan dos consumidores que no comparten
      * instancia: la ficha de la zona y las pestañas de cada matriz. Si cada
      * uno contara por su cuenta, habría dos respuestas a la misma pregunta y
