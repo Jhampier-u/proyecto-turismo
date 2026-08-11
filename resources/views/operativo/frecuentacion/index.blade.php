@@ -1,8 +1,19 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Frecuentación Turística: {{ $zona->nombre }}
-        </h2>
+        <div class="flex justify-between items-center">
+            <div>
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                    Frecuentación Turística: {{ $zona->nombre }}
+                </h2>
+                <p class="text-sm text-gray-500">Cuánto concentra cada sitio la frecuentación del territorio</p>
+            </div>
+            @if($puedeEditar)
+            <a href="{{ route('operativo.frecuentacion.create', $zona->id) }}"
+               class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow">
+                + Nuevo sitio
+            </a>
+            @endif
+        </div>
     </x-slot>
 
     <div class="py-12">
@@ -17,8 +28,138 @@
 
             <x-flash-exito />
 
-            {{-- El formulario de la Superficie Territorial y la lista de
-                 sitios llegan en la Tarea 4. --}}
+            @if($confirmada)
+                <div class="mb-6 bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded">
+                    <strong class="font-bold text-lg">Lista de sitios validada</strong>
+                    <p>El Jefe de Zona confirmó esta lista. El ÍETP de cada sitio y el ÍEFT del territorio ya se pueden consultar.</p>
+                    {{--
+                        Igual que Involucrados: el aviso de que tocar la lista
+                        (o la ST) la reabre tiene que estar aquí, antes de que
+                        se pulse cualquier acción, no solo en el flash que
+                        sale después de guardar.
+                    --}}
+                    <p class="text-sm mt-1">
+                        Si la modificas —añades, editas o borras un sitio, o cambias la Superficie Territorial—, vuelve a borrador: hay que validarla de nuevo.
+                    </p>
+                </div>
+            @else
+                <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded">
+                    <strong class="font-bold">Modo Borrador</strong>
+                    <p>La lista sigue abierta: se pueden añadir, editar y borrar sitios, y actualizar la Superficie Territorial.</p>
+                </div>
+            @endif
+
+            {{--
+                La Superficie Territorial (ST): un escalar de la ZONA, uno
+                solo para todos los sitios -no una fila más de la tabla de
+                abajo-, así que vive en su propia sección con su propio
+                formulario y su propio botón de guardar.
+            --}}
+            <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-1">Superficie Territorial (ST)</h3>
+                <p class="text-sm text-gray-500 mb-4">
+                    Un solo valor para todo el territorio: sin él, ningún sitio tiene ÍETP, aunque todos tengan su DET respondido.
+                </p>
+                <form method="POST" action="{{ route('operativo.frecuentacion.superficie', $zona->id) }}"
+                      class="flex flex-wrap items-end gap-4">
+                    @csrf
+                    <div>
+                        <label for="st" class="block text-sm font-medium text-gray-700 mb-1">Superficie Territorial</label>
+                        <input type="number" step="any" min="0" name="st" id="st"
+                               value="{{ old('st', $config?->st) }}"
+                               placeholder="— sin responder —"
+                               @disabled(! $puedeEditar)
+                               class="w-48 border-gray-300 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:text-gray-500">
+                        @error('st')
+                            <span class="text-sm text-red-500 block mt-1">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    @if($puedeEditar)
+                        <button type="submit"
+                                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow">
+                            Guardar
+                        </button>
+                    @endif
+                </form>
+            </section>
+
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-sm font-bold text-gray-500">Sitio</th>
+                            <th class="px-6 py-3 text-left text-sm font-bold text-gray-500">DET</th>
+                            <th class="px-6 py-3 text-left text-sm font-bold text-gray-500">Estado</th>
+                            @if($puedeEditar)
+                                <th class="px-6 py-3 text-right text-sm font-bold text-gray-500">Acciones</th>
+                            @endif
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @forelse($sitios as $sitio)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 font-bold text-gray-900">{{ $sitio->nombre }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">
+                                    {{ $sitio->det !== null ? $sitio->det : '— sin responder —' }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if($sitio->estaCompleto())
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Completo</span>
+                                    @else
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">A medias</span>
+                                    @endif
+                                </td>
+                                @if($puedeEditar)
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <a href="{{ route('operativo.frecuentacion.edit', ['zona' => $zona->id, 'sitio' => $sitio->id]) }}"
+                                           class="text-indigo-600 font-bold text-sm bg-indigo-50 px-2 py-1 rounded">Editar</a>
+                                        {{--
+                                            Mismo aviso que el banner verde, y
+                                            por la misma razón: condicionado a
+                                            $confirmada para no anunciar una
+                                            reapertura que no va a ocurrir
+                                            mientras la lista sigue en
+                                            borrador.
+                                        --}}
+                                        <form action="{{ route('operativo.frecuentacion.destroy', ['zona' => $zona->id, 'sitio' => $sitio->id]) }}"
+                                              method="POST"
+                                              onsubmit="return confirm('¿Borrar este sitio?{{ $confirmada ? ' Esta lista está validada: al borrarlo, vuelve a borrador y hay que validarla de nuevo.' : '' }}');">
+                                            @csrf @method('DELETE')
+                                            <button class="text-red-600 font-bold text-sm bg-red-50 px-2 py-1 rounded">Eliminar</button>
+                                        </form>
+                                    </div>
+                                </td>
+                                @endif
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="{{ 3 + ($puedeEditar ? 1 : 0) }}"
+                                    class="px-6 py-10 text-center text-gray-400">
+                                    Todavía sin sitios registrados.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            @if($puedeValidar)
+                <div class="mt-6 flex justify-end">
+                    <form action="{{ route('operativo.frecuentacion.validar', $zona->id) }}" method="POST"
+                          onsubmit="return confirm('Al validar, la lista queda cerrada para el equipo. ¿Continuar?');">
+                        @csrf
+                        <button type="submit"
+                                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow">
+                            Validar y Cerrar la Lista
+                        </button>
+                    </form>
+                </div>
+            @elseif($avisoValidacion)
+                <p class="mt-6 text-sm text-amber-700 text-right">
+                    Lista para validar — avísale a {{ $zona->jefe?->name ?? 'tu Jefe de Zona' }}
+                </p>
+            @endif
 
         </div>
     </div>

@@ -73,6 +73,15 @@ return [
         'string' => 'El campo :attribute debe tener al menos :min caracteres.',
     ],
 
+    // Solo la variante 'numeric': a diferencia de min/max, 'gt' entra en el
+    // proyecto con un único uso (la Superficie Territorial de Frecuentación,
+    // que exige > 0) y ningún campo de archivo/array/cadena lo necesita hoy.
+    // Añadir las otras tres variantes "por si acaso" sería la misma apuesta
+    // que el comentario de arriba ya decidió no hacer para reglas sueltas.
+    'gt' => [
+        'numeric' => 'El campo :attribute debe ser mayor que :value.',
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Nombres de atributo
@@ -119,6 +128,12 @@ return [
         'estado_conservacion' => 'estado de conservación',
         'fotos' => 'fotos',
         'nuevas_fotos' => 'fotos nuevas',
+        // Frecuentación: 'st' y 'det' son campos propios de su CRUD -no un
+        // criterio de un formulario ponderado con su propia etiqueta ya
+        // resuelta en App\Matrices\Frecuentacion-, así que encajan aquí como
+        // el resto de campos genéricos de esta lista.
+        'st' => 'Superficie Territorial',
+        'det' => 'DET',
     ],
 
 ];

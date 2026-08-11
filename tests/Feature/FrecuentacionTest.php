@@ -473,4 +473,157 @@ class FrecuentacionTest extends TestCase
 
         $this->assertDatabaseMissing('frecuentacion_config', ['zona_id' => $this->zona->id]);
     }
+
+    // ── Tarea 4: el formulario ──────────────────────────────────────────────
+
+    public function test_el_indice_pinta_la_st_actual_y_los_sitios_con_su_estado(): void
+    {
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Malecón 2000',
+            'det'     => 5.5,
+        ]);
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Cerro las Peñas',
+        ]);
+        FrecuentacionConfig::create(['zona_id' => $this->zona->id, 'st' => 12.5]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('Malecón 2000')
+            ->assertSee('Cerro las Peñas')
+            // El valor precargado de la ST, en el propio atributo value.
+            ->assertSee('value="12.5"', false)
+            ->assertSee('Completo')
+            ->assertSee('A medias');
+    }
+
+    /**
+     * El error de validación de la ST se repinta en la propia página, no solo
+     * se comprueba a nivel de sesión (ver test_guardar_la_superficie_territorial_rechaza_cero_y_negativos):
+     * esta es la cara HTTP completa, siguiendo la redirección.
+     */
+    public function test_una_st_invalida_repinta_el_error_en_la_pagina_sin_guardar_nada(): void
+    {
+        $this->actingAs($this->jefe)
+            ->from($this->urlIndex($this->zona))
+            ->post($this->urlSuperficie(), ['st' => '0'])
+            ->assertSessionHasErrors('st');
+
+        // Seguir la redirección: el error solo demuestra que "se repinta en
+        // la página" si de verdad se lee en una petición GET posterior, no
+        // en la propia respuesta de redirección del POST.
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('debe ser mayor que 0', false);
+
+        $this->assertDatabaseMissing('frecuentacion_config', ['zona_id' => $this->zona->id]);
+    }
+
+    public function test_el_admin_ve_el_formulario_editable_y_no_ve_el_boton_de_validar(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Sitio completo',
+            'det'     => 1.0,
+        ]);
+        FrecuentacionConfig::create(['zona_id' => $this->zona->id, 'st' => 5.0]);
+
+        $html = $this->actingAs($admin)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('+ Nuevo sitio')
+            ->getContent();
+
+        // El botón de validar es del Jefe de Zona, aunque la lista esté
+        // completa: mismo criterio que Involucrados.
+        $this->assertStringNotContainsString('Validar y Cerrar la Lista', $html);
+
+        // El campo lleva la clase Tailwind "disabled:bg-gray-100" en TODOS
+        // los casos, activo o no: buscar la palabra "disabled" a secas no
+        // distingue nada. Solo la parte de la etiqueta ANTES de "class="
+        // puede llevar el atributo HTML real.
+        preg_match('/<input[^>]*name="st"[^>]*>/', $html, $campoSt);
+        $this->assertNotEmpty($campoSt, 'No se encontró el campo de la Superficie Territorial.');
+        [$antesDeClase] = explode('class=', $campoSt[0]);
+        $this->assertStringNotContainsString('disabled', $antesDeClase);
+    }
+
+    /**
+     * Con la configuración confirmada, el equipo no puede tocar nada: ni
+     * añadir un sitio, ni editar el existente, ni cambiar la ST. La vista
+     * oculta los controles de escritura -mismo trato que Involucrados-.
+     */
+    public function test_el_equipo_no_puede_tocar_nada_con_la_configuracion_confirmada(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Sitio validado',
+            'det'     => 1.0,
+        ]);
+        FrecuentacionConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'confirmado',
+            'st'      => 5.0,
+        ]);
+
+        $html = $this->actingAs($equipo)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringNotContainsString('+ Nuevo sitio', $html);
+        $this->assertStringNotContainsString('Editar', $html);
+        $this->assertStringNotContainsString('Eliminar', $html);
+
+        preg_match('/<input[^>]*name="st"[^>]*>/', $html, $campoSt);
+        $this->assertNotEmpty($campoSt, 'No se encontró el campo de la Superficie Territorial.');
+        [$antesDeClase] = explode('class=', $campoSt[0]);
+        $this->assertStringContainsString('disabled', $antesDeClase);
+    }
+
+    /**
+     * DET puede quedar realmente sin responder: el campo no debe precargarse
+     * a 0 -que un evaluador confundiría con "el usuario respondió 0"-, mismo
+     * tratamiento vacío-vs-cero que los campos numéricos de Concentración.
+     */
+    public function test_el_formulario_de_sitio_distingue_det_vacio_de_det_cero(): void
+    {
+        $sinResponder = SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Sitio sin DET',
+        ]);
+        $conCero = SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Sitio con DET en cero',
+            'det'     => 0.0,
+        ]);
+
+        $paginaSinResponder = $this->actingAs($this->jefe)
+            ->get(route('operativo.frecuentacion.edit', ['zona' => $this->zona->id, 'sitio' => $sinResponder->id]))
+            ->assertOk()
+            ->getContent();
+
+        preg_match('/<input[^>]*name="det"[^>]*>/', $paginaSinResponder, $campo);
+        $this->assertNotEmpty($campo, 'No se encontró el campo det.');
+        $this->assertStringNotContainsString('value="0"', $campo[0]);
+
+        $paginaConCero = $this->actingAs($this->jefe)
+            ->get(route('operativo.frecuentacion.edit', ['zona' => $this->zona->id, 'sitio' => $conCero->id]))
+            ->assertOk()
+            ->assertSee('value="0"', false);
+    }
 }
