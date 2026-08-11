@@ -157,7 +157,13 @@ class PaginaZonaTest extends TestCase
             ->assertSee('avísale a ' . $this->jefe->name);
     }
 
-    public function test_el_admin_entra_en_modo_consulta(): void
+    /**
+     * Tarea 1 invierte la decisión: el admin deja de ser un observador del
+     * panel. Sobre una matriz sin empezar recibe el mismo enlace de
+     * "Empezar" que el jefe y el equipo, y la franja de "Modo consulta"
+     * -que ya no describe lo que puede hacer- desaparece.
+     */
+    public function test_el_admin_recibe_el_enlace_para_empezar_una_matriz_sin_empezar(): void
     {
         $admin = User::factory()->create([
             'role_id' => Role::where('nombre', 'admin')->value('id'),
@@ -165,8 +171,8 @@ class PaginaZonaTest extends TestCase
 
         $this->actingAs($admin)->get($this->url())
             ->assertOk()
-            ->assertSee('Modo consulta')
-            ->assertDontSee(route('operativo.evaluacion_paisaje.edit', $this->zona->id), false);
+            ->assertDontSee('Modo consulta')
+            ->assertSee(route('operativo.evaluacion_paisaje.edit', $this->zona->id), false);
     }
 
     public function test_un_usuario_ajeno_a_la_zona_recibe_403(): void

@@ -130,11 +130,9 @@ final class EstadoZona
     {
         $cuantos = $this->zona->inventarios()->count();
 
-        // El admin conserva la URL (necesita consultar los recursos) pero no
-        // la acción de escritura: el middleware ya le corta cualquier POST,
-        // así que ofrecerle 'Abrir' invita a un botón que termina en 403.
-        $esAdmin = $this->usuario->esAdmin();
-
+        // El admin gestiona el inventario como uno más -crea, edita y borra
+        // recursos- desde que PerteneceAZona dejó de restringirlo a métodos
+        // seguros: 'Abrir' es cierto para los tres roles.
         return new FilaMatriz(
             clave:   $clave,
             nombre:  $entrada['nombre'],
@@ -142,7 +140,7 @@ final class EstadoZona
             estado:  'sin_estado',
             detalle: $cuantos === 1 ? '1 recurso registrado' : "{$cuantos} recursos registrados",
             url:     route($entrada['rutas']['editar'], $this->zona->id),
-            accion:  $esAdmin ? 'Ver' : 'Abrir',
+            accion:  'Abrir',
         );
     }
 
@@ -188,17 +186,19 @@ final class EstadoZona
     private function filaMatriz(string $clave, array $entrada): FilaMatriz
     {
         $evaluacion = $this->evaluaciones[$clave];
-        $esAdmin    = $this->usuario->esAdmin();
 
         if ($evaluacion === null) {
+            // El admin rellena formularios como el equipo desde que el
+            // middleware dejó de restringirlo (Tarea 1): la misma acción de
+            // "Empezar" para los tres roles.
             return new FilaMatriz(
                 clave:   $clave,
                 nombre:  $entrada['nombre'],
                 icono:   $entrada['icono'],
                 estado:  'sin_empezar',
                 detalle: "{$entrada['criterios']} criterios · sin empezar",
-                url:     $esAdmin ? null : route($entrada['rutas']['editar'], $this->zona->id),
-                accion:  $esAdmin ? null : 'Empezar',
+                url:     route($entrada['rutas']['editar'], $this->zona->id),
+                accion:  'Empezar',
             );
         }
 
@@ -232,12 +232,12 @@ final class EstadoZona
             icono:   $entrada['icono'],
             estado:  'borrador',
             detalle: "Borrador · {$respondidos} de {$entrada['criterios']} respondidos" . $firma,
-            url:     $esAdmin
-                ? route($entrada['rutas']['ver'], $this->zona->id)
-                : route($entrada['rutas']['editar'], $this->zona->id),
-            accion:  $esAdmin ? 'Ver' : 'Continuar',
-            // esJefe() ya excluye al admin por construcción (son roles
-            // distintos): ! $esAdmin era una condición redundante.
+            // El admin sigue editando un borrador aunque esté completo -antes
+            // se le mandaba a 'ver' como si ya no pudiera tocarlo, que era
+            // falso: solo una matriz VALIDADA le queda cerrada, y esa rama
+            // vive arriba-.
+            url:     route($entrada['rutas']['editar'], $this->zona->id),
+            accion:  'Continuar',
             puedeValidar:    $completa && $this->usuario->esJefe(),
             avisoValidacion: $completa && $this->usuario->esEquipo()
                 ? 'Lista para validar — avísale a ' . ($this->zona->jefe?->name ?? 'tu Jefe de Zona')
@@ -255,7 +255,6 @@ final class EstadoZona
     private function filaActores(string $clave, array $entrada): FilaMatriz
     {
         $config  = $this->evaluaciones[$clave];
-        $esAdmin = $this->usuario->esAdmin();
 
         $cuantos  = $this->zona->involucrados()->count();
         $validada = $config?->estado === 'confirmado';
@@ -289,8 +288,8 @@ final class EstadoZona
                 icono:   $entrada['icono'],
                 estado:  'sin_empezar',
                 detalle: 'Todavía sin actores registrados',
-                url:     $esAdmin ? null : route($entrada['rutas']['editar'], $this->zona->id),
-                accion:  $esAdmin ? null : 'Empezar',
+                url:     route($entrada['rutas']['editar'], $this->zona->id),
+                accion:  'Empezar',
             );
         }
 
@@ -306,10 +305,10 @@ final class EstadoZona
             icono:   $entrada['icono'],
             estado:  'borrador',
             detalle: $detalle . $firma,
-            url:     $esAdmin
-                ? route($entrada['rutas']['ver'], $this->zona->id)
-                : route($entrada['rutas']['editar'], $this->zona->id),
-            accion:  $esAdmin ? 'Ver' : 'Continuar',
+            // Mismo trato que filaMatriz(): el admin edita un borrador de
+            // actores como el equipo, esté completo o no.
+            url:     route($entrada['rutas']['editar'], $this->zona->id),
+            accion:  'Continuar',
             puedeValidar:    $incompletos === 0 && $this->usuario->esJefe(),
             avisoValidacion: $incompletos === 0 && $this->usuario->esEquipo()
                 ? 'Lista para validar — avísale a ' . ($this->zona->jefe?->name ?? 'tu Jefe de Zona')

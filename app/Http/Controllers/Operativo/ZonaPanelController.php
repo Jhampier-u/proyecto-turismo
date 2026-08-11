@@ -10,9 +10,9 @@ use Illuminate\Support\Facades\Auth;
 /**
  * Página de una zona: el índice de su trabajo.
  *
- * La sirven los tres roles por la misma URL. El middleware 'zona' ya limita al
- * admin a métodos seguros, así que no hacen falta rutas de solo lectura
- * aparte —que era justo lo que se desincronizaba.
+ * La sirven los tres roles por la misma URL, sin rutas de solo lectura
+ * aparte para el admin: PerteneceAZona ya no lo limita a métodos seguros, y
+ * EstadoZona::fila() le da las mismas acciones que al equipo salvo validar.
  */
 class ZonaPanelController extends Controller
 {

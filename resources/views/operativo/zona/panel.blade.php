@@ -19,12 +19,6 @@
                 </div>
             @endif
 
-            @if($estado->papel() === 'admin')
-                <div class="mb-6 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg text-base">
-                    Modo consulta — puedes ver los resultados, no modificarlos.
-                </div>
-            @endif
-
             <div class="bg-white shadow-sm rounded-xl border border-gray-200 mb-6 p-6">
                 <div class="flex items-start justify-between gap-4">
                     <div class="min-w-0">

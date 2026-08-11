@@ -158,7 +158,13 @@ class ValoracionTerritorialTest extends TestCase
         $this->actingAs($ajeno)->get($this->url())->assertForbidden();
     }
 
-    public function test_el_admin_consulta_la_zona_en_modo_lectura(): void
+    /**
+     * Tarea 1: sobre una matriz en borrador -aunque esté completa, como aquí-
+     * el admin recibe el mismo enlace de editar que el jefe y el equipo, y ya
+     * no la franja de "Modo consulta". Ver el comentario equivalente en
+     * PaisajeTest::test_el_admin_recibe_el_enlace_de_editar_con_paisaje_en_borrador.
+     */
+    public function test_el_admin_recibe_el_enlace_de_editar_con_valoracion_territorial_en_borrador(): void
     {
         $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(2));
 
@@ -169,9 +175,9 @@ class ValoracionTerritorialTest extends TestCase
         $this->actingAs($admin)
             ->get(route('operativo.zona.panel', $this->zona->id))
             ->assertOk()
-            ->assertSee('Modo consulta')
+            ->assertDontSee('Modo consulta')
             ->assertSee('Valoración territorial')
-            ->assertSee(route('operativo.evaluacion_valoracion_territorial.ponderacion', $this->zona->id), false);
+            ->assertSee(route('operativo.evaluacion_valoracion_territorial.edit', $this->zona->id), false);
     }
 
     /**
@@ -439,6 +445,21 @@ class ValoracionTerritorialTest extends TestCase
         $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(2));
 
         $this->actingAs($this->jefe)
+            ->get($this->url('/resultados'))
+            ->assertOk()
+            ->assertSee(route('operativo.evaluacion_valoracion_territorial.edit', $this->zona->id), false);
+    }
+
+    /** El admin también ve el enlace: mismo caso que Paisaje, FIT, FET y Percepción. */
+    public function test_el_admin_ve_el_enlace_al_formulario_en_los_resultados_de_valoracion_territorial(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(2));
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)
             ->get($this->url('/resultados'))
             ->assertOk()
             ->assertSee(route('operativo.evaluacion_valoracion_territorial.edit', $this->zona->id), false);

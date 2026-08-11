@@ -286,7 +286,28 @@ class PaisajeTest extends TestCase
             ->assertSee(route('operativo.evaluacion_paisaje.edit', $this->zona->id), false);
     }
 
-    public function test_el_admin_consulta_la_zona_en_modo_lectura(): void
+    /** El admin también ve el enlace: <x-pestanas-matriz> no distingue por rol. */
+    public function test_el_admin_ve_el_enlace_al_formulario_en_los_resultados_de_paisaje(): void
+    {
+        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(5));
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)->get($this->url('/resultados'))
+            ->assertOk()
+            ->assertSee(route('operativo.evaluacion_paisaje.edit', $this->zona->id), false);
+    }
+
+    /**
+     * Tarea 1: sobre una matriz en borrador -aunque esté completa, como aquí,
+     * con sus 34 criterios respondidos- el admin recibe el mismo enlace de
+     * editar que el jefe y el equipo. Antes, con la matriz completa, se le
+     * mandaba directo a resultados como si ya no pudiera tocarla; ahora sí
+     * puede, porque no está validada.
+     */
+    public function test_el_admin_recibe_el_enlace_de_editar_con_paisaje_en_borrador(): void
     {
         $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(5));
 
@@ -297,9 +318,31 @@ class PaisajeTest extends TestCase
         $this->actingAs($admin)
             ->get(route('operativo.zona.panel', $this->zona->id))
             ->assertOk()
-            ->assertSee('Modo consulta')
+            ->assertDontSee('Modo consulta')
             ->assertSee('Paisaje')
-            ->assertSee(route('operativo.evaluacion_paisaje.ponderacion', $this->zona->id), false);
+            ->assertSee(route('operativo.evaluacion_paisaje.edit', $this->zona->id), false);
+    }
+
+    /** Lo único que no cambia: una matriz ya validada lo sigue mandando a resultados. */
+    public function test_el_admin_no_recibe_edicion_con_paisaje_validado(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            $this->url(),
+            $this->todosEn(5) + ['accion_estado' => 'confirmado']
+        );
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $html = $this->actingAs($admin)
+            ->get(route('operativo.zona.panel', $this->zona->id))
+            ->assertOk()
+            ->assertDontSee('Modo consulta')
+            ->assertSee(route('operativo.evaluacion_paisaje.ponderacion', $this->zona->id), false)
+            ->getContent();
+
+        $this->assertStringContainsString('Validada', $html);
     }
 
     /**

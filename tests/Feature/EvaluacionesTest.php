@@ -527,6 +527,27 @@ class EvaluacionesTest extends TestCase
             ->assertDontSee(route('operativo.dashboard'), false);
     }
 
+    /**
+     * El admin también ve el enlace al formulario en los resultados: lo pinta
+     * <x-pestanas-matriz>, que no distingue por rol -ver el docblock del test
+     * anterior-. Sin este test, quitarle el enlace solo al admin habría
+     * pasado inadvertido.
+     */
+    public function test_el_admin_ve_el_enlace_al_formulario_en_los_resultados_de_fit(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fit",
+            $this->todos(self::CAMPOS_FIT, 3) + ['accion_estado' => 'confirmado']
+        )->assertSessionHasNoErrors();
+
+        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+
+        $this->actingAs($admin)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit/ponderacion")
+            ->assertOk()
+            ->assertSee(route('operativo.evaluacion_fit.edit', $this->zona->id), false);
+    }
+
     /** Complementa el test anterior: el jefe debe seguir viendo el enlace. */
     public function test_el_jefe_ve_el_enlace_al_formulario_en_los_resultados_de_fit(): void
     {
@@ -556,6 +577,22 @@ class EvaluacionesTest extends TestCase
             ->assertOk()
             ->assertSee(route('admin.zonas.index'), false)
             ->assertDontSee(route('operativo.dashboard'), false);
+    }
+
+    /** Mismo caso que FIT, para FET: el enlace no distingue por rol. */
+    public function test_el_admin_ve_el_enlace_al_formulario_en_los_resultados_de_fet(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fet",
+            $this->todos(self::CAMPOS_FET, 3) + ['accion_estado' => 'confirmado']
+        )->assertSessionHasNoErrors();
+
+        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+
+        $this->actingAs($admin)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-fet/ponderacion")
+            ->assertOk()
+            ->assertSee(route('operativo.evaluacion_fet.edit', $this->zona->id), false);
     }
 
     /** Complementa el test anterior: el jefe debe seguir viendo el enlace. */
@@ -855,6 +892,24 @@ class EvaluacionesTest extends TestCase
         )->assertSessionHasNoErrors();
 
         $this->actingAs($this->jefe)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-percepcion/resultados")
+            ->assertOk()
+            ->assertSee(route('operativo.evaluacion_percepcion.edit', $this->zona->id), false);
+    }
+
+    /** El admin también ve el enlace: mismo caso que FIT y FET. */
+    public function test_el_admin_ve_el_enlace_al_formulario_en_los_resultados_de_percepcion(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-percepcion",
+            $this->todos($this->itemsPercepcion(), 3)
+        )->assertSessionHasNoErrors();
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-percepcion/resultados")
             ->assertOk()
             ->assertSee(route('operativo.evaluacion_percepcion.edit', $this->zona->id), false);

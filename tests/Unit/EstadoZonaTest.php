@@ -254,7 +254,14 @@ class EstadoZonaTest extends TestCase
         $this->assertStringContainsString($this->jefe->name, $aviso);
     }
 
-    public function test_el_admin_no_recibe_acciones_de_edicion(): void
+    /**
+     * Tarea 1 invierte la decisión: el admin deja de ser un observador. Sobre
+     * una matriz sin empezar recibe la misma acción "Empezar" que el jefe y
+     * el equipo -antes se le negaba con la excusa de que el middleware le
+     * cortaba cualquier POST, que dejó de ser cierto en esta misma rama-.
+     * Lo único que sigue sin poder es validar.
+     */
+    public function test_el_admin_recibe_accion_de_empezar_en_una_matriz_sin_empezar(): void
     {
         $admin = User::factory()->create([
             'role_id' => Role::where('nombre', 'admin')->value('id'),
@@ -264,8 +271,69 @@ class EstadoZonaTest extends TestCase
         $this->assertSame('admin', $estado->papel());
 
         $filas = $this->filas($admin);
-        $this->assertNull($filas['paisaje']->accion);
+        $this->assertSame('Empezar', $filas['paisaje']->accion);
+        $this->assertSame(
+            route('operativo.evaluacion_paisaje.edit', $this->zona->id),
+            $filas['paisaje']->url
+        );
         $this->assertFalse($filas['paisaje']->puedeValidar);
+    }
+
+    /** El admin recibe "Continuar" y el enlace al formulario, igual que jefe y equipo. */
+    public function test_el_admin_recibe_continuar_en_una_matriz_en_borrador(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
+
+        $fila = $this->filas($admin)['fit'];
+
+        $this->assertSame('Continuar', $fila->accion);
+        $this->assertSame(route('operativo.evaluacion_fit.edit', $this->zona->id), $fila->url);
+    }
+
+    /**
+     * Lo único que no cambia: una matriz ya validada lo sigue mandando a los
+     * resultados, no a editarla. El admin no puede tocar lo que el jefe ya
+     * cerró, igual que el equipo.
+     */
+    public function test_el_admin_no_recibe_edicion_sobre_una_matriz_validada(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'confirmado']);
+
+        $fila = $this->filas($admin)['fit'];
+
+        $this->assertSame('Ver', $fila->accion);
+        $this->assertSame(route('operativo.evaluacion_fit.ponderacion', $this->zona->id), $fila->url);
+    }
+
+    /** Mismo trato que sus hermanas de tipo 'matriz': el admin también empieza actores. */
+    public function test_el_admin_recibe_accion_de_empezar_en_actores_sin_empezar(): void
+    {
+        $deActores = array_filter(
+            \App\Matrices\Registro::ENTRADAS,
+            fn(array $e) => $e['tipo'] === 'actores'
+        );
+
+        if ($deActores === []) {
+            $this->markTestSkipped('No hay ninguna entrada de tipo actores.');
+        }
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $clave = array_key_first($deActores);
+        $fila  = $this->filas($admin)[$clave];
+
+        $this->assertSame('Empezar', $fila->accion);
+        $this->assertNotNull($fila->url);
     }
 
     private function crearInventario(): Inventario
@@ -298,11 +366,12 @@ class EstadoZonaTest extends TestCase
     }
 
     /**
-     * El admin conserva el acceso al inventario (necesita consultar los
-     * recursos) pero en solo lectura: el middleware PerteneceAZona ya le
-     * corta cualquier POST, así que ofrecerle 'Abrir' sería mentirle.
+     * El admin gestiona el inventario como uno más desde que el middleware
+     * PerteneceAZona dejó de restringirlo a métodos seguros (Tarea 1):
+     * ofrecerle 'Ver' era mentirle, porque el botón que de verdad tenía
+     * disponible -crear, editar, borrar- ya funcionaba.
      */
-    public function test_el_admin_recibe_ver_en_el_inventario_mientras_jefe_y_equipo_reciben_abrir(): void
+    public function test_el_admin_recibe_abrir_en_el_inventario_igual_que_jefe_y_equipo(): void
     {
         $admin = User::factory()->create([
             'role_id' => Role::where('nombre', 'admin')->value('id'),
@@ -313,7 +382,7 @@ class EstadoZonaTest extends TestCase
 
         $this->assertSame('Abrir', $this->filas($this->jefe)['inventario']->accion);
         $this->assertSame('Abrir', $this->filas($equipo)['inventario']->accion);
-        $this->assertSame('Ver', $this->filas($admin)['inventario']->accion);
+        $this->assertSame('Abrir', $this->filas($admin)['inventario']->accion);
     }
 
     /**
