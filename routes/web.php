@@ -12,6 +12,7 @@ use App\Http\Controllers\Operativo\EvaluacionPaisajeController;
 use App\Http\Controllers\Operativo\EvaluacionPercepcionController;
 use App\Http\Controllers\Operativo\EvaluacionPotencialidadController;
 use App\Http\Controllers\Operativo\EvaluacionValoracionTerritorialController;
+use App\Http\Controllers\Operativo\FrecuentacionController;
 use App\Http\Controllers\Operativo\InventarioController;
 use App\Http\Controllers\Operativo\InvolucradosController;
 use App\Http\Controllers\Operativo\VttController;
@@ -116,6 +117,22 @@ Route::middleware(['auth', 'personal'])->group(function () {
         Route::get('/involucrados/{actor}/editar',  [InvolucradosController::class, 'edit'])->name('involucrados.edit');
         Route::put('/involucrados/{actor}',         [InvolucradosController::class, 'update'])->name('involucrados.update');
         Route::delete('/involucrados/{actor}',      [InvolucradosController::class, 'destroy'])->name('involucrados.destroy');
+
+        // Índice Espacial de Frecuentación Turística
+        //
+        // Mismo cuidado de orden que Involucrados: los segmentos fijos
+        // ('nuevo', 'superficie', 'validar', 'resultados') van ANTES que
+        // '{sitio}/editar', o una petición a /frecuentacion/validar
+        // encajaría en ese patrón con sitio='validar'.
+        Route::get('/frecuentacion',                [FrecuentacionController::class, 'index'])->name('frecuentacion.index');
+        Route::get('/frecuentacion/nuevo',           [FrecuentacionController::class, 'create'])->name('frecuentacion.create');
+        Route::post('/frecuentacion',                [FrecuentacionController::class, 'store'])->name('frecuentacion.store');
+        Route::post('/frecuentacion/superficie',     [FrecuentacionController::class, 'actualizarSuperficie'])->name('frecuentacion.superficie');
+        Route::post('/frecuentacion/validar',        [FrecuentacionController::class, 'validar'])->name('frecuentacion.validar');
+        Route::get('/frecuentacion/resultados',      [FrecuentacionController::class, 'resultados'])->name('frecuentacion.resultados');
+        Route::get('/frecuentacion/{sitio}/editar',  [FrecuentacionController::class, 'edit'])->name('frecuentacion.edit');
+        Route::put('/frecuentacion/{sitio}',         [FrecuentacionController::class, 'update'])->name('frecuentacion.update');
+        Route::delete('/frecuentacion/{sitio}',      [FrecuentacionController::class, 'destroy'])->name('frecuentacion.destroy');
     });
 });
 

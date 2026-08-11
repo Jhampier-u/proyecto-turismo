@@ -62,8 +62,18 @@ class PestanasMatrizTest extends TestCase
                 $html,
                 "«{$clave}»: con la zona recién creada no debería haber enlace a resultados."
             );
+            // 'sitios' es hermano de 'actores', no una reutilización: mismo
+            // candado de conjunto variable, texto propio ("sin sitios
+            // completos") en vez del recuento "N de M criterios" que no tiene
+            // sentido para una lista de longitud variable.
+            $textoCandado = match ($entrada['tipo']) {
+                'actores' => 'sin actores completos',
+                'sitios'  => 'sin sitios completos',
+                default   => "0 de {$entrada['criterios']} criterios",
+            };
+
             $this->assertStringContainsString(
-                $entrada['tipo'] === 'actores' ? 'sin actores completos' : "0 de {$entrada['criterios']} criterios",
+                $textoCandado,
                 $html,
                 "«{$clave}»: no se encontró el texto de candado de <x-pestanas-matriz>."
             );

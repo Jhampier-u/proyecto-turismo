@@ -176,6 +176,12 @@ class PermisosAdminTest extends TestCase
                 'operativo.involucrados.store',
                 'operativo.involucrados.update',
                 'operativo.involucrados.destroy',
+                // El CRUD de sitios de Frecuentación y su ST: mismo criterio
+                // que Involucrados, el admin escribe borradores.
+                'operativo.frecuentacion.store',
+                'operativo.frecuentacion.update',
+                'operativo.frecuentacion.destroy',
+                'operativo.frecuentacion.superficie',
             ],
             // Validar, y la única acción de Potencialidad que no pasa por
             // update(): reconfigurar reescribe en silencio la selección de
@@ -183,6 +189,7 @@ class PermisosAdminTest extends TestCase
             'prohibidas' => [
                 'operativo.involucrados.validar',
                 'operativo.evaluacion_potencialidad.reconfigurar',
+                'operativo.frecuentacion.validar',
             ],
         ];
     }
@@ -275,6 +282,32 @@ class PermisosAdminTest extends TestCase
 
         $this->actingAs($this->admin)
             ->delete(route('operativo.involucrados.destroy', [$this->zona->id, $actor->id]))
+            ->assertSessionHasNoErrors();
+
+        // El CRUD de sitios de Frecuentación y su ST: el admin crea un
+        // sitio, actualiza su DET, guarda una ST, y borra el sitio, mismo
+        // bloque que el de Involucrados de arriba.
+        $this->actingAs($this->admin)
+            ->post(route('operativo.frecuentacion.store', $this->zona->id), [
+                'nombre' => 'Sitio del admin',
+                'det'    => '3.5',
+            ])
+            ->assertSessionHasNoErrors();
+        $sitio = \App\Models\SitioFrecuentacion::where('zona_id', $this->zona->id)->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->put(route('operativo.frecuentacion.update', [$this->zona->id, $sitio->id]), [
+                'nombre' => 'Sitio del admin actualizado',
+                'det'    => '4.5',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($this->admin)
+            ->post(route('operativo.frecuentacion.superficie', $this->zona->id), ['st' => '10'])
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($this->admin)
+            ->delete(route('operativo.frecuentacion.destroy', [$this->zona->id, $sitio->id]))
             ->assertSessionHasNoErrors();
     }
 

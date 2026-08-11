@@ -327,25 +327,18 @@ final class EstadoZona
      *
      * El modelo de la entrada es FrecuentacionConfig -la configuración por
      * zona, que lleva el estado Y la ST-, no el de cada sitio.
+     *
+     * El estado de la configuración manda sobre el recuento de sitios, igual
+     * que en filaActores(): comprobar "sin sitios" antes que "validada"
+     * dejaría una fila «sin empezar» mientras validadas() y progresoDe() ya
+     * la cuentan como hecha, con cabecera y fila en contradicción -mismo
+     * motivo, documentado en el docblock de filaActores()-.
      */
     private function filaSitios(string $clave, array $entrada): FilaMatriz
     {
         $config = $this->evaluaciones[$clave];
 
-        $cuantos = $this->zona->frecuentacionSitios()->count();
-
-        if ($cuantos === 0) {
-            return new FilaMatriz(
-                clave:   $clave,
-                nombre:  $entrada['nombre'],
-                icono:   $entrada['icono'],
-                estado:  'sin_empezar',
-                detalle: 'Todavía sin sitios registrados',
-                url:     route($entrada['rutas']['editar'], $this->zona->id),
-                accion:  'Empezar',
-            );
-        }
-
+        $cuantos  = $this->zona->frecuentacionSitios()->count();
         $validada = $config?->estado === 'confirmado';
         $firma    = $config ? $this->firma($config) : '';
 
@@ -358,6 +351,18 @@ final class EstadoZona
                 detalle: "Validada · {$cuantos} sitios" . $firma,
                 url:     route($entrada['rutas']['ver'], $this->zona->id),
                 accion:  'Ver',
+            );
+        }
+
+        if ($cuantos === 0) {
+            return new FilaMatriz(
+                clave:   $clave,
+                nombre:  $entrada['nombre'],
+                icono:   $entrada['icono'],
+                estado:  'sin_empezar',
+                detalle: 'Todavía sin sitios registrados',
+                url:     route($entrada['rutas']['editar'], $this->zona->id),
+                accion:  'Empezar',
             );
         }
 

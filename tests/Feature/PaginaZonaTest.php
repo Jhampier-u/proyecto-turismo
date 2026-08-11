@@ -125,7 +125,7 @@ class PaginaZonaTest extends TestCase
 
         $this->actingAs($this->jefe)->get($this->url())
             ->assertOk()
-            ->assertSee('1 de 9');
+            ->assertSee('1 de 10');
     }
 
     public function test_vocacion_aparece_bloqueada_y_luego_disponible(): void

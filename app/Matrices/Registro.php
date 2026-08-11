@@ -10,6 +10,7 @@ use App\Models\EvaluacionPaisaje;
 use App\Models\EvaluacionPercepcion;
 use App\Models\EvaluacionPotencialidad;
 use App\Models\EvaluacionValoracionTerritorial;
+use App\Models\FrecuentacionConfig;
 use App\Models\InvolucradosConfig;
 
 /**
@@ -202,6 +203,20 @@ final class Registro
             'rutas'      => [
                 'editar' => 'operativo.involucrados.index',
                 'ver'    => 'operativo.involucrados.resultados',
+            ],
+            'depende_de' => [],
+        ],
+
+        'frecuentacion' => [
+            'nombre'     => 'Frecuentación turística',
+            'icono'      => 'ubicacion',
+            'grupo'      => 'presion',
+            'tipo'       => 'sitios',
+            'modelo'     => FrecuentacionConfig::class,
+            'criterios'  => null,
+            'rutas'      => [
+                'editar' => 'operativo.frecuentacion.index',
+                'ver'    => 'operativo.frecuentacion.resultados',
             ],
             'depende_de' => [],
         ],
