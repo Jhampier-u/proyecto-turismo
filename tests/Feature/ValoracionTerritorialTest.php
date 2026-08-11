@@ -193,12 +193,17 @@ class ValoracionTerritorialTest extends TestCase
     }
 
     /**
-     * El middleware deja pasar al admin en cualquier GET, confirmada o no la
-     * matriz: $bloqueado solo miraba el estado de confirmación, así que en
-     * borrador el admin veía las 21 tarjetas habilitadas y "Guardar
-     * Borrador", que terminaba en un 403 crudo al enviarlo.
+     * Invertido en la Tarea 2 de permisos-y-navegación: el admin ya no es de
+     * solo lectura, así que un borrador de Valoración Territorial le llega
+     * editable, con el botón "Guardar Borrador" y ninguna tarjeta
+     * deshabilitada, igual que ve el jefe. Antes este test comprobaba justo
+     * lo contrario, y era lo correcto mientras el admin no podía escribir.
+     *
+     * <x-criterio-escala> deshabilita cada radio con @disabled($bloqueado),
+     * que solo emite el atributo "disabled" cuando es verdadero: en esta
+     * página no aparece en ningún otro sitio.
      */
-    public function test_el_admin_recibe_el_formulario_bloqueado_aunque_este_en_borrador(): void
+    public function test_el_admin_recibe_el_formulario_editable_estando_en_borrador(): void
     {
         $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(1))
             ->assertSessionHasNoErrors();
@@ -211,10 +216,29 @@ class ValoracionTerritorialTest extends TestCase
 
         $respuesta = $this->actingAs($admin)->get($this->url())->assertOk();
 
+        $respuesta->assertSee('Guardar Borrador');
+        $respuesta->assertDontSee('disabled', false);
+    }
+
+    /**
+     * El hermano que conserva la regla que sigue viva: con Valoración
+     * Territorial validada, el admin la recibe bloqueada -las tarjetas
+     * deshabilitadas-, igual que el equipo.
+     */
+    public function test_el_admin_recibe_el_formulario_bloqueado_cuando_la_matriz_esta_validada(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            $this->url(),
+            $this->todosEn(1) + ['accion_estado' => 'confirmado']
+        );
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $respuesta = $this->actingAs($admin)->get($this->url())->assertOk();
+
         $respuesta->assertDontSee('Guardar Borrador');
-        // <x-criterio-escala> deshabilita cada radio con @disabled($bloqueado),
-        // que solo emite el atributo "disabled" cuando es verdadero: en esta
-        // página no aparece en ningún otro sitio.
         $respuesta->assertSee('disabled', false);
     }
 
@@ -381,6 +405,14 @@ class ValoracionTerritorialTest extends TestCase
      * comprobar que el panel enlaza a ella. Antes de este test, un $readonly
      * que nadie ponía se quedaba en false para siempre y nada lo detectaba:
      * el admin veía el pie de página de jefe/equipo con el formulario abierto.
+     *
+     * Ajustado en la Tarea 2 de permisos-y-navegación: "Volver a Zonas" ya no
+     * es el texto que ve el admin aquí -x-boton-volver se invoca en esta
+     * vista con texto="Mis Zonas" fijo-, y el enlace al formulario ya no
+     * depende del rol: se muestra siempre, porque el admin también puede
+     * volver a editar un borrador. Lo que sigue siendo cierto -y lo que este
+     * test tiene que seguir comprobando- es que el botón de volver del admin
+     * apunta a SU listado, no al del jefe/equipo.
      */
     public function test_el_admin_ve_los_resultados_de_valoracion_territorial_en_modo_lectura(): void
     {
@@ -393,9 +425,8 @@ class ValoracionTerritorialTest extends TestCase
         $this->actingAs($admin)->get($this->url('/resultados'))
             ->assertOk()
             ->assertSee('Territorio a Priorizar para el Turismo IV')
-            ->assertSee('Volver a Zonas')
             ->assertSee(route('admin.zonas.index'), false)
-            ->assertDontSee(route('operativo.evaluacion_valoracion_territorial.edit', $this->zona->id), false);
+            ->assertDontSee(route('operativo.dashboard'), false);
     }
 
     /**

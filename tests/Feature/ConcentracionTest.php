@@ -168,12 +168,15 @@ class ConcentracionTest extends TestCase
     }
 
     /**
-     * El middleware deja pasar al admin en cualquier GET, confirmada o no la
-     * matriz: sin este predicado el admin vería el formulario abierto con
-     * "Guardar Borrador" habilitado, que terminaría en un 403 crudo al
-     * enviarlo -el mismo caso que ya cubre IrritacionTest-.
+     * Invertido en la Tarea 2 de permisos-y-navegación: el admin ya no es de
+     * solo lectura, así que un índice en borrador le llega editable, con el
+     * mismo botón "Guardar Borrador" que ve el jefe. Antes este test
+     * comprobaba justo lo contrario -que el botón no aparecía-, y era lo
+     * correcto mientras el admin no podía escribir; ese comportamiento
+     * cambió por decisión del responsable, así que el test se invierte con
+     * él en vez de borrarse.
      */
-    public function test_el_admin_recibe_el_formulario_bloqueado_aunque_este_en_borrador(): void
+    public function test_el_admin_recibe_el_formulario_editable_estando_en_borrador(): void
     {
         $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(4));
 
@@ -185,19 +188,22 @@ class ConcentracionTest extends TestCase
 
         $this->actingAs($admin)->get($this->url())
             ->assertOk()
-            ->assertDontSee('Guardar Borrador');
+            ->assertSee('Guardar Borrador');
     }
 
     /**
-     * Motivo de bloqueo por ROL, no por validación: el índice sigue en
-     * borrador y aun así el admin no puede tocarlo. Antes de este cambio el
-     * formulario decía «Solo el Jefe de Zona puede reabrir o editar...» de
-     * todos modos, un motivo que no es el suyo -este índice nunca estuvo
-     * validado-.
+     * El hermano que conserva la regla que sigue viva tras invertir el test
+     * de arriba: el admin escribe borradores, pero una matriz ya validada
+     * sigue siendo intocable para él -solo el jefe la reabre-. Sin este
+     * test, un cambio futuro que abriera el formulario del todo pasaría
+     * desapercibido.
      */
-    public function test_el_admin_ve_su_propio_motivo_de_bloqueo(): void
+    public function test_el_admin_recibe_el_formulario_bloqueado_cuando_la_matriz_esta_validada(): void
     {
-        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(4));
+        $this->actingAs($this->jefe)->post(
+            $this->url(),
+            $this->todosEn(4) + ['accion_estado' => 'confirmado']
+        );
 
         $admin = User::factory()->create([
             'role_id' => Role::where('nombre', 'admin')->value('id'),
@@ -205,8 +211,7 @@ class ConcentracionTest extends TestCase
 
         $this->actingAs($admin)->get($this->url())
             ->assertOk()
-            ->assertSee('El administrador puede consultar esta matriz, pero no puede modificarla.')
-            ->assertDontSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.');
+            ->assertDontSee('Guardar Borrador');
     }
 
     /**
@@ -236,14 +241,13 @@ class ConcentracionTest extends TestCase
      * comprueba que el panel enlaza a ella: es el fallo que esta misma serie
      * ya corrigió en Paisaje, Valoración Territorial e Irritación.
      *
-     * "Volver a Zonas", no "Volver a la zona": esta prueba viene de la Tarea
-     * 3, cuando el esqueleto pintaba siempre <x-matriz-sin-resultados> -y su
-     * botón de solo lectura dice "Volver a la zona"-. La Tarea 5 sustituye
-     * ese esqueleto por las tablas de verdad, y todosEn(4) completa los 113
-     * conteos: la matriz deja de estar "sin resultados", así que lo que ve
-     * el admin aquí es la página de resultados real, con el mismo botón de
-     * solo lectura que Paisaje e Irritación (ver su
-     * test_el_admin_ve_los_resultados_en_modo_lectura).
+     * Ajustado en la Tarea 2 de permisos-y-navegación: "Volver a Zonas" ya no
+     * es el texto que ve el admin en esta vista -x-boton-volver se invoca
+     * aquí con texto="Mis Zonas" fijo-, y el enlace "Volver al Formulario" ya
+     * no depende del rol: se muestra siempre, porque el admin también puede
+     * volver a editar un borrador. Lo que sigue siendo cierto -y lo que este
+     * test tiene que seguir comprobando- es que el botón de volver del admin
+     * apunta a SU listado (Panel Admin > Zonas), no al del jefe/equipo.
      */
     public function test_el_admin_ve_los_resultados_en_modo_lectura(): void
     {
@@ -255,9 +259,8 @@ class ConcentracionTest extends TestCase
 
         $this->actingAs($admin)->get($this->url('/resultados'))
             ->assertOk()
-            ->assertSee('Volver a Zonas')
             ->assertSee(route('admin.zonas.index'), false)
-            ->assertDontSee('href="' . route('operativo.evaluacion_concentracion.edit', $this->zona->id) . '"', false);
+            ->assertDontSee(route('operativo.dashboard'), false);
     }
 
     /**
@@ -283,6 +286,11 @@ class ConcentracionTest extends TestCase
     }
 
     /**
+     * Invertido: con la matriz en borrador, los 113 campos del admin llegan
+     * habilitados -puede rellenarlos, igual que el jefe y el equipo-. Antes
+     * comprobaba que los 113 estaban `disabled`, que era lo correcto
+     * mientras el admin no podía editar nunca.
+     *
      * NO se usa assertSee('disabled', false): las clases de Tailwind de este
      * proyecto incluyen "disabled:bg-gray-100", así que esa aserción se
      * cumple sola aunque no haya ni un campo bloqueado -ya pasó así en
@@ -290,9 +298,30 @@ class ConcentracionTest extends TestCase
      * el cierre de la etiqueta pegado: esa subcadena no aparece dentro de
      * "disabled:bg-gray-100" porque ahí sigue un ':', no un '>'.
      */
-    public function test_el_admin_recibe_los_113_campos_deshabilitados(): void
+    public function test_el_admin_recibe_los_113_campos_habilitados_en_borrador(): void
     {
         $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(4));
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $html = $this->actingAs($admin)->get($this->url())->assertOk()->getContent();
+
+        $this->assertSame(0, substr_count($html, 'disabled>'));
+    }
+
+    /**
+     * El hermano que conserva la regla que sigue viva: con la matriz
+     * validada, los 113 campos SÍ llegan deshabilitados para el admin, igual
+     * que para el equipo -solo el jefe puede reabrir y editar-.
+     */
+    public function test_el_admin_recibe_los_113_campos_deshabilitados_cuando_esta_validada(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            $this->url(),
+            $this->todosEn(4) + ['accion_estado' => 'confirmado']
+        );
 
         $admin = User::factory()->create([
             'role_id' => Role::where('nombre', 'admin')->value('id'),

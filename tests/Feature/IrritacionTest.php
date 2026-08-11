@@ -330,12 +330,21 @@ class IrritacionTest extends TestCase
     }
 
     /**
-     * El middleware deja pasar al admin en cualquier GET, confirmada o no la
-     * matriz: $bloqueado solo miraba el estado de confirmación, así que en
-     * borrador el admin vería los doce desplegables habilitados y "Guardar
-     * Borrador", que terminaría en un 403 crudo al enviarlo.
+     * Invertido en la Tarea 2 de permisos-y-navegación: el admin ya no es de
+     * solo lectura, así que un índice en borrador le llega editable, con el
+     * botón "Guardar Borrador" y los doce <select> habilitados que ve el
+     * jefe. Antes este test comprobaba justo lo contrario, y era lo correcto
+     * mientras el admin no podía escribir.
+     *
+     * select-irritacion.blade.php lleva "disabled:bg-gray-100
+     * disabled:text-gray-500" en la clase de forma incondicional, así que la
+     * subcadena "disabled" a secas no prueba nada -aparece igual con el
+     * formulario abierto de par en par-. "disabled>" sí es inequívoco: solo
+     * lo emite {{ $disabled ? 'disabled' : '' }} pegado al cierre de la
+     * etiqueta. Se aíslan primero las etiquetas <select ...> una a una y
+     * solo entonces se mira cuántas terminan en "disabled>".
      */
-    public function test_el_admin_recibe_el_formulario_bloqueado_aunque_este_en_borrador(): void
+    public function test_el_admin_recibe_el_formulario_editable_estando_en_borrador(): void
     {
         $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(4))
             ->assertSessionHasNoErrors();
@@ -348,18 +357,41 @@ class IrritacionTest extends TestCase
 
         $respuesta = $this->actingAs($admin)->get($this->url())->assertOk();
 
+        $respuesta->assertSee('Guardar Borrador');
+
+        preg_match_all('/<select\b[^>]*>/s', $respuesta->getContent(), $selects);
+        $selectsDeshabilitados = count(array_filter(
+            $selects[0],
+            fn(string $tag) => str_ends_with(rtrim($tag), 'disabled>')
+        ));
+
+        $this->assertSame(
+            0,
+            $selectsDeshabilitados,
+            'Los doce <select> deberían llegar habilitados al admin en borrador.'
+        );
+    }
+
+    /**
+     * El hermano que conserva la regla que sigue viva: con la matriz
+     * validada, el admin la recibe bloqueada -los doce <select>
+     * deshabilitados-, igual que el equipo.
+     */
+    public function test_el_admin_recibe_el_formulario_bloqueado_cuando_la_matriz_esta_validada(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            $this->url(),
+            $this->todosEn(4) + ['accion_estado' => 'confirmado']
+        );
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $respuesta = $this->actingAs($admin)->get($this->url())->assertOk();
+
         $respuesta->assertDontSee('Guardar Borrador');
 
-        // select-irritacion.blade.php lleva "disabled:bg-gray-100
-        // disabled:text-gray-500" en la clase de forma incondicional, así que
-        // la subcadena "disabled" a secas aparece igual con el formulario
-        // abierto de par en par: no prueba nada. "disabled>" sí es inequívoco,
-        // porque solo lo emite {{ $disabled ? 'disabled' : '' }} pegado al
-        // cierre de la etiqueta — pero contarlo sobre el HTML entero se
-        // rompería el día que cualquier otro control de la página (por
-        // ejemplo en la barra de navegación) también llegue deshabilitado. Se
-        // aíslan primero las etiquetas <select ...> una a una y solo entonces
-        // se mira cuántas terminan en "disabled>".
         preg_match_all('/<select\b[^>]*>/s', $respuesta->getContent(), $selects);
         $selectsDeshabilitados = count(array_filter(
             $selects[0],
@@ -369,29 +401,8 @@ class IrritacionTest extends TestCase
         $this->assertSame(
             count(Irritacion::ETIQUETAS),
             $selectsDeshabilitados,
-            'Los doce <select> deberían llegar deshabilitados al admin.'
+            'Los doce <select> deberían llegar deshabilitados al admin con la matriz validada.'
         );
-    }
-
-    /**
-     * Motivo de bloqueo por ROL, no por validación: la matriz sigue en
-     * borrador y aun así el admin no puede tocarla. Antes de este cambio el
-     * formulario decía «Solo el Jefe de Zona puede reabrir o editar...» de
-     * todos modos, un motivo que no es el suyo -esta matriz nunca estuvo
-     * validada-.
-     */
-    public function test_el_admin_ve_su_propio_motivo_de_bloqueo(): void
-    {
-        $this->actingAs($this->jefe)->post($this->url(), $this->todosEn(4));
-
-        $admin = User::factory()->create([
-            'role_id' => Role::where('nombre', 'admin')->value('id'),
-        ]);
-
-        $this->actingAs($admin)->get($this->url())
-            ->assertOk()
-            ->assertSee('El administrador puede consultar esta matriz, pero no puede modificarla.')
-            ->assertDontSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.');
     }
 
     /**
@@ -441,6 +452,14 @@ class IrritacionTest extends TestCase
      * comprobar que el panel enlaza a ella: es el fallo que esta rama ya
      * corrigió en Paisaje y Valoración Territorial, y esta matriz aterrizó
      * sin la prueba que lo impide.
+     *
+     * Ajustado en la Tarea 2 de permisos-y-navegación: "Volver a Zonas" ya no
+     * es el texto que ve el admin aquí -x-boton-volver se invoca en esta
+     * vista con texto="Mis Zonas" fijo-, y el enlace "Volver al Formulario"
+     * ya no depende del rol: se muestra siempre, porque el admin también
+     * puede volver a editar un borrador. Lo que sigue siendo cierto -y lo
+     * que este test tiene que seguir comprobando- es que el botón de volver
+     * del admin apunta a SU listado, no al del jefe/equipo.
      */
     public function test_el_admin_ve_los_resultados_en_modo_lectura(): void
     {
@@ -450,18 +469,10 @@ class IrritacionTest extends TestCase
             'role_id' => Role::where('nombre', 'admin')->value('id'),
         ]);
 
-        // route(...edit) es "/operativo/zona/{id}/irritacion" y route(...ponderacion)
-        // —la propia página que se está pidiendo— es ese mismo prefijo más
-        // "/resultados": comprobar la URL de edición suelta, sin anclar,
-        // fallaría el día que esta página se enlace a sí misma, porque su
-        // propia URL la contiene como subcadena. Anclada al atributo href de
-        // un enlace sigue vigilando lo mismo —que no haya enlace de vuelta al
-        // formulario— sin ese falso positivo.
         $this->actingAs($admin)->get($this->url('/resultados'))
             ->assertOk()
-            ->assertSee('Volver a Zonas')
             ->assertSee(route('admin.zonas.index'), false)
-            ->assertDontSee('href="' . route('operativo.evaluacion_irritacion.edit', $this->zona->id) . '"', false);
+            ->assertDontSee(route('operativo.dashboard'), false);
     }
 
     /**

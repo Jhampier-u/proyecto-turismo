@@ -192,13 +192,18 @@ class EvaluacionesTest extends TestCase
     }
 
     /**
-     * Camino real que llevaba al 403: panel de zona como admin → FIT en
-     * borrador → «Ver» → resultados → «Ver el Formulario» → edit. Ahí
-     * $bloqueado solo miraba si estaba confirmado, así que el admin veía los
-     * 18 selects habilitados y el botón "Guardar Borrador", que terminaba en
-     * un 403 crudo del middleware al enviarlo.
+     * Invertido en la Tarea 2 de permisos-y-navegación: el admin ya no es de
+     * solo lectura, así que un borrador de FIT le llega editable, con el
+     * botón "Guardar Borrador" y los 72 radios (18 criterios × 4 niveles)
+     * habilitados, igual que ve el jefe. Antes este test comprobaba justo lo
+     * contrario, y era lo correcto mientras el admin no podía escribir.
+     *
+     * FIT migró de <select> a <x-criterio-pildoras> en la rama
+     * fit-fet-componentes: contar 'disabled' a secas es seguro aquí -a
+     * diferencia de Concentración- porque esta vista no tiene ninguna clase
+     * Tailwind "disabled:" que infle el conteo (ver criterio-pildoras.blade.php).
      */
-    public function test_el_admin_recibe_el_formulario_fit_bloqueado_aunque_este_en_borrador(): void
+    public function test_el_admin_recibe_el_formulario_fit_editable_estando_en_borrador(): void
     {
         $this->actingAs($this->jefe)->post(
             "/operativo/zona/{$this->zona->id}/evaluacion-fit",
@@ -213,39 +218,30 @@ class EvaluacionesTest extends TestCase
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit")
             ->assertOk();
 
-        $respuesta->assertDontSee('Guardar Borrador');
-        // FIT migró de <select> a <x-criterio-pildoras> en la rama
-        // fit-fet-componentes: ya no hay un único `disabled>` al final de una
-        // etiqueta -assertSee('disabled', false) a secas también se
-        // arriesgaba a un falso positivo si algún día aparece una clase
-        // Tailwind "disabled:" en la página-. Contar los 72 radios
-        // deshabilitados (18 criterios × 4 niveles) es la comprobación que de
-        // verdad importa: que el formulario entero quedó bloqueado, no solo
-        // que la palabra "disabled" aparece en algún sitio.
-        $this->assertSame(18 * 4, substr_count($respuesta->getContent(), 'disabled'));
+        $respuesta->assertSee('Guardar Borrador');
+        $this->assertSame(0, substr_count($respuesta->getContent(), 'disabled'));
     }
 
     /**
-     * Motivo de bloqueo por ROL, no por validación: la evaluación sigue en
-     * borrador y aun así el admin no puede tocarla. Antes de este cambio el
-     * formulario decía «Solo el Jefe de Zona puede reabrir o editar...» de
-     * todos modos, un motivo que no es el suyo -esta evaluación nunca estuvo
-     * validada, y al admin le da igual: nunca edita ninguna-.
+     * El hermano que conserva la regla que sigue viva: con FIT validada, el
+     * admin la recibe bloqueada -72 radios deshabilitados-, igual que el
+     * equipo. Solo el jefe puede reabrir y editar una evaluación validada.
      */
-    public function test_el_admin_ve_su_propio_motivo_de_bloqueo_en_fit(): void
+    public function test_el_admin_recibe_el_formulario_fit_bloqueado_cuando_esta_validada(): void
     {
         $this->actingAs($this->jefe)->post(
             "/operativo/zona/{$this->zona->id}/evaluacion-fit",
-            $this->todos(self::CAMPOS_FIT, 2)
+            $this->todos(self::CAMPOS_FIT, 2) + ['accion_estado' => 'confirmado']
         );
 
         $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
 
-        $this->actingAs($admin)
+        $respuesta = $this->actingAs($admin)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit")
-            ->assertOk()
-            ->assertSee('El administrador puede consultar esta evaluación, pero no puede modificarla.')
-            ->assertDontSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.');
+            ->assertOk();
+
+        $respuesta->assertDontSee('Guardar Borrador');
+        $this->assertSame(18 * 4, substr_count($respuesta->getContent(), 'disabled'));
     }
 
     /**
@@ -270,8 +266,11 @@ class EvaluacionesTest extends TestCase
             ->assertDontSee('El administrador puede consultar esta evaluación, pero no puede modificarla.');
     }
 
-    /** Mismo caso que FIT, aplicado a FET. */
-    public function test_el_admin_recibe_el_formulario_fet_bloqueado_aunque_este_en_borrador(): void
+    /**
+     * Invertido, mismo caso que FIT aplicado a FET: 9 criterios × 4 niveles
+     * = 36 radios, habilitados con la evaluación en borrador.
+     */
+    public function test_el_admin_recibe_el_formulario_fet_editable_estando_en_borrador(): void
     {
         $this->actingAs($this->jefe)->post(
             "/operativo/zona/{$this->zona->id}/evaluacion-fet",
@@ -286,32 +285,30 @@ class EvaluacionesTest extends TestCase
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fet")
             ->assertOk();
 
-        $respuesta->assertDontSee('Guardar Borrador');
-        // Ver el comentario equivalente en el test de FIT: 9 criterios × 4
-        // niveles = 36 radios deshabilitados.
-        $this->assertSame(9 * 4, substr_count($respuesta->getContent(), 'disabled'));
+        $respuesta->assertSee('Guardar Borrador');
+        $this->assertSame(0, substr_count($respuesta->getContent(), 'disabled'));
     }
 
     /**
-     * Motivo de bloqueo por ROL, no por validación: mismo caso que FIT,
-     * aplicado a FET. Antes de este cambio, "Evaluación FET cerrada." no
-     * mentía, pero tampoco decía cuál de las dos causas de bloqueo era la
-     * suya -la matriz validada, o el rol de quien mira-.
+     * El hermano que conserva la regla que sigue viva: con FET validada, el
+     * admin la recibe bloqueada -36 radios deshabilitados-, igual que el
+     * equipo.
      */
-    public function test_el_admin_ve_su_propio_motivo_de_bloqueo_en_fet(): void
+    public function test_el_admin_recibe_el_formulario_fet_bloqueado_cuando_esta_validada(): void
     {
         $this->actingAs($this->jefe)->post(
             "/operativo/zona/{$this->zona->id}/evaluacion-fet",
-            $this->todos(self::CAMPOS_FET, 2)
+            $this->todos(self::CAMPOS_FET, 2) + ['accion_estado' => 'confirmado']
         );
 
         $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
 
-        $this->actingAs($admin)
+        $respuesta = $this->actingAs($admin)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fet")
-            ->assertOk()
-            ->assertSee('El administrador puede consultar esta evaluación, pero no puede modificarla.')
-            ->assertDontSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.');
+            ->assertOk();
+
+        $respuesta->assertDontSee('Guardar Borrador');
+        $this->assertSame(9 * 4, substr_count($respuesta->getContent(), 'disabled'));
     }
 
     /**
@@ -335,8 +332,18 @@ class EvaluacionesTest extends TestCase
             ->assertDontSee('El administrador puede consultar esta evaluación, pero no puede modificarla.');
     }
 
-    /** Mismo caso que FIT: Percepción migró de <select> a <x-criterio-pildoras> en esta rama. */
-    public function test_el_admin_recibe_el_formulario_percepcion_bloqueado_aunque_este_en_borrador(): void
+    /**
+     * Invertido, mismo caso que FIT: Percepción migró de <select> a
+     * <x-criterio-pildoras> en esta rama. En borrador, los 16 criterios × 3
+     * niveles = 48 radios llegan habilitados para el admin.
+     *
+     * A diferencia de FIT/FET, esta página tiene un <textarea> con la clase
+     * Tailwind "disabled:bg-gray-100" -contiene la palabra "disabled" en su
+     * nombre siempre, esté o no bloqueado-, así que un substr_count() a
+     * secas sobre toda la página no sirve aquí. Contar solo dentro de
+     * <input type="radio"> evita ese falso positivo.
+     */
+    public function test_el_admin_recibe_el_formulario_percepcion_editable_estando_en_borrador(): void
     {
         $this->actingAs($this->jefe)->post(
             "/operativo/zona/{$this->zona->id}/evaluacion-percepcion",
@@ -351,16 +358,37 @@ class EvaluacionesTest extends TestCase
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-percepcion")
             ->assertOk();
 
+        $respuesta->assertSee('Guardar Borrador');
+
+        preg_match_all('/<input type="radio"[^>]*>/', $respuesta->getContent(), $radios);
+        $this->assertCount(48, $radios[0], 'deberían existir 48 radios (16 × 3 niveles)');
+        $this->assertCount(
+            0,
+            array_filter($radios[0], fn($tag) => str_contains($tag, 'disabled')),
+            'los 48 radios deberían estar habilitados para el admin en borrador'
+        );
+    }
+
+    /**
+     * El hermano que conserva la regla que sigue viva: con Percepción
+     * validada, el admin la recibe bloqueada -48 radios deshabilitados-,
+     * igual que el equipo.
+     */
+    public function test_el_admin_recibe_el_formulario_percepcion_bloqueado_cuando_esta_validada(): void
+    {
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-percepcion",
+            $this->todos($this->itemsPercepcion(), 2) + ['accion_estado' => 'confirmado']
+        );
+
+        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+
+        $respuesta = $this->actingAs($admin)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-percepcion")
+            ->assertOk();
+
         $respuesta->assertDontSee('Guardar Borrador');
 
-        // A diferencia de FIT/FET, esta página tiene un <textarea> con la
-        // clase Tailwind "disabled:bg-gray-100" -contiene la palabra
-        // "disabled" en su nombre, siempre, esté o no bloqueado- y su propio
-        // atributo `disabled` condicional. Un substr_count() a secas sobre
-        // toda la página los contaría también (50, no 48) y dejaría de medir
-        // lo que dice medir. Contar solo dentro de <input type="radio"> evita
-        // ese falso positivo: 16 criterios × 3 niveles = 48 radios, todos
-        // deshabilitados.
         preg_match_all('/<input type="radio"[^>]*>/', $respuesta->getContent(), $radios);
         $this->assertCount(48, $radios[0], 'deberían existir 48 radios (16 × 3 niveles)');
         $this->assertCount(
@@ -368,23 +396,6 @@ class EvaluacionesTest extends TestCase
             array_filter($radios[0], fn($tag) => str_contains($tag, 'disabled')),
             'los 48 radios deberían estar deshabilitados'
         );
-    }
-
-    /** Mismo caso que FIT, para Percepción: bloqueo por rol, no por validación. */
-    public function test_el_admin_ve_su_propio_motivo_de_bloqueo_en_percepcion(): void
-    {
-        $this->actingAs($this->jefe)->post(
-            "/operativo/zona/{$this->zona->id}/evaluacion-percepcion",
-            $this->todos($this->itemsPercepcion(), 2)
-        );
-
-        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
-
-        $this->actingAs($admin)
-            ->get("/operativo/zona/{$this->zona->id}/evaluacion-percepcion")
-            ->assertOk()
-            ->assertSee('El administrador puede consultar esta matriz, pero no puede modificarla.')
-            ->assertDontSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.');
     }
 
     /** Mismo caso que FIT, para Percepción: bloqueo por validación, no por rol. */
@@ -406,12 +417,16 @@ class EvaluacionesTest extends TestCase
     }
 
     /**
-     * Potencialidad ya contemplaba al admin en su fórmula ($soloLectura),
-     * sin depender de si la matriz estaba confirmada: este test no arranca en
-     * rojo, es la red de seguridad para que la unificación del predicado
-     * (paso 3 del hallazgo 2) no lo rompa por accidente.
+     * Invertido en la Tarea 2 de permisos-y-navegación: Potencialidad
+     * calculaba $soloLectura con puedeEditarEvaluaciones(), así que el admin
+     * quedaba bloqueado sin importar el estado -este test lo daba por
+     * correcto ("red de seguridad")-. Ahora $soloLectura solo depende de
+     * $isConfirmado && !esJefe(), así que un borrador le llega editable.
+     *
+     * Potencialidad no tiene un botón "Guardar Borrador" con B mayúscula: el
+     * suyo es "Guardar borrador" (con b minúscula).
      */
-    public function test_el_admin_recibe_el_formulario_potencialidad_bloqueado_aunque_este_en_borrador(): void
+    public function test_el_admin_recibe_el_formulario_potencialidad_editable_estando_en_borrador(): void
     {
         $datos = ['campos' => self::CAMPOS_POTENCIALIDAD] + $this->todos(self::CAMPOS_POTENCIALIDAD, 1);
 
@@ -427,22 +442,56 @@ class EvaluacionesTest extends TestCase
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-potencialidad")
             ->assertOk();
 
-        // Potencialidad no tiene un botón "Guardar Borrador" con B mayúscula:
-        // el suyo es "Guardar borrador" (con b minúscula).
+        $respuesta->assertSee('Guardar borrador');
+
+        // Cuenta los radios reales dentro de <input type="radio">, no la
+        // palabra "disabled" suelta en la página -las clases `disabled:` de
+        // Tailwind la contienen sin que nada esté deshabilitado-. Mismo
+        // cuidado que FIT/FET/Percepción.
+        //
+        // str_contains('disabled') no basta aquí, a diferencia de las otras
+        // tres: Potencialidad es la única con $activoExpr
+        // (criterio-pildoras.blade.php), así que cuando NO está bloqueado el
+        // radio SÍ lleva un atributo -x-bind:disabled="!(...)"- que también
+        // contiene la palabra "disabled", solo que como binding reactivo de
+        // Alpine, no como atributo HTML real. El lookbehind excluye ese
+        // ':' delante y el lookahead excluye el '=' del binding.
+        $contenido = $respuesta->getContent();
+
+        preg_match_all('/<input type="radio"[^>]*>/', $contenido, $radios);
+        $this->assertCount(9, $radios[0], 'CAMPOS_POTENCIALIDAD tiene 3 campos activos × 3 niveles.');
+
+        $deshabilitados = array_filter(
+            $radios[0],
+            fn(string $radio) => preg_match('/(?<![-:])\bdisabled\b(?!=)/', $radio) === 1
+        );
+        $this->assertCount(0, $deshabilitados, 'los 9 radios deben estar habilitados para el admin en borrador.');
+    }
+
+    /**
+     * El hermano que conserva la regla que sigue viva: con Potencialidad
+     * validada, el admin la recibe bloqueada -los 9 radios de los campos
+     * activos deshabilitados-, igual que el equipo.
+     */
+    public function test_el_admin_recibe_el_formulario_potencialidad_bloqueado_cuando_esta_validada(): void
+    {
+        $datos = ['campos' => self::CAMPOS_POTENCIALIDAD] + $this->todos(self::CAMPOS_POTENCIALIDAD, 1);
+
+        $this->actingAs($this->jefe)
+            ->post(
+                "/operativo/zona/{$this->zona->id}/evaluacion-potencialidad",
+                $datos + ['accion_estado' => 'confirmado']
+            )
+            ->assertSessionHasNoErrors();
+
+        $admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+
+        $respuesta = $this->actingAs($admin)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-potencialidad")
+            ->assertOk();
+
         $respuesta->assertDontSee('Guardar borrador');
 
-        // Hasta la rama potencialidad-componentes, el modo lectura pintaba una
-        // insignia («🔴 0», «🟡 1», «🟢 2») en vez de un <select>, y esta
-        // aserción comprobaba que no aparecía ningún name="..." -ninguna
-        // insignia lo lleva-. El control cambió a <x-criterio-pildoras>, que
-        // SÍ lleva name="..." incluso deshabilitado -es el mismo componente,
-        // y la misma comprobación, que ya usan FIT/FET/Percepción-, así que
-        // la aserción original dejaría de tener sentido tal cual. Se
-        // sustituye por una más estricta: cuenta los radios reales y exige
-        // que los tres campos activos (3 × 3 niveles = 9) estén deshabilitados,
-        // en vez de asumir que la palabra "disabled" en el HTML basta -las
-        // clases `disabled:` de Tailwind la contienen sin que nada esté
-        // deshabilitado-.
         $contenido = $respuesta->getContent();
 
         preg_match_all('/<input type="radio"[^>]*>/', $contenido, $radios);
@@ -457,6 +506,13 @@ class EvaluacionesTest extends TestCase
      * solo comprobar que el panel enlaza a ella. El enlace «Ver el
      * Formulario» de esta vista no miraba el rol: era la tercera fuga del
      * mismo bug ya arreglado en Paisaje, Percepción y Valoración Territorial.
+     *
+     * Ajustado en la Tarea 2 de permisos-y-navegación: el enlace «Ver el
+     * Formulario» ya no depende del rol -se muestra siempre, el admin
+     * también puede volver a editar-, y "Volver a Zonas" ya no es el texto
+     * que usa esta vista para el admin (x-boton-volver se invoca aquí con
+     * texto="Mis Zonas" fijo). Lo que sigue siendo cierto es que el botón de
+     * volver del admin apunta a SU listado, no al del jefe/equipo.
      */
     public function test_el_admin_ve_los_resultados_de_fit_en_modo_lectura(): void
     {
@@ -470,9 +526,8 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($admin)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit/ponderacion")
             ->assertOk()
-            ->assertSee('Volver a Zonas')
             ->assertSee(route('admin.zonas.index'), false)
-            ->assertDontSee(route('operativo.evaluacion_fit.edit', $this->zona->id), false);
+            ->assertDontSee(route('operativo.dashboard'), false);
     }
 
     /** Complementa el test anterior: el jefe debe seguir viendo el enlace. */
@@ -489,7 +544,7 @@ class EvaluacionesTest extends TestCase
             ->assertSee(route('operativo.evaluacion_fit.edit', $this->zona->id), false);
     }
 
-    /** Mismo caso que FIT, para FET. */
+    /** Mismo caso que FIT, para FET: ver el comentario de arriba sobre el ajuste. */
     public function test_el_admin_ve_los_resultados_de_fet_en_modo_lectura(): void
     {
         $this->actingAs($this->jefe)->post(
@@ -502,9 +557,8 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($admin)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fet/ponderacion")
             ->assertOk()
-            ->assertSee('Volver a Zonas')
             ->assertSee(route('admin.zonas.index'), false)
-            ->assertDontSee(route('operativo.evaluacion_fet.edit', $this->zona->id), false);
+            ->assertDontSee(route('operativo.dashboard'), false);
     }
 
     /** Complementa el test anterior: el jefe debe seguir viendo el enlace. */
@@ -769,6 +823,9 @@ class EvaluacionesTest extends TestCase
      * comprobar que el panel enlaza a ella. Mismo caso que Paisaje y
      * Valoración Territorial: un $readonly que nadie ponía se quedaba en
      * false para siempre y nada lo detectaba.
+     *
+     * Ajustado en la Tarea 2 de permisos-y-navegación: ver el comentario
+     * equivalente en test_el_admin_ve_los_resultados_de_fit_en_modo_lectura.
      */
     public function test_el_admin_ve_los_resultados_de_percepcion_en_modo_lectura(): void
     {
@@ -784,9 +841,8 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($admin)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-percepcion/resultados")
             ->assertOk()
-            ->assertSee('Volver a Zonas')
             ->assertSee(route('admin.zonas.index'), false)
-            ->assertDontSee(route('operativo.evaluacion_percepcion.edit', $this->zona->id), false);
+            ->assertDontSee(route('operativo.dashboard'), false);
     }
 
     /**
