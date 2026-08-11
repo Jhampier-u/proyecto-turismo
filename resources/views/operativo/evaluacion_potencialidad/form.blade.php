@@ -131,6 +131,8 @@
     <div class="pt-root">
       <div style="max-width:1160px;margin:0 auto;padding:0 1.25rem;">
 
+        <x-pestanas-matriz clave="potencialidad" :zona="$zona" activa="formulario" />
+
         @if($evaluacion?->exists && $evaluacion->user)
             <p class="text-sm text-gray-500 mb-4">
                 Última edición: {{ $evaluacion->user->name }},
@@ -162,10 +164,6 @@
                     @endif
                 </div>
             </div>
-            <a href="{{ route('operativo.evaluacion_potencialidad.ponderacion', $zona->id) }}"
-               style="background:#16a34a;color:#fff;font-weight:700;font-size:.82rem;padding:9px 18px;border-radius:9px;text-decoration:none;display:flex;align-items:center;gap:5px;box-shadow:0 3px 10px rgba(22,163,74,.3);">
-                Ver Resultados →
-            </a>
         </div>
         @elseif($evaluacion->exists)
         <div class="pt-banner-warn">
@@ -492,13 +490,6 @@
                 Última edición:<br>
                 <strong style="color:#64748b;">{{ $evaluacion->updated_at->format('d/m/Y H:i') }}</strong>
               </div>
-              @endif
-
-              @if($isConfirmado)
-              <a href="{{ route('operativo.evaluacion_potencialidad.ponderacion', $zona->id) }}"
-                 style="display:block;margin-top:10px;text-align:center;background:#16a34a;color:#fff;font-size:.78rem;font-weight:700;padding:8px;border-radius:8px;text-decoration:none;">
-                Ver Resultados →
-              </a>
               @endif
             </div>
 

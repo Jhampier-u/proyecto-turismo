@@ -19,6 +19,9 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
+            <x-pestanas-matriz clave="fit" :zona="$zona" activa="resultados" />
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
 
                 @if($fit?->exists && $fit->user)

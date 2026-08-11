@@ -13,6 +13,9 @@
     @else
         <div class="py-12">
             <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
+
+                <x-pestanas-matriz clave="involucrados" :zona="$zona" activa="resultados" />
+
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
 
                     <a href="{{ route('operativo.involucrados.index', $zona->id) }}"

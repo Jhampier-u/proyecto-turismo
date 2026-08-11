@@ -8,6 +8,8 @@
     <div class="py-12">
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
 
+            <x-pestanas-matriz clave="irritacion" :zona="$zona" activa="formulario" />
+
             <a href="{{ url()->previous() }}"
                 class="inline-flex items-center px-4 py-2 mb-4 bg-blue-300 hover:bg-blue-500 text-black-700 font-bold rounded-lg shadow-sm">
                 Regresar
@@ -35,10 +37,6 @@
                             <strong class="font-bold text-lg">✓ Índice de Irritación Validado</strong>
                             <p>Esta evaluación ha sido confirmada por el Jefe de Zona.</p>
                         </div>
-                        <a href="{{ route('operativo.evaluacion_irritacion.ponderacion', $zona->id) }}"
-                            class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700">
-                            Ver Resultados
-                        </a>
                     </div>
                 </div>
             @else

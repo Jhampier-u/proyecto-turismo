@@ -8,6 +8,8 @@
     <div class="py-12">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
 
+            <x-pestanas-matriz clave="paisaje" :zona="$zona" activa="formulario" />
+
             <x-boton-volver texto="Regresar" class="mb-4" />
 
             @php
@@ -37,10 +39,6 @@
                             <strong class="font-bold text-lg">✓ Matriz de Paisaje Validada</strong>
                             <p>Esta evaluación ha sido confirmada por el Jefe de Zona.</p>
                         </div>
-                        <a href="{{ route('operativo.evaluacion_paisaje.ponderacion', $zona->id) }}"
-                           class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700">
-                            Ver Resultados
-                        </a>
                     </div>
                 </div>
             @else

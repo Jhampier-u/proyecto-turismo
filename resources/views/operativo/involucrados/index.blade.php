@@ -19,6 +19,8 @@
     <div class="py-12">
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
 
+            <x-pestanas-matriz clave="involucrados" :zona="$zona" activa="formulario" />
+
             <a href="{{ route('operativo.zona.panel', $zona->id) }}"
                class="inline-block px-5 py-2 mb-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">
                 ← Volver a la zona
@@ -45,10 +47,6 @@
                                 Si la modificas —añades, editas o borras un actor—, vuelve a borrador: hay que validarla de nuevo.
                             </p>
                         </div>
-                        <a href="{{ route('operativo.involucrados.resultados', $zona->id) }}"
-                           class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700">
-                            Ver Resultados
-                        </a>
                     </div>
                 </div>
             @else

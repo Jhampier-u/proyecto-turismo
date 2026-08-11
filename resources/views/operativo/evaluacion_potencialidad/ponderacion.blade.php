@@ -35,6 +35,9 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
+            <x-pestanas-matriz clave="potencialidad" :zona="$zona" activa="resultados" />
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
 
                 <h3 class="text-center font-bold text-xl text-gray-700 mb-8 uppercase tracking-wide">
