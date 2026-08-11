@@ -8,7 +8,7 @@
 Cuatro cambios, en este orden de riesgo:
 
 1. El admin y el equipo rellenan formularios y guardan borradores; solo el jefe
-   de zona valida.
+   de zona valida. El admin además gestiona el inventario por completo.
 2. Pestañas entre formulario y resultados en cada matriz, con los resultados
    bloqueados hasta completarla.
 3. Conmutador lista/tarjetas en las dos vistas de zonas.
@@ -30,7 +30,6 @@ Decisiones tomadas por quien diseña y aprobadas explícitamente:
 
 | Decisión | Motivo |
 |---|---|
-| El inventario sigue de solo lectura para el admin | El encargo hablaba de formularios de evaluación. Además contradiría la decisión previa de «ver en solo lectura» sobre esa misma pantalla |
 | `puedeEditarEvaluaciones()` se parte en dos en vez de borrarse | Hace dos trabajos bajo un nombre; uno deja de hacer falta y el otro no |
 | La paginación del admin se conserva en tarjetas | El conmutador cambia la maquetación, no la consulta |
 | Involucrados también lleva pestañas | Si no, es la única matriz que navega distinto |
@@ -55,42 +54,57 @@ public function puedeEditarEvaluaciones(): bool { return ! $this->esAdmin(); }
 if ($actual->estado === 'confirmado' && $user->esEquipo()) { … }
 ```
 
-### El efecto colateral que hay que evitar
+### Qué protege hoy ese bloqueo, y qué pasa al quitarlo
 
-`PerteneceAZona` protege todo el grupo `operativo/zona/{zona}`, y dentro está
-`Route::resource('inventarios')`. Levantar el bloqueo sin más daría al admin
-**crear y borrar recursos del inventario**, que no es lo pedido.
+`PerteneceAZona` protege todo el grupo `operativo/zona/{zona}`. Al abrirlo para
+el admin, gana escritura sobre **todas** las rutas del grupo, no solo las de
+evaluación:
 
-**El inventario se queda de solo lectura para el admin.** El permiso nuevo se
-limita a las rutas de evaluación.
+| Rutas de escritura del grupo | El admin gana |
+|---|---|
+| 8 `evaluacion_*.update` + `potencialidad.reconfigurar` | rellenar y guardar borradores — **lo pedido** |
+| `inventarios.store`, `.update`, `.destroy` | crear, editar y borrar recursos — **lo pedido** |
+| `involucrados.store`, `.update`, `.destroy` | gestionar actores — coherente con lo anterior |
+| `involucrados.validar` | **validar** — no deseado |
+
+La última es la única preocupante, y **ya está resuelta fuera del middleware**:
+
+```php
+// InvolucradosController::validar(), línea 190
+abort_unless($user->esJefe(), 403);
+```
+
+En las ocho matrices de formulario no hay ruta de validación: se confirma con
+`accion_estado=confirmado` sobre el mismo `update`, y `EvaluacionZonaController`
+degrada a borrador a quien no sea jefe. Verificado en ambos sitios.
+
+Conclusión: **las dos vías de validación están guardadas por rol dentro de los
+controladores**, así que el middleware puede abrirse del todo sin que el admin
+gane la capacidad de validar.
 
 ### Los cuatro cambios
 
-**1. El middleware distingue qué se escribe.** Pasa de «el admin no escribe
-nada» a «el admin no escribe en el inventario».
-
-La distinción se hace **por nombre de ruta**, no por método ni por URL: las
-rutas del inventario son las únicas del grupo bajo `operativo.inventarios.`, y
-el nombre es estable frente a cambios de prefijo o de verbo.
+**1. El middleware deja de restringir al admin.** La rama entera desaparece:
 
 ```php
 if ($user->esAdmin()) {
-    $esInventario = str_starts_with($request->route()->getName() ?? '', 'operativo.inventarios.');
-
-    abort_if(
-        $esInventario && ! $request->isMethodSafe(),
-        403,
-        'El administrador puede consultar el inventario, pero no modificarlo.'
-    );
-
+    // El admin trabaja en cualquier zona. Las dos vías de validación se
+    // guardan por rol en sus controladores, no aquí: InvolucradosController
+    // aborta si no eres jefe, y EvaluacionZonaController degrada a borrador.
     return $next($request);
 }
 ```
 
-Una ruta nueva de escritura que no sea de inventario queda permitida al admin
-por omisión. Es lo correcto para las evaluaciones, pero conviene saberlo: si
-algún día se añade otro módulo que el admin no deba escribir, hay que ampliar
-esta condición. El test de la sección de pruebas lo fija.
+**Consecuencia que hay que tener presente:** una ruta de escritura nueva en este
+grupo queda permitida al admin por omisión. Si alguna vez se añade una acción
+que solo deba hacer el jefe, hay que guardarla **en su controlador**, como ya
+hace Involucrados. El test de la sección de pruebas fija esa expectativa.
+
+**1b. La vista del inventario deja de esconderle los botones.** Hoy
+`resources/views/operativo/inventarios/index.blade.php` envuelve «Nuevo»,
+«Editar» y «Eliminar» en `@unless(auth()->user()->esAdmin())`, en sus dos
+variantes —lista y tarjetas—. Esos condicionales se quitan: el admin ve y usa
+los tres.
 
 **2. `puedeEditarEvaluaciones()` se parte.** Hoy decide dos cosas distintas bajo
 un solo nombre:
@@ -151,13 +165,17 @@ pedido y hay que **reescribirlos, no borrarlos**:
 - El admin **no** puede validar: enviar `accion_estado=confirmado` guarda
   borrador igual.
 - El admin **no** puede editar una matriz ya validada.
-- El admin sigue **sin** poder crear ni borrar recursos del inventario.
+- El admin **crea, edita y borra** recursos del inventario, y los ve en la
+  interfaz. Es la inversión del test actual, que afirma lo contrario.
+- El admin **no** puede validar Involucrados: `involucrados.validar` le da 403.
+  Es la única ruta de escritura del grupo que debe seguir cerrada para él, y su
+  guarda vive en el controlador, no en el middleware.
 - El equipo conserva su comportamiento exacto.
 - El jefe conserva su comportamiento exacto, incluida la validación.
-- **Un guardián sobre el middleware:** recorre las rutas del grupo
-  `operativo.zona` y comprueba que las de escritura del inventario siguen dando
-  403 al admin. Si mañana alguien añade una ruta de inventario con otro verbo,
-  este test la cubre sin tocarlo.
+- **Un guardián sobre las rutas de validación:** recorre las rutas de escritura
+  del grupo `operativo.zona` y comprueba que las que validan siguen exigiendo
+  jefe. Si mañana alguien añade una acción de validación y la deja sin guarda,
+  este test la caza — que es el riesgo concreto de abrir el middleware.
 - `<x-boton-volver>` lleva al admin a `admin.zonas.index` y a los demás a
   `mis-zonas`. Es lo único que sobrevive del antiguo `$readonly`, y sin test
   volvería a desincronizarse en silencio.
@@ -310,8 +328,6 @@ arriba, siguen siendo entregables por separado.
 
 ## Fuera de alcance
 
-- **Dar al admin permiso sobre el inventario.** Decisión explícita, reversible
-  si se pide.
 - **La décima matriz**, el Índice Espacial de Frecuentación, que sigue bloqueada
   por una contradicción del instrumento original que hay que aclarar con su
   autor.
