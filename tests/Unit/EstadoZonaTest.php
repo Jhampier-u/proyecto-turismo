@@ -372,4 +372,22 @@ class EstadoZonaTest extends TestCase
         $this->assertSame('sin_empezar', $fila->estado);
         $this->assertStringContainsString('sin actores', $fila->detalle);
     }
+
+    public function test_el_contador_de_criterios_es_reutilizable_desde_fuera(): void
+    {
+        $evaluacion = \App\Models\EvaluacionPaisaje::create([
+            'zona_id' => $this->zona->id,
+            'estado'  => 'borrador',
+        ]);
+
+        $this->assertSame(0, \App\Servicios\EstadoZona::criteriosRespondidos($evaluacion));
+
+        $campos = array_keys(\App\Matrices\Paisaje::todos());
+        foreach (array_slice($campos, 0, 7) as $campo) {
+            $evaluacion->$campo = 3;
+        }
+        $evaluacion->save();
+
+        $this->assertSame(7, \App\Servicios\EstadoZona::criteriosRespondidos($evaluacion->fresh()));
+    }
 }

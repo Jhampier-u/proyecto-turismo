@@ -217,7 +217,7 @@ final class EstadoZona
             );
         }
 
-        $respondidos = $this->respondidos($evaluacion);
+        $respondidos = self::criteriosRespondidos($evaluacion);
 
         // Validar exige la matriz entera: confirmarla a medias la rechaza la
         // validación del controlador. Antes del guardado parcial un borrador
@@ -318,13 +318,14 @@ final class EstadoZona
     }
 
     /**
-     * Criterios ya respondidos de una evaluación.
+     * Criterios respondidos de una evaluación.
      *
-     * Cuenta las columnas de criterio que no están en null. El registro sabe
-     * cuántos criterios tiene cada matriz, pero no cuáles: repetir esa lista
-     * aquí sería una segunda fuente de verdad que se desincroniza sola.
+     * Pública y estática porque la usan dos consumidores que no comparten
+     * instancia: la ficha de la zona y las pestañas de cada matriz. Si cada
+     * uno contara por su cuenta, habría dos respuestas a la misma pregunta y
+     * el «21 de 34» de un sitio no coincidiría con el del otro.
      */
-    private function respondidos(Model $evaluacion): int
+    public static function criteriosRespondidos(Model $evaluacion): int
     {
         return count(array_filter(
             $evaluacion->getAttributes(),
