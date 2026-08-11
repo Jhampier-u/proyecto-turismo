@@ -800,6 +800,66 @@ Ficheros: `README.md`; `resources/views/operativo/evaluacion_fet/form.blade.php`
 `resources/views/operativo/evaluacion_potencialidad/form.blade.php`;
 `tests/Feature/EvaluacionesTest.php`, `GuardadoParcialTest.php`, `PotencialidadTest.php`.
 
+### Rama `permisos-y-navegacion` — terminada, 11 de agosto
+
+Cuatro cambios, 14 commits, suite de **394 → 444 tests**.
+
+**1. El admin pasa de solo lectura a poder escribir.** Rellena formularios,
+guarda borradores y gestiona inventario y actores en cualquier zona. **Lo único
+que no puede es validar**, exclusivo del jefe, y tampoco editar una matriz ya
+validada. `PerteneceAZona` dejó de restringirle: las guardas de rol viven ahora
+**en los controladores**.
+
+> **Si añades una ruta de escritura al grupo `operativo/zona`, será accesible al
+> admin por omisión.** Si esa acción debe ser solo del jefe, guárdala en su
+> controlador. `PermisosAdminTest::test_toda_ruta_de_escritura_esta_clasificada`
+> recorre las rutas con lista blanca explícita y falla si aparece una sin
+> clasificar. Ese test existe porque su versión anterior filtraba por el literal
+> «validar» y dejó pasar un agujero real durante toda la rama.
+
+`User::puedeEditarEvaluaciones()` **ya no existe**: hacía dos trabajos bajo un
+nombre —si puedes editar, y a dónde vuelve el botón «Volver»—. El primero dejó
+de aplicar; el segundo vive en `<x-boton-volver>`.
+
+**2. Pestañas entre formulario y resultados** en los nueve instrumentos, vía
+`<x-pestanas-matriz>`, alimentadas por `Registro::ENTRADAS`. Con la matriz
+incompleta, «Resultados» no es un botón gris: es texto con candado y el recuento
+de lo que falta. **El estado manda sobre el recuento**: una matriz validada
+tiene resultados aunque no estén todos los criterios respondidos —Potencialidad
+permite desactivar campos—.
+
+**3. Conmutador lista/tarjetas** en las dos vistas de zonas, vía
+`<x-conmutador-vista>`, extraído del que ya tenía Inventario. Zonas usa la clave
+`zonas_vista`; Inventario conserva `inventario_vista`.
+
+**4. Aviso de reapertura** (`<x-aviso-reapertura>`) y tipografía de los tres
+formularios de administración.
+
+**Lo que costó más de encontrar, por si vuelve a pasar:** la revisión final
+descubrió que `EstadoZona` seguía dando `url: null` al admin, así que desde el
+panel de zona —su única puerta de entrada— no tenía enlace a ningún formulario.
+El plan cubrió las diecinueve vistas de instrumento y se olvidó del concentrador
+que enlaza a todas. La funcionalidad estrella de la rama era inalcanzable desde
+la interfaz mientras todas las revisiones por tarea daban verde.
+
+**Cinco menores aplazados a propósito**, ninguno bloqueante:
+
+- Seis formularios conservan `url()->previous()` en su botón «Regresar»; solo
+  Paisaje usa `<x-boton-volver>`. Sin cabecera `Referer`, ese botón no lleva a
+  ningún sitio. Es el que más merece cerrarse.
+- `<x-pestanas-matriz>` consulta la base desde la vista Blade y duplica la carga
+  que el controlador ya hizo. Arreglarlo bien exige pasar la evaluación por prop
+  y tocar las 18 vistas.
+- `EstadoZona` usa `self::` donde podría usar `static::`. En una `final class`
+  da igual.
+- `vtt/resultado.blade.php` no tiene test del texto ni el color de su botón.
+- `involucrados/index` enseña el aviso de reapertura también a quien no puede
+  provocarla.
+
+**Sin verificación visual.** Todo lo comprobado es marcado y comportamiento. El
+conmutador es Alpine puro: que el botón conmute y la preferencia sobreviva a una
+recarga no lo cubre ningún test.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -983,14 +1043,20 @@ niveles de anidamiento— y ninguno se movió con el cambio.
    No heredaba de `MatrizPonderadaController` y tenía la configuración de
    campos activos, que se quedó intacta -solo cambió el control de
    calificación-.
-5. ~~**«Reabrir» una matriz validada**~~ — resuelto en `reabrir-matriz`: no
-   estaba «en el diseño, sin implementar» como decía esta lista, ya
-   funcionaba end-to-end en las ocho matrices de formulario. Ver esa rama en
-   §3. Queda de verdad pendiente, si alguien lo echa de menos, hacer el gesto
-   más *descubrible* —hoy reabrir es un efecto secundario silencioso de
-   «Guardar Borrador», sin el aviso explícito que sí tiene Involucrados
-   («... vuelve a borrador: hay que validarla de nuevo»)—, pero ningún test
-   de esta rama lo exigía y no se inventó ese trabajo.
+5. ~~**«Reabrir» una matriz validada**~~ — resuelto del todo. Funcionaba desde
+   `reabrir-matriz`, y `permisos-y-navegacion` cerró lo que quedaba: el gesto ya
+   es descubrible, con `<x-aviso-reapertura>` en los ocho formularios de matriz
+   avisando al jefe —y solo a él— de que guardar la devolverá a borrador.
+   Involucrados ya avisaba por su cuenta en `index.blade.php`.
+6. ~~**Permisos del admin y navegación**~~ — hecho en `permisos-y-navegacion`
+   (§3). El admin escribe, hay pestañas formulario/resultados y conmutador
+   lista/tarjetas en zonas.
+7. **Cinco menores aplazados de esa rama.** Detallados en §3; el que más merece
+   cerrarse es el `url()->previous()` de seis formularios, que sin cabecera
+   `Referer` deja el botón «Regresar» sin destino.
+8. **Verificación visual pendiente** de la última rama: el conmutador
+   lista/tarjetas es Alpine puro y ningún test comprueba que el botón conmute ni
+   que la preferencia sobreviva a una recarga.
 
 ### Fuera de código, en Render
 
