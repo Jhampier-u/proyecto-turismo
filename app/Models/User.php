@@ -54,18 +54,6 @@ class User extends Authenticatable
         return in_array($this->role_id, [self::ROL_ADMIN, self::ROL_JEFE, self::ROL_EQUIPO], true);
     }
 
-    /**
-     * El admin consulta las evaluaciones, nunca las modifica.
-     *
-     * Existía repartido en tres fórmulas distintas por doce vistas, y dos de
-     * ellas se olvidaban del admin. Un solo predicado con nombre es lo que
-     * impide que la cuarta copia vuelva a olvidarse.
-     */
-    public function puedeEditarEvaluaciones(): bool
-    {
-        return ! $this->esAdmin();
-    }
-
     // Relaciones
     public function role() {
         return $this->belongsTo(Role::class);

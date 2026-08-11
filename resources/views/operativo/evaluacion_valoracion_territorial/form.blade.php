@@ -16,11 +16,17 @@
             @php
                 $esJefe         = auth()->user()->esJefe();
                 $estaConfirmado = $evaluacion->estado === 'confirmado';
-                // El admin nunca edita evaluaciones, aunque estén en borrador:
-                // sin este predicado, $bloqueado solo miraba la confirmación y
-                // el admin veía el formulario abierto de par en par.
-                $bloqueado      = ! auth()->user()->puedeEditarEvaluaciones() || ($estaConfirmado && !$esJefe);
+                // Un solo motivo de bloqueo desde que el admin edita: la
+                // matriz está validada y tú no eres quien la valida.
+                $bloqueado      = $estaConfirmado && ! $esJefe;
             @endphp
+
+            @if($evaluacion?->exists && $evaluacion->user)
+                <p class="text-sm text-gray-500 mb-4">
+                    Última edición: {{ $evaluacion->user->name }},
+                    {{ $evaluacion->updated_at->diffForHumans() }}
+                </p>
+            @endif
 
             @if($estaConfirmado)
                 <div class="mb-6 bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded">

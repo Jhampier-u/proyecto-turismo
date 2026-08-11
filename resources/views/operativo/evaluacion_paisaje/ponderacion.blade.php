@@ -5,15 +5,6 @@
         </h2>
     </x-slot>
 
-    @php
-        // Se deriva del rol, no de una variable que pase el controlador: la versión
-        // anterior dependía de que cada controlador acordara pasar readonly=true, y
-        // al desaparecer los métodos del admin se quedó en falso para siempre sin
-        // que nada lo detectara. El rol es la única fuente de verdad que no se
-        // puede desincronizar.
-        $readonly = ! auth()->user()->puedeEditarEvaluaciones();
-    @endphp
-
     {{-- Dos casos, un mismo aviso: la matriz no existe (el admin puede abrir
          una zona sin empezar) o existe a medias, y entonces paisaje_total está
          en null. En ambos, seguir adelante rompería: $evaluacion->escenario
@@ -44,6 +35,13 @@
 
     <div class="py-12">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+
+            @if($evaluacion?->exists && $evaluacion->user)
+                <p class="text-sm text-gray-500 mb-4">
+                    Última edición: {{ $evaluacion->user->name }},
+                    {{ $evaluacion->updated_at->diffForHumans() }}
+                </p>
+            @endif
 
             <div class="w-full p-8 rounded-xl border-4 text-center mb-8 {{ $estilos['caja'] }}">
                 <p class="text-5xl mb-3">{{ $estilos['emoji'] }}</p>
@@ -120,21 +118,11 @@
             </div>
 
             <div class="flex justify-end gap-3">
-                @if($readonly)
-                    <a href="{{ route('admin.zonas.index') }}"
-                       class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">
-                        Volver a Zonas
-                    </a>
-                @else
-                    <a href="{{ route('operativo.evaluacion_paisaje.edit', $zona->id) }}"
-                       class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">
-                        ← Volver al Formulario
-                    </a>
-                    <a href="{{ route('operativo.dashboard') }}"
-                       class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-5 rounded shadow">
-                        Mis Zonas
-                    </a>
-                @endif
+                <a href="{{ route('operativo.evaluacion_paisaje.edit', $zona->id) }}"
+                   class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">
+                    ← Volver al Formulario
+                </a>
+                <x-boton-volver texto="Mis Zonas" />
             </div>
 
         </div>

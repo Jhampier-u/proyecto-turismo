@@ -183,4 +183,80 @@ class PermisosAdminTest extends TestCase
             ->post($this->urlPaisaje(), $this->criteriosDePaisaje(3))
             ->assertForbidden();
     }
+
+    public function test_el_admin_ve_el_formulario_editable(): void
+    {
+        $html = $this->actingAs($this->admin)
+            ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('Guardar Borrador', $html);
+        $this->assertStringNotContainsString('puede consultar esta', $html);
+    }
+
+    public function test_el_admin_no_ve_el_boton_de_validar(): void
+    {
+        $html = $this->actingAs($this->admin)
+            ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringNotContainsString('accion_estado', $html);
+    }
+
+    public function test_el_jefe_si_ve_el_boton_de_validar(): void
+    {
+        $this->actingAs($this->jefe)
+            ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
+            ->assertOk()
+            ->assertSee('accion_estado', false);
+    }
+
+    public function test_el_admin_ve_los_botones_del_inventario(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('operativo.inventarios.index', $this->zona->id))
+            ->assertOk()
+            ->assertSee('Agregar Recurso');
+    }
+
+    /** El único resto del antiguo readonly: a dónde vuelve cada rol. */
+    public function test_el_boton_volver_lleva_a_cada_rol_a_su_listado(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
+            ->assertOk()
+            ->assertSee(route('admin.zonas.index'), false);
+
+        $this->actingAs($this->jefe)
+            ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
+            ->assertOk()
+            ->assertSee(route('operativo.dashboard'), false);
+    }
+
+    public function test_la_matriz_dice_quien_la_edito_por_ultima_vez(): void
+    {
+        $this->actingAs($this->admin)->post($this->urlPaisaje(), $this->criteriosDePaisaje(3));
+
+        $this->actingAs($this->jefe)
+            ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
+            ->assertOk()
+            ->assertSee($this->admin->name);
+    }
+
+    /**
+     * Añadido a la revisión de la Tarea 1: InvolucradosController::index()
+     * calculaba 'puedeEditar' con esEquipo(), que excluye al admin. Es una
+     * bandera de vista -consumida solo por index.blade.php-, sin efecto sobre
+     * la autorización real de escritura (bloqueoSiCerrada() ya la cubre), así
+     * que este test comprueba el botón "+ Nuevo actor", no una ruta.
+     */
+    public function test_el_admin_ve_el_boton_de_nuevo_actor_mientras_la_lista_no_este_confirmada(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('operativo.involucrados.index', $this->zona->id))
+            ->assertOk()
+            ->assertSee('+ Nuevo actor');
+    }
 }

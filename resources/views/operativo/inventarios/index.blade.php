@@ -5,12 +5,10 @@
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Inventario: {{ $zona->nombre }}</h2>
                 <p class="text-sm text-gray-500">Recursos turísticos registrados</p>
             </div>
-            @unless(auth()->user()->esAdmin())
             <a href="{{ route('operativo.inventarios.create', $zona->id) }}"
                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow">
                 + Agregar Recurso
             </a>
-            @endunless
         </div>
     </x-slot>
 
@@ -99,7 +97,6 @@
                                     <div class="flex justify-end gap-2">
                                         <a href="{{ route('operativo.inventarios.show', ['zona' => $zona->id, 'inventario' => $inv->id]) }}"
                                            class="text-blue-600 hover:text-blue-900 font-bold text-sm bg-blue-50 px-2 py-1 rounded">Ver</a>
-                                        @unless(auth()->user()->esAdmin())
                                         <a href="{{ route('operativo.inventarios.edit', ['zona' => $zona->id, 'inventario' => $inv->id]) }}"
                                            class="text-indigo-600 font-bold text-sm bg-indigo-50 px-2 py-1 rounded">Editar</a>
                                         <form action="{{ route('operativo.inventarios.destroy', ['zona' => $zona->id, 'inventario' => $inv->id]) }}"
@@ -107,7 +104,6 @@
                                             @csrf @method('DELETE')
                                             <button class="text-red-600 font-bold text-sm bg-red-50 px-2 py-1 rounded">Eliminar</button>
                                         </form>
-                                        @endunless
                                     </div>
                                 </td>
                             </tr>
@@ -176,7 +172,6 @@
                                    class="flex-1 text-center text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 py-1.5 rounded transition">
                                     Ver detalle
                                 </a>
-                                @unless(auth()->user()->esAdmin())
                                 <a href="{{ route('operativo.inventarios.edit', ['zona' => $zona->id, 'inventario' => $inv->id]) }}"
                                    class="flex-1 text-center text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 py-1.5 rounded transition">
                                     Editar
@@ -186,7 +181,6 @@
                                     @csrf @method('DELETE')
                                     <button class="w-full text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 py-1.5 rounded transition">Eliminar</button>
                                 </form>
-                                @endunless
                             </div>
                         </div>
                     </div>

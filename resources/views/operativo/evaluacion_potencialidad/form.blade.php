@@ -24,11 +24,10 @@
 
     @php
         $isConfirmado    = $evaluacion->exists && $evaluacion->estado === 'confirmado';
-        // Antes decía esAdmin() literal: una de tres fórmulas distintas para
-        // "solo lectura" repartidas por el sistema. El predicado con nombre
-        // es equivalente para el admin (nunca cambia con el estado de la
-        // matriz) pero deja una sola fuente de verdad para las seis.
-        $soloLectura     = (! $user->puedeEditarEvaluaciones()) || ($isConfirmado && $user->esEquipo());
+        // Un solo motivo desde que el admin edita. esEquipo() se cambia por
+        // ! esJefe() para que el admin también encuentre cerrada una matriz
+        // validada, como decidió el diseño.
+        $soloLectura     = $isConfirmado && ! $user->esJefe();
         $puedeConfigurar = ($user->esJefe()) && !$soloLectura;
         $puedeCalificar  = !$soloLectura;
 
@@ -131,6 +130,13 @@
 
     <div class="pt-root">
       <div style="max-width:1160px;margin:0 auto;padding:0 1.25rem;">
+
+        @if($evaluacion?->exists && $evaluacion->user)
+            <p class="text-sm text-gray-500 mb-4">
+                Última edición: {{ $evaluacion->user->name }},
+                {{ $evaluacion->updated_at->diffForHumans() }}
+            </p>
+        @endif
 
         {{-- Mensajes ─────────────────────────────────────────────────────── --}}
         @if(session('success'))

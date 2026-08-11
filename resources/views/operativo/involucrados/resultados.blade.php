@@ -5,13 +5,6 @@
         </h2>
     </x-slot>
 
-    @php
-        // Se deriva del rol, no de una variable que pase el controlador: ver
-        // el mismo criterio en el resto de vistas de resultados de este
-        // sistema (ponderacion.blade.php de Irritación, por ejemplo).
-        $readonly = ! auth()->user()->puedeEditarEvaluaciones();
-    @endphp
-
     @if(! $completa)
         <x-matriz-sin-resultados
             nombre="Involucrados turísticos"
@@ -22,16 +15,21 @@
             <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
 
-                    @if($readonly)
-                        <a href="{{ route('admin.zonas.index') }}"
-                           class="inline-block px-5 py-2 mb-4 bg-gray-200 text-black font-bold rounded-lg hover:bg-gray-400 shadow-md">
-                            ← Volver a Zonas
-                        </a>
-                    @else
-                        <a href="{{ route('operativo.involucrados.index', $zona->id) }}"
-                           class="inline-block px-5 py-2 mb-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">
-                            ← Volver al listado
-                        </a>
+                    <a href="{{ route('operativo.involucrados.index', $zona->id) }}"
+                       class="inline-block px-5 py-2 mb-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">
+                        ← Volver al listado
+                    </a>
+
+                    {{-- Involucrados no tiene un $evaluacion por actor: el
+                         "quién tocó esto por última vez" vive en
+                         InvolucradosConfig, el estado del CONJUNTO -no en
+                         Involucrado, que no guarda user_id-. Mismo dato que
+                         index.blade.php, ahora también en resultados. --}}
+                    @if($config?->exists && $config->user)
+                        <p class="text-sm text-gray-500 mb-4">
+                            Última edición: {{ $config->user->name }},
+                            {{ $config->updated_at->diffForHumans() }}
+                        </p>
                     @endif
 
                     {{--

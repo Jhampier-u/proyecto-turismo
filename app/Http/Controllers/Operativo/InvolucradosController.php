@@ -45,11 +45,12 @@ class InvolucradosController extends Controller
             'confirmada'  => $confirmada,
             'atributos'   => Involucrados::ATRIBUTOS,
             'escalaMax'   => Involucrados::ESCALA_MAX,
-            // Mismo criterio que EvaluacionZonaController::update(): solo el
-            // equipo queda cerrado al confirmar. El jefe conserva la
-            // capacidad de seguir tocando la lista, igual que en las siete
-            // matrices de formulario.
-            'puedeEditar'  => $user->esJefe() || ($user->esEquipo() && ! $confirmada),
+            // Mismo criterio que EvaluacionZonaController::update(): solo
+            // quien no es jefe queda cerrado al confirmar. El admin escribe
+            // borradores igual que el equipo -Tarea 2-, así que cuenta como
+            // quien puede editar mientras la lista no esté confirmada; el
+            // jefe conserva la capacidad de seguir tocándola siempre.
+            'puedeEditar'  => $user->esJefe() || ! $confirmada,
             'puedeValidar' => ! $confirmada && $user->esJefe() && $listaCompleta,
             // La pista para el equipo —"avísale a tu Jefe"— solo tiene
             // sentido con la lista completa y sin validar todavía, el mismo
@@ -216,6 +217,9 @@ class InvolucradosController extends Controller
     {
         $zona    = Zona::findOrFail($zonaId);
         $actores = $zona->involucrados()->get();
+        // Igual que index(): quién tocó la lista por última vez, ahora
+        // también visible en resultados (Tarea 2, Step 8b).
+        $config  = InvolucradosConfig::where('zona_id', $zonaId)->first();
 
         // "Completa" en el mismo sentido que el resto de vistas de
         // resultados: nada que enseñar con la lista vacía o con algún actor a
@@ -229,6 +233,7 @@ class InvolucradosController extends Controller
         return view('operativo.involucrados.resultados', [
             'zona'      => $zona,
             'completa'  => $completa,
+            'config'    => $config,
             // Igual que index()/create()/edit(): la vista consume la
             // constante ya resuelta, no alcanza App\Matrices\Involucrados por
             // su cuenta.

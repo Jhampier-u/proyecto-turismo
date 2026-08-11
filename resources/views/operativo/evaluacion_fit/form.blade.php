@@ -16,15 +16,17 @@
             @php
                 $esJefe = auth()->user()->esJefe();
                 $estaConfirmado = $evaluacion->estado === 'confirmado';
-                // Dos motivos de bloqueo, no uno: el admin nunca edita
-                // evaluaciones -esté en borrador o no-, y el equipo deja de
-                // poder hacerlo en cuanto se confirma. Separados en dos
-                // variables porque cada uno tiene su propia frase en
-                // x-aviso-bloqueo-matriz; sin esto, el admin sobre un
-                // borrador vería el motivo del equipo, que no es el suyo.
-                $bloqueadoPorRol = ! auth()->user()->puedeEditarEvaluaciones();
-                $bloqueado = $bloqueadoPorRol || ($estaConfirmado && !$esJefe);
+                // Un solo motivo de bloqueo desde que el admin edita: la
+                // matriz está validada y tú no eres quien la valida.
+                $bloqueado = $estaConfirmado && ! $esJefe;
             @endphp
+
+            @if($evaluacion?->exists && $evaluacion->user)
+                <p class="text-sm text-gray-500 mb-4">
+                    Última edición: {{ $evaluacion->user->name }},
+                    {{ $evaluacion->updated_at->diffForHumans() }}
+                </p>
+            @endif
 
             @if($estaConfirmado)
             <div class="mb-6 bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded">
@@ -130,7 +132,7 @@
                     </button>
                     @endif
                     @else
-                    <span class="text-gray-500 italic self-center"><x-aviso-bloqueo-matriz :por-rol="$bloqueadoPorRol" sustantivo="evaluación" /></span>
+                    <span class="text-gray-500 italic self-center"><x-aviso-bloqueo-matriz sustantivo="evaluación" /></span>
                     @if($esJefe)
                     <button type="submit" name="accion_estado" value="confirmado" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded shadow-lg">
                         Actualizar Datos

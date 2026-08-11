@@ -6,10 +6,6 @@
     </x-slot>
 
     @php
-        // Se deriva del rol, no de una variable que pase el controlador: ver el
-        // mismo criterio en el resto de vistas de resultados de este sistema.
-        $readonly = ! auth()->user()->puedeEditarEvaluaciones();
-
         // Los dos bloques se responden por separado y pueden completarse en
         // momentos distintos: con cualquiera de los dos promedios en null la
         // matriz sigue a medias, y pintarlo como 0.00 se leería como una
@@ -33,6 +29,13 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
 
                 <x-flash-exito />
+
+                @if($evaluacion?->exists && $evaluacion->user)
+                    <p class="text-sm text-gray-500 mb-4">
+                        Última edición: {{ $evaluacion->user->name }},
+                        {{ $evaluacion->updated_at->diffForHumans() }}
+                    </p>
+                @endif
 
                 <h3 class="text-center font-bold text-xl text-gray-700 mb-8">
                     Índice de Irritación Turística
@@ -102,21 +105,11 @@
                 @endforeach
 
                 <div class="mt-8 flex gap-4 justify-center flex-wrap">
-                    @if(!$readonly)
-                        <a href="{{ route('operativo.evaluacion_irritacion.edit', $zona->id) }}"
-                            class="inline-block px-5 py-2 bg-indigo-600 text-white font-bold text-lg rounded-lg hover:bg-indigo-700 hover:scale-105 transition-transform duration-200 shadow-md">
-                            ← Volver al Formulario
-                        </a>
-                        <a href="{{ route('operativo.dashboard') }}"
-                            class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
-                            Mis Zonas
-                        </a>
-                    @else
-                        <a href="{{ route('admin.zonas.index') }}"
-                            class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
-                            Volver a Zonas
-                        </a>
-                    @endif
+                    <a href="{{ route('operativo.evaluacion_irritacion.edit', $zona->id) }}"
+                        class="inline-block px-5 py-2 bg-indigo-600 text-white font-bold text-lg rounded-lg hover:bg-indigo-700 hover:scale-105 transition-transform duration-200 shadow-md">
+                        ← Volver al Formulario
+                    </a>
+                    <x-boton-volver texto="Mis Zonas" />
                 </div>
 
             </div>

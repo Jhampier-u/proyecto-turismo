@@ -6,12 +6,6 @@
     </x-slot>
 
     @php
-        // Se deriva del rol, no de una variable que pase el controlador: la versión
-        // anterior dependía de que cada controlador acordara pasar readonly=true, y
-        // al desaparecer los métodos del admin se quedó en falso para siempre sin
-        // que nada lo detectara. El rol es la única fuente de verdad que no se
-        // puede desincronizar.
-        $readonly      = ! auth()->user()->puedeEditarEvaluaciones();
         // No basta con que la evaluación exista: desde el guardado parcial
         // puede existir a medias, y entonces percepcion_total está en null.
         // Sin esta condición, $totalPct daría 0 y la matriz se leería como
@@ -31,10 +25,7 @@
                     <p>Esta zona aún no cuenta con una Matriz de Percepción registrada. El Jefe de Zona o el Equipo operativo deben completarla primero.</p>
                 </div>
                 <div class="mt-6 text-center">
-                    <a href="{{ $readonly ? route('admin.zonas.index') : route('operativo.dashboard') }}"
-                       class="inline-block px-5 py-2 bg-gray-200 text-black font-bold rounded-lg hover:bg-gray-400 shadow">
-                        Volver
-                    </a>
+                    <x-boton-volver />
                 </div>
             </div>
         </div>
@@ -50,6 +41,13 @@
             @endif
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
+
+                @if($evaluacion?->exists && $evaluacion->user)
+                    <p class="text-sm text-gray-500 mb-4">
+                        Última edición: {{ $evaluacion->user->name }},
+                        {{ $evaluacion->updated_at->diffForHumans() }}
+                    </p>
+                @endif
 
                 <h3 class="text-center font-bold text-lg text-gray-700 mb-6 uppercase">
                     Evaluación de la Percepción Local hacia el Turismo
@@ -169,21 +167,11 @@
                 @endif
 
                 <div class="mt-8 text-center space-x-3">
-                    @if(!$readonly)
-                        <a href="{{ route('operativo.evaluacion_percepcion.edit', $zona->id) }}"
-                           class="inline-block px-5 py-2 bg-blue-600 text-white font-bold text-lg rounded-lg hover:bg-blue-700 hover:scale-105 transition-transform duration-200 shadow-md">
-                            Ver el Formulario
-                        </a>
-                        <a href="{{ route('operativo.dashboard') }}"
-                           class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
-                            Volver a Mis Zonas
-                        </a>
-                    @else
-                        <a href="{{ route('admin.zonas.index') }}"
-                           class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
-                            Volver a Zonas
-                        </a>
-                    @endif
+                    <a href="{{ route('operativo.evaluacion_percepcion.edit', $zona->id) }}"
+                       class="inline-block px-5 py-2 bg-blue-600 text-white font-bold text-lg rounded-lg hover:bg-blue-700 hover:scale-105 transition-transform duration-200 shadow-md">
+                        Ver el Formulario
+                    </a>
+                    <x-boton-volver texto="Mis Zonas" />
                 </div>
             </div>
         </div>

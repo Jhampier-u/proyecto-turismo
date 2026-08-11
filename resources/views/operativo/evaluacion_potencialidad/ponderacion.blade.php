@@ -41,6 +41,13 @@
                     Análisis de Potencialidad Turística del Territorio
                 </h3>
 
+                @if($eval?->exists && $eval->user)
+                    <p class="text-sm text-gray-500 mb-4 text-center">
+                        Última edición: {{ $eval->user->name }},
+                        {{ $eval->updated_at->diffForHumans() }}
+                    </p>
+                @endif
+
                 {{-- ══════════════════════════════════════════
                      RESULTADO FINAL - CUADRANTE
                 ══════════════════════════════════════════ --}}

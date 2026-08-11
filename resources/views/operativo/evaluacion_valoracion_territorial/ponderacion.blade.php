@@ -6,13 +6,6 @@
     </x-slot>
 
     @php
-        // Se deriva del rol, no de una variable que pase el controlador: la versión
-        // anterior dependía de que cada controlador acordara pasar readonly=true, y
-        // al desaparecer los métodos del admin se quedó en falso para siempre sin
-        // que nada lo detectara. El rol es la única fuente de verdad que no se
-        // puede desincronizar.
-        $readonly = ! auth()->user()->puedeEditarEvaluaciones();
-
         // No basta con que la evaluación exista: desde el guardado parcial
         // puede existir a medias, y entonces sus totales están en null. Pintar
         // ese null da un 0,00 que parece un territorio valorado con ceros.
@@ -31,29 +24,16 @@
                                 El equipo de la zona <strong>{{ $zona->nombre }}</strong> todavía no ha completado la
                                 Matriz de Valoración Territorial.
                             </p>
-                            @if($readonly)
-                                <p class="text-yellow-600 text-sm mt-2">
-                                    Como administrador puedes consultar la zona, pero <strong>completar y validar esta
-                                    matriz es responsabilidad del Jefe de Zona y su equipo</strong>.
-                                </p>
-                            @endif
                         </div>
                     </div>
-                    <div class="mt-4">
-                        {{-- El admin nunca ve un enlace al formulario de edición, ni siquiera
-                             cuando la evaluación todavía no existe: el formulario no se bloquea
-                             solo, y si lo enviara reventaría con un 403 crudo. --}}
-                        @if($readonly)
-                            <a href="{{ route('admin.zonas.index') }}"
-                               class="inline-block bg-gray-200 hover:bg-gray-400 text-black font-bold py-2 px-5 rounded shadow transition">
-                                Volver a Zonas
-                            </a>
-                        @else
-                            <a href="{{ route('operativo.evaluacion_valoracion_territorial.edit', $zona->id) }}"
-                               class="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-5 rounded shadow transition">
-                                Ver Formulario de Evaluación
-                            </a>
-                        @endif
+                    <div class="mt-4 flex gap-3">
+                        {{-- Ahora todos pueden ir al formulario, admin
+                             incluido: el enlace ya no depende del rol. --}}
+                        <a href="{{ route('operativo.evaluacion_valoracion_territorial.edit', $zona->id) }}"
+                           class="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-5 rounded shadow transition">
+                            Ver Formulario de Evaluación
+                        </a>
+                        <x-boton-volver texto="Mis Zonas" />
                     </div>
                 </div>
             </div>
@@ -67,6 +47,13 @@
                 <h3 class="text-center font-bold text-xl text-gray-700 mb-8 uppercase tracking-wide">
                     Matriz de Valoración Territorial
                 </h3>
+
+                @if($evaluacion?->exists && $evaluacion->user)
+                    <p class="text-sm text-gray-500 mb-4">
+                        Última edición: {{ $evaluacion->user->name }},
+                        {{ $evaluacion->updated_at->diffForHumans() }}
+                    </p>
+                @endif
 
                 {{-- ══════════════════════════════════════════
                      RESULTADO FINAL - CUADRANTE
@@ -166,21 +153,11 @@
 
                 {{-- Botones --}}
                 <div class="mt-8 flex gap-4 justify-center flex-wrap">
-                    @if(!$readonly)
-                        <a href="{{ route('operativo.evaluacion_valoracion_territorial.edit', $zona->id) }}"
-                            class="inline-block px-5 py-2 bg-indigo-600 text-white font-bold text-lg rounded-lg hover:bg-indigo-700 hover:scale-105 transition-transform duration-200 shadow-md">
-                            ← Volver al Formulario
-                        </a>
-                        <a href="{{ route('operativo.dashboard') }}"
-                            class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
-                            Mis Zonas
-                        </a>
-                    @else
-                        <a href="{{ route('admin.zonas.index') }}"
-                            class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
-                            Volver a Zonas
-                        </a>
-                    @endif
+                    <a href="{{ route('operativo.evaluacion_valoracion_territorial.edit', $zona->id) }}"
+                        class="inline-block px-5 py-2 bg-indigo-600 text-white font-bold text-lg rounded-lg hover:bg-indigo-700 hover:scale-105 transition-transform duration-200 shadow-md">
+                        ← Volver al Formulario
+                    </a>
+                    <x-boton-volver texto="Mis Zonas" />
                 </div>
 
             </div>

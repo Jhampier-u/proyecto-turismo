@@ -155,12 +155,14 @@ class AutorizacionZonaTest extends TestCase
     }
 
     /**
-     * EstadoZona ya le manda 'Ver' en vez de 'Abrir', pero la vista pintaba
-     * los tres botones de escritura sin mirar el rol: el admin llegaba aquí
-     * y los pulsaba para toparse con un 403 del middleware. Los botones
-     * tienen que desaparecer, no solo fallar al pulsarlos.
+     * Invertido en la Tarea 2: el admin ya no es de solo lectura, así que
+     * tiene que ver los mismos botones de escritura que el jefe. Antes este
+     * test comprobaba justo lo contrario -que el admin NO los veía-, y era
+     * lo correcto mientras el admin no podía escribir; ese comportamiento
+     * cambió por decisión del responsable (ver docs/sdd de esta rama), así
+     * que el test tenía que invertirse con él, no borrarse.
      */
-    public function test_el_admin_no_ve_botones_de_escritura_en_el_inventario(): void
+    public function test_el_admin_ve_botones_de_escritura_en_el_inventario(): void
     {
         $jefe = $this->usuarioCon('jefe_zona');
         $zona = $this->crearZona($jefe);
@@ -170,12 +172,9 @@ class AutorizacionZonaTest extends TestCase
 
         $respuestaAdmin = $this->actingAs($admin)->get("/operativo/zona/{$zona->id}/inventarios");
         $respuestaAdmin->assertSuccessful();
-        $respuestaAdmin->assertDontSee('Agregar Recurso');
-        $respuestaAdmin->assertDontSee('Editar');
-        $respuestaAdmin->assertDontSee('Eliminar');
-        // Sin esta aserción, ocultar la columna entera de acciones para el
-        // admin pasaría el test igual: hace falta comprobar que "Ver" sigue
-        // presente, no solo que "Editar"/"Eliminar" no lo están.
+        $respuestaAdmin->assertSee('Agregar Recurso');
+        $respuestaAdmin->assertSee('Editar');
+        $respuestaAdmin->assertSee('Eliminar');
         $respuestaAdmin->assertSee(
             route('operativo.inventarios.show', ['zona' => $zona->id, 'inventario' => $inventario->id]),
             false

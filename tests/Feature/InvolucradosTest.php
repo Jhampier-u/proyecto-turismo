@@ -337,17 +337,17 @@ class InvolucradosTest extends TestCase
     }
 
     /**
-     * Único formulario del sistema sin este candado de rol. El middleware
-     * PerteneceAZona ya cierra la escritura para el admin —cualquier método
-     * no seguro se come un 403 antes de llegar al controlador—, pero
-     * create()/edit() solo comprobaban esEquipo() vía bloqueoSiCerrada(), que
-     * es falso para el admin: un GET directo a /nuevo o a /editar devolvía
-     * 200 con los once desplegables, las tres casillas y el botón de guardar
-     * activos. Mismo patrón que
-     * AutorizacionZonaTest::test_el_admin_no_ve_botones_de_escritura_en_el_inventario:
-     * los controles tienen que desaparecer, no solo fallar al enviarlos.
+     * Invertido en la Tarea 2: el admin ya no es de solo lectura, así que
+     * ve el mismo formulario abierto que el jefe mientras la lista de
+     * actores siga en borrador. Antes este test comprobaba justo lo
+     * contrario -que el admin NO lo veía editable-, y era lo correcto
+     * mientras el admin no podía escribir; ese comportamiento cambió por
+     * decisión del responsable (ver docs/sdd de esta rama), así que el test
+     * tenía que invertirse con él, no borrarse. El caso "lista validada"
+     * -que sigue bloqueado, para todos menos el jefe- se cubre aparte en
+     * test_el_admin_no_ve_el_formulario_de_actor_editable_con_la_lista_validada().
      */
-    public function test_el_admin_no_ve_el_formulario_de_actor_editable(): void
+    public function test_el_admin_ve_el_formulario_de_actor_editable(): void
     {
         $admin = User::factory()->create([
             'role_id' => Role::where('nombre', 'admin')->value('id'),
@@ -360,34 +360,78 @@ class InvolucradosTest extends TestCase
 
         $nuevo = $this->actingAs($admin)->get("{$this->urlIndex($this->zona)}/nuevo");
         $nuevo->assertOk();
-        $nuevo->assertDontSee('Guardar');
+        $nuevo->assertSee('Guardar');
 
         // Los desplegables llevan la clase Tailwind "disabled:bg-gray-100" en
         // TODOS los casos, activos o no: buscar la palabra "disabled" a
         // secas no distingue nada. El atributo HTML real va al final de la
-        // etiqueta, así que "disabled>" solo aparece cuando de verdad está
-        // desactivado.
+        // etiqueta, así que "disabled>" solo aparecería si de verdad
+        // estuviera desactivado.
         preg_match('/<select[^>]*name="pod_poder"[^>]*>/', $nuevo->getContent(), $select);
         $this->assertNotEmpty($select, 'No se encontró el desplegable pod_poder.');
-        $this->assertStringContainsString('disabled>', $select[0]);
+        $this->assertStringNotContainsString('disabled>', $select[0]);
 
         // En la casilla el atributo disabled va ANTES de class="...", así
         // que basta con mirar la parte de la etiqueta anterior a "class=".
         preg_match('/<input[^>]*name="tiene_poder"[^>]*>/', $nuevo->getContent(), $checkbox);
         $this->assertNotEmpty($checkbox, 'No se encontró la casilla tiene_poder.');
         [$antesDeClase] = explode('class=', $checkbox[0]);
-        $this->assertStringContainsString('disabled', $antesDeClase);
+        $this->assertStringNotContainsString('disabled', $antesDeClase);
 
         $this->actingAs($admin)
             ->get("{$this->urlIndex($this->zona)}/{$actor->id}/editar")
             ->assertOk()
-            ->assertDontSee('Guardar');
+            ->assertSee('Guardar');
 
-        // El jefe, en cambio, sigue viendo el mismo formulario abierto de par
-        // en par: el arreglo no debe cerrarle la escritura a quien sí puede
-        // escribir.
+        // El jefe conserva el mismo formulario abierto de par en par que
+        // siempre tuvo: el arreglo no debe cambiarle nada.
         $this->actingAs($this->jefe)
             ->get("{$this->urlIndex($this->zona)}/nuevo")
+            ->assertSee('Guardar');
+    }
+
+    /**
+     * El hermano del test anterior: la regla que sí sobrevive es que, con la
+     * lista VALIDADA, el admin vuelve a quedar bloqueado -igual que el
+     * equipo-. InvolucradosController::bloqueoSiCerrada() corta create()/edit()
+     * antes de que lleguen a pintar el formulario, así que "bloqueado" aquí
+     * es un redirect con el aviso de "ya fue validada", no un formulario
+     * disabled -a diferencia de las siete matrices de formulario, esta lista
+     * no se puede ni siquiera abrir para editar una vez cerrada-.
+     */
+    public function test_el_admin_no_ve_el_formulario_de_actor_editable_con_la_lista_validada(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $actor = Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor validado',
+        ]);
+
+        InvolucradosConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'confirmado',
+        ]);
+
+        $this->actingAs($admin)
+            ->get("{$this->urlIndex($this->zona)}/nuevo")
+            ->assertRedirect($this->urlIndex($this->zona))
+            ->assertSessionHas('error', fn(string $m) => str_contains($m, 'ya fue validada'));
+
+        $this->actingAs($admin)
+            ->get("{$this->urlIndex($this->zona)}/{$actor->id}/editar")
+            ->assertRedirect($this->urlIndex($this->zona))
+            ->assertSessionHas('error', fn(string $m) => str_contains($m, 'ya fue validada'));
+
+        // El jefe, en cambio, sigue entrando al formulario aunque la lista
+        // esté validada: es el único rol al que bloqueoSiCerrada() no cierra
+        // el paso.
+        $this->actingAs($this->jefe)
+            ->get("{$this->urlIndex($this->zona)}/nuevo")
+            ->assertOk()
             ->assertSee('Guardar');
     }
 
@@ -1094,12 +1138,17 @@ class InvolucradosTest extends TestCase
     }
 
     /**
-     * Mismo patrón que el resto de matrices (ver
-     * test_el_admin_ve_los_resultados_en_modo_lectura de IrritacionTest):
-     * el admin navega de verdad a resultados, ve el aviso de solo lectura y
-     * no ve el enlace de vuelta al listado editable.
+     * Invertido en la Tarea 2: Involucrados no tiene, ni tuvo nunca, un
+     * botón x-boton-volver en resultados.blade.php -a diferencia de las
+     * otras matrices-, y desde que el admin deja de ser de solo lectura esa
+     * vista dejó de distinguir el rol del todo: ya no hay un "Volver a
+     * Zonas" reservado para él ni ningún aviso de solo lectura. El test
+     * anterior comprobaba justo lo contrario -que el admin NO veía el
+     * enlace al listado editable-, y era lo correcto mientras lo era; ahora
+     * comprueba que ve el mismo enlace que el jefe (ver el test hermano
+     * inmediatamente debajo, para el jefe).
      */
-    public function test_el_admin_ve_los_resultados_de_involucrados_en_modo_lectura(): void
+    public function test_el_admin_ve_el_enlace_al_listado_en_los_resultados_de_involucrados(): void
     {
         Involucrado::create($this->todosEn(1) + [
             'zona_id' => $this->zona->id,
@@ -1113,9 +1162,7 @@ class InvolucradosTest extends TestCase
         $this->actingAs($admin)
             ->get($this->urlResultados())
             ->assertOk()
-            ->assertSee('Volver a Zonas')
-            ->assertSee(route('admin.zonas.index'), false)
-            ->assertDontSee(route('operativo.involucrados.index', $this->zona->id), false);
+            ->assertSee(route('operativo.involucrados.index', $this->zona->id), false);
     }
 
     /**
