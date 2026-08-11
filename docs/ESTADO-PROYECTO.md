@@ -1021,16 +1021,45 @@ niveles de anidamiento— y ninguno se movió con el cambio.
    los defectos de tipografía pero se usan de forma puntual.
 3. **Una matriz sin implementar**: el **Índice Espacial de Frecuentación**, la
    última. Su fichero está en `Documentación/Índice Espacial de Frecuentación
-   Turística.xlsx` —**dentro del repositorio**, desde hoy: antes vivía solo en
-   `~/Downloads` de una máquina, así que en cualquier otra la única matriz
-   pendiente no se podía ni abrir—. Es una lista variable de sitios con dos cifras cada uno y el índice
-   es la suma de sus cocientes, así que se parecería a Involucrados más que a un
-   formulario de criterios. **Está bloqueada por algo que no es técnico:** su
-   hoja original divide todas las filas por el ST de la *primera*, y tiene una
-   celda «Superficie Territorial = 1» que no usa ninguna fórmula. La hoja se
-   contradice a sí misma; **hay que aclarar la fórmula con el autor del
-   instrumento antes de implementarla**, y ninguna interpretación que elijamos
-   por nuestra cuenta sería defendible.
+   Turística.xlsx`, dentro del repositorio.
+
+   **DESBLOQUEADA el 11 de agosto de 2026.** Estuvo parada por una ambigüedad de
+   la hoja, ya resuelta. Lo que sigue es la especificación con la que se puede
+   implementar sin volver a preguntar.
+
+   **Corrección de lo que decía antes esta misma sección:** afirmaba que la hoja
+   «se contradice a sí misma» porque todas las filas dividen por el ST de la
+   primera. **Eso era falso.** `J6:J14` es una **celda combinada**: hay una sola
+   ST para todo el territorio, y las fórmulas `=I6/$J$6` apuntan a ella a
+   propósito. Las fórmulas siempre estuvieron bien. Quien escribió aquella nota
+   —yo— dedujo la contradicción de leer las fórmulas sin mirar las celdas
+   combinadas.
+
+   **La ambigüedad real, y su resolución.** La hoja tiene en `G17/H17` una celda
+   rotulada «Superficie Territorial» con el valor `1` que **ninguna fórmula
+   usa**, y el resultado final `H18` es `=K15`, la suma tal cual. Como esa celda
+   vale 1, `K15` y `K15 ÷ H17` dan el mismo número: en Excel las dos lecturas
+   son indistinguibles, pero en código hay que elegir, y equivocarse desvía
+   todos los resultados por un factor igual a la superficie del territorio.
+
+   **Decisión tomada:** la suma **es** el índice final; la celda de abajo es un
+   resto y no se implementa. El `1` era solo un valor de ejemplo.
+
+   **Especificación:**
+
+   - Una lista de sitios, cada uno con nombre y **DET**.
+   - Una única **ST** para todo el territorio, no una por sitio.
+   - Por sitio: `ÍETP = DET ÷ ST`.
+   - Índice del territorio: `ÍEFT = Σ ÍETP`, que equivale a `(Σ DET) ÷ ST`.
+   - La hoja trae nueve filas; **eso es maquetación, no un tope**. La lista es de
+     longitud variable, así que estructuralmente se parece a **Involucrados**
+     —CRUD de filas con estado— y no a un formulario de criterios. En el
+     registro sería `tipo => 'actores'` o un tipo nuevo análogo.
+
+   **Lo que queda sin confirmar, y no bloquea:** la unidad de DET (visitantes al
+   año, al día, por temporada) y la de ST (km², hectáreas). Se pueden pedir como
+   números sin unidad, como hace hoy el resto del sistema, y rotularlas cuando
+   el autor lo precise.
 
    El **Índice de Concentración** ya está hecho —ver la rama `concentracion`—.
    El solapamiento con el módulo de Inventario, que era la duda que lo tenía
