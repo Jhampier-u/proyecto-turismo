@@ -73,7 +73,10 @@ abstract class EvaluacionZonaController extends Controller
 
         $actual = $modelo::where('zona_id', $zonaId)->first();
 
-        if ($actual && $actual->estado === 'confirmado' && $user->esEquipo()) {
+        // ! esJefe() y no esEquipo(): desde que el admin escribe, él también
+        // tiene que encontrarse la matriz cerrada. Con esEquipo() podría
+        // reabrir lo que el jefe validó y luego no poder volver a validarlo.
+        if ($actual && $actual->estado === 'confirmado' && ! $user->esJefe()) {
             return back()->with('error', $this->mensajeCerrada());
         }
 

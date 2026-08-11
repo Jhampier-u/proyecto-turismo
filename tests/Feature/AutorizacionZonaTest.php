@@ -99,7 +99,12 @@ class AutorizacionZonaTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_el_admin_puede_consultar_pero_no_escribir(): void
+    /**
+     * El admin escribe borradores desde que se le dio permiso; lo que no puede
+     * es validar. La petición no se rechaza, se degrada -igual que con el
+     * equipo-, y PermisosAdminTest cubre el resto de rutas de escritura.
+     */
+    public function test_el_admin_puede_consultar_y_escribir_pero_no_validar(): void
     {
         $admin = $this->usuarioCon('admin');
         $zona  = $this->crearZona($this->usuarioCon('jefe_zona'));
@@ -112,7 +117,12 @@ class AutorizacionZonaTest extends TestCase
             ->post("/operativo/zona/{$zona->id}/evaluacion-fit", [
                 'accion_estado' => 'confirmado',
             ])
-            ->assertForbidden();
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            'borrador',
+            \App\Models\EvaluacionFit::where('zona_id', $zona->id)->value('estado')
+        );
     }
 
     public function test_no_se_puede_borrar_un_inventario_de_otra_zona(): void

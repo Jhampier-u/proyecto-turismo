@@ -17,9 +17,11 @@ use Tests\TestCase;
  * «Reabrir una matriz validada» — docs/ESTADO-PROYECTO.md la daba como «en el
  * diseño, sin implementar». No lo estaba: la máquina de estados vive en
  * accion_estado, dentro del propio formulario, y
- * EvaluacionZonaController::update() solo bloquea a $user->esEquipo() sobre
+ * EvaluacionZonaController::update() solo bloquea a quien no sea jefe sobre
  * una matriz confirmada — nada bloquea al jefe, y el botón "Guardar Borrador"
  * ya está en la vista, sin deshabilitar para él, exactamente en ese caso.
+ * (Antes de que el admin escribiera, la guarda comprobaba $user->esEquipo();
+ * ver PermisosAdminTest para por qué cambió a ! $user->esJefe().)
  *
  * Este fichero no añade la funcionalidad: la fija con tests, para que quien
  * refactorice EvaluacionZonaController en el futuro no la pierda en silencio
@@ -176,13 +178,15 @@ class ReabrirMatrizTest extends TestCase
             ->assertOk()
             ->assertDontSee('Guardar Borrador');
 
-        // Y si intenta escribir directamente, el middleware de zona lo corta
-        // antes de llegar al controlador: es de solo lectura por rol, no solo
-        // por convención de la vista.
+        // Y si intenta escribir directamente: desde que el admin escribe,
+        // el middleware de zona ya no lo corta -entra como cualquier rol
+        // operativo-, así que quien cierra el paso es la guarda de
+        // EvaluacionZonaController::update() sobre matrices confirmadas,
+        // la misma que aplica al equipo.
         $this->actingAs($admin)->post(
             "/operativo/zona/{$this->zona->id}/evaluacion-fit",
             $this->todos(self::CAMPOS_FIT, 0) + ['accion_estado' => 'borrador']
-        )->assertForbidden();
+        )->assertSessionHas('error', 'Evaluación cerrada. No puedes editar.');
 
         $fit = EvaluacionFit::where('zona_id', $this->zona->id)->first();
 

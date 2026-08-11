@@ -311,16 +311,22 @@ class IrritacionTest extends TestCase
         $this->assertSame(4, $eval->vis_congestion);
     }
 
-    public function test_el_admin_no_puede_modificar_la_matriz(): void
+    /**
+     * El admin escribe borradores desde que se le dio permiso; lo que no puede
+     * es validar. La petición no se rechaza, se degrada.
+     */
+    public function test_el_admin_guarda_borrador_pero_no_valida(): void
     {
         $admin = User::factory()->create([
             'role_id' => Role::where('nombre', 'admin')->value('id'),
         ]);
 
-        $this->actingAs($admin)->post($this->url(), $this->todosEn(4))
-            ->assertForbidden();
+        $this->actingAs($admin)->post(
+            $this->url(),
+            $this->todosEn(4) + ['accion_estado' => 'confirmado']
+        )->assertSessionHasNoErrors();
 
-        $this->assertDatabaseCount('evaluaciones_irritacion', 0);
+        $this->assertSame('borrador', EvaluacionIrritacion::value('estado'));
     }
 
     /**

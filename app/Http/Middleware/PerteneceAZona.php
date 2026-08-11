@@ -15,9 +15,10 @@ use Symfony\Component\HttpFoundation\Response;
  * lo que permitía a cualquier usuario autenticado leer y editar los datos de
  * cualquier zona escribiendo el ID en la URL.
  *
- * El administrador puede consultar cualquier zona pero no escribir en ella:
- * sus vistas enlazan a estas páginas en modo consulta, y la validación de las
- * evaluaciones es competencia exclusiva del Jefe de Zona.
+ * El administrador entra a cualquier zona con cualquier método: escribe
+ * evaluaciones y gestiona el inventario como uno más. Lo único que no puede
+ * hacer es validar, competencia exclusiva del Jefe de Zona -esa guarda vive
+ * en los controladores, no aquí-.
  */
 class PerteneceAZona
 {
@@ -32,12 +33,20 @@ class PerteneceAZona
         $user = $request->user();
 
         if ($user->esAdmin()) {
-            abort_unless(
-                $request->isMethodSafe(),
-                403,
-                'El administrador puede consultar las evaluaciones, pero no modificarlas.'
-            );
-
+            // El admin trabaja en cualquier zona, con cualquier método.
+            //
+            // Antes esto le limitaba a métodos seguros. Se abrió a propósito:
+            // rellena formularios y gestiona el inventario como uno más. Lo
+            // único que NO puede es validar, y esa guarda no vive aquí sino en
+            // los controladores —InvolucradosController::validar() aborta si no
+            // eres jefe, y EvaluacionZonaController degrada a borrador a quien
+            // no lo sea—.
+            //
+            // Consecuencia: una ruta de escritura nueva en este grupo queda
+            // permitida al admin por omisión. Si alguna acción debe ser solo
+            // del jefe, guárdala en su controlador;
+            // PermisosAdminTest::test_toda_ruta_de_validacion_sigue_exigiendo_jefe
+            // recorre las rutas y lo comprueba.
             return $next($request);
         }
 
