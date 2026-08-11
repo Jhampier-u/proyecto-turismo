@@ -114,10 +114,7 @@
                          pulsar "Guardar Borrador" sobre una matriz ya
                          validada sin saber que la reabre. --}}
                     @if($estaConfirmado && $esJefe)
-                        <p class="text-sm text-amber-700 mb-3">
-                            <strong>Esta matriz está validada.</strong>
-                            Guardarla la devolverá a borrador y habrá que validarla de nuevo.
-                        </p>
+                        <x-aviso-reapertura class="mb-3" />
                     @endif
                     <div class="flex justify-end gap-3">
                         <button type="submit"

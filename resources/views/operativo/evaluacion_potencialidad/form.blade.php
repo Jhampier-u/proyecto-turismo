@@ -368,10 +368,7 @@
                    "Guardar borrador" sobre una evaluación ya validada sin
                    saber que la reabre. --}}
               @if($isConfirmado && $user->esJefe())
-                <p class="text-sm text-amber-700 mb-3">
-                    <strong>Esta evaluación está validada.</strong>
-                    Guardarla la devolverá a borrador y habrá que validarla de nuevo.
-                </p>
+                <x-aviso-reapertura sustantivo="evaluación" class="mb-3" />
               @endif
               <div class="pt-footer">
                 <div>

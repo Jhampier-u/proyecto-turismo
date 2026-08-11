@@ -2,7 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Matrices\Concentracion;
+use App\Matrices\Fet;
+use App\Matrices\Fit;
+use App\Matrices\Irritacion;
+use App\Matrices\Paisaje;
+use App\Matrices\Percepcion;
+use App\Matrices\Potencialidad;
 use App\Matrices\Registro;
+use App\Matrices\ValoracionTerritorial;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Zona;
@@ -259,26 +267,147 @@ class PermisosAdminTest extends TestCase
             ->assertSee('+ Nuevo actor');
     }
 
-    public function test_el_jefe_ve_que_guardar_una_matriz_validada_la_reabre(): void
+    /**
+     * Payload de criterios que deja completo cada instrumento de tipo
+     * 'matriz' de Registro::ENTRADAS, para poder validarlo con un POST del
+     * jefe (mismo patrón que $this->criteriosDePaisaje(), generalizado).
+     *
+     * Sin 'default' en el match a propósito: si algún día se añade un
+     * instrumento de tipo 'matriz' a Registro::ENTRADAS sin enseñar aquí
+     * cómo rellenarlo, este test tiene que fallar con un error explícito en
+     * vez de saltárselo en silencio -mismo principio que ya usa
+     * RegistroMatricesTest con el propio Registro::ENTRADAS-.
+     *
+     * @return array<string, int|array<int, string>>
+     */
+    private function criteriosCompletosDe(string $clave): array
     {
-        $this->actingAs($this->jefe)->post(
-            $this->urlPaisaje(),
-            $this->criteriosDePaisaje(5) + ['accion_estado' => 'confirmado']
-        );
-
-        $this->actingAs($this->jefe)
-            ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
-            ->assertOk()
-            ->assertSee('la devolverá a borrador');
+        return match ($clave) {
+            'paisaje'                => array_fill_keys(array_keys(Paisaje::todos()), 5),
+            'fit'                    => array_fill_keys(array_keys(Fit::todos()), 3),
+            'fet'                    => array_fill_keys(array_keys(Fet::todos()), 3),
+            'valoracion_territorial' => array_fill_keys(array_keys(ValoracionTerritorial::todos()), 2),
+            'percepcion'             => array_fill_keys(array_keys(Percepcion::todos()), 3),
+            'irritacion'             => array_fill_keys(array_keys(Irritacion::todos()), 5),
+            'concentracion'          => array_fill_keys(Concentracion::campos(), 1),
+            // Potencialidad decide sus campos activos en el propio POST (ver
+            // EvaluacionPotencialidadController::prepararDatos()): sin
+            // 'campos', el jefe activaría cero criterios y la evaluación se
+            // daría por completa sin haber respondido nada.
+            'potencialidad'          => array_fill_keys(array_keys(Potencialidad::todos()), 2)
+                + ['campos' => array_keys(Potencialidad::todos())],
+        };
     }
 
-    public function test_una_matriz_en_borrador_no_muestra_ese_aviso(): void
+    /**
+     * Los instrumentos de tipo 'matriz' de Registro::ENTRADAS -los únicos con
+     * formulario de criterios y estado borrador/confirmado-, con sus rutas de
+     * editar/guardar y un payload que los deja completos.
+     *
+     * Recorrer este mapa en vez de escribir el caso de Paisaje a mano es lo
+     * que hace que una regresión en cualquiera de los ocho formularios la
+     * note esta suite: los dos tests que reemplaza este método solo cubrían
+     * un formulario (Paisaje) y un rol (jefe), así que un copia-pega mal
+     * hecho en cualquiera de los otros siete habría pasado desapercibido.
+     *
+     * @return array<string, array{editar: string, guardar: string, criterios: array}>
+     */
+    private function instrumentosDeMatriz(): array
     {
-        $this->actingAs($this->jefe)->post($this->urlPaisaje(), $this->criteriosDePaisaje(3));
+        $instrumentos = [];
 
-        $this->actingAs($this->jefe)
-            ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
-            ->assertOk()
-            ->assertDontSee('la devolverá a borrador');
+        foreach (Registro::ENTRADAS as $clave => $entrada) {
+            if ($entrada['tipo'] !== 'matriz') {
+                continue;
+            }
+
+            $rutaEditar = $entrada['rutas']['editar'];
+
+            $instrumentos[$clave] = [
+                'editar' => $rutaEditar,
+                // Los ocho instrumentos siguen el mismo patrón .edit/.update
+                // en routes/web.php: no hace falta una segunda lista de rutas.
+                'guardar' => str_replace('.edit', '.update', $rutaEditar),
+                'criterios' => $this->criteriosCompletosDe($clave),
+            ];
+        }
+
+        return $instrumentos;
+    }
+
+    public function test_el_jefe_ve_el_aviso_de_reapertura_en_todas_las_matrices_validadas(): void
+    {
+        foreach ($this->instrumentosDeMatriz() as $clave => $info) {
+            $this->actingAs($this->jefe)->post(
+                route($info['guardar'], $this->zona->id),
+                $info['criterios'] + ['accion_estado' => 'confirmado']
+            )->assertSessionHasNoErrors();
+
+            $html = $this->actingAs($this->jefe)
+                ->get(route($info['editar'], $this->zona->id))
+                ->assertOk()
+                ->getContent();
+
+            $this->assertStringContainsString(
+                'la devolverá a borrador',
+                $html,
+                "El jefe debería ver el aviso de reapertura en «{$clave}» validada."
+            );
+        }
+    }
+
+    public function test_el_equipo_y_el_admin_no_ven_el_aviso_en_una_matriz_validada(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        foreach ($this->instrumentosDeMatriz() as $clave => $info) {
+            $this->actingAs($this->jefe)->post(
+                route($info['guardar'], $this->zona->id),
+                $info['criterios'] + ['accion_estado' => 'confirmado']
+            )->assertSessionHasNoErrors();
+
+            foreach (['equipo' => $equipo, 'admin' => $this->admin] as $rol => $usuario) {
+                $html = $this->actingAs($usuario)
+                    ->get(route($info['editar'], $this->zona->id))
+                    ->assertOk()
+                    ->getContent();
+
+                $this->assertStringNotContainsString(
+                    'la devolverá a borrador',
+                    $html,
+                    "El {$rol} no debería ver el aviso de reapertura en «{$clave}» validada: para él el formulario ya está bloqueado."
+                );
+            }
+        }
+    }
+
+    public function test_nadie_ve_el_aviso_de_reapertura_con_una_matriz_en_borrador(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        foreach ($this->instrumentosDeMatriz() as $clave => $info) {
+            $this->actingAs($this->jefe)
+                ->post(route($info['guardar'], $this->zona->id), $info['criterios'])
+                ->assertSessionHasNoErrors();
+
+            foreach (['jefe' => $this->jefe, 'equipo' => $equipo, 'admin' => $this->admin] as $rol => $usuario) {
+                $html = $this->actingAs($usuario)
+                    ->get(route($info['editar'], $this->zona->id))
+                    ->assertOk()
+                    ->getContent();
+
+                $this->assertStringNotContainsString(
+                    'la devolverá a borrador',
+                    $html,
+                    "El {$rol} no debería ver el aviso de reapertura en «{$clave}» en borrador: guardar no la reabre porque no está validada."
+                );
+            }
+        }
     }
 }

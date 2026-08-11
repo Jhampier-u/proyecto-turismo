@@ -124,10 +124,7 @@
                          pulsar "Guardar Borrador" sobre una matriz ya
                          validada sin saber que la reabre. --}}
                     @if($estaConfirmado && $esJefe)
-                        <p class="w-full text-sm text-amber-700 mb-1">
-                            <strong>Esta matriz está validada.</strong>
-                            Guardarla la devolverá a borrador y habrá que validarla de nuevo.
-                        </p>
+                        <x-aviso-reapertura class="w-full mb-1" />
                     @endif
                     <button type="submit" name="accion_estado" value="borrador" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded shadow-lg">
                         Guardar Borrador
