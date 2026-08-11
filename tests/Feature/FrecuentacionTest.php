@@ -725,7 +725,12 @@ class FrecuentacionTest extends TestCase
             ->get($this->urlResultados())
             ->assertOk()
             ->assertSee('Falta la Superficie Territorial, o es cero', false)
-            ->assertDontSee('Faltan sitios por responder', false);
+            ->assertDontSee('Faltan sitios por responder', false)
+            // Con la ST sin rellenar, ningún ÍETP ni ÍEFT se pinta -aunque el
+            // sitio esté completo-: solo el aviso, nunca una tabla con
+            // guiones ni un número que parezca un resultado.
+            ->assertDontSee('ÍETP')
+            ->assertDontSee('ÍEFT');
 
         // ST guardada en 0 -no debería poder llegar así por el formulario,
         // pero Frecuentacion::ietp() y esta página son la segunda defensa si
@@ -735,7 +740,9 @@ class FrecuentacionTest extends TestCase
         $this->actingAs($this->jefe)
             ->get($this->urlResultados())
             ->assertOk()
-            ->assertSee('Falta la Superficie Territorial, o es cero', false);
+            ->assertSee('Falta la Superficie Territorial, o es cero', false)
+            ->assertDontSee('ÍETP')
+            ->assertDontSee('ÍEFT');
     }
 
     /** Con un sitio a medias y la ST también sin definir, se citan los dos motivos. */
