@@ -860,6 +860,70 @@ la interfaz mientras todas las revisiones por tarea daban verde.
 conmutador es Alpine puro: que el botón conmute y la preferencia sobreviva a una
 recarga no lo cubre ningún test.
 
+### Rama `frecuentacion` — décima y última matriz, terminada
+
+Seis tareas, suite de **479 → 480 tests**. Con esta rama **las diez matrices del
+sistema quedan implementadas** — el punto 3 de §6 ya no queda pendiente.
+
+Añade el **Índice Espacial de Frecuentación Turística**: reparte la
+frecuentación de una zona entre sus sitios, `ÍETP = DET ÷ ST` por sitio,
+`ÍEFT = Σ ÍETP` para el territorio. La ST (Superficie Territorial) es **una
+por zona, no por sitio**, y vive en `frecuentacion_config` junto al estado del
+conjunto —el mismo sitio donde `InvolucradosConfig` guarda el estado, con una
+columna de más—.
+
+**Un tipo de entrada nuevo, `sitios`, no una reutilización de `actores`.**
+`EstadoZona::filaActores()` y la rama `elseif($entrada['tipo'] === 'actores')`
+de `pestanas-matriz.blade.php` tienen la relación `$zona->involucrados()`
+escrita a mano; reutilizar `actores` habría hecho que la fila y la pestaña de
+Frecuentación contaran actores de Involucrados, no sitios propios. `sitios` es
+su hermano, con una condición de completitud a dos partes que `actores` no
+tiene: la lista de sitios, **y** la ST.
+
+**ST nula o cero → ningún ÍETP existe, para ningún sitio de la zona** —nunca un
+`DivisionByZeroError` ni un número inventado—: `Frecuentacion::ietp()` devuelve
+`null`, y la condición se resuelve **una sola vez, a nivel de página**
+(`<x-matriz-sin-resultados>`), no fila por fila como el `Pi` de Concentración:
+con la ST compartida por todos los sitios, si falta o es cero, ningún sitio
+tiene ÍETP, no solo uno.
+
+**Un bug real que la propia rama encontró y corrigió antes de esta revisión:**
+`EstadoZona::filaSitios()` nació (Tarea 1) con el orden invertido respecto a su
+hermana `filaActores()` —comprobaba `cuantos === 0` antes que `validada`—. Una
+configuración confirmada con sitios habría aparecido como "sin empezar" en la
+página de zona, contradiciendo a `validadas()` y `progresoDe()`, que ya la
+cuentan como hecha. Se corrigió en el commit `bf73894` (Tarea 3), antes de que
+llegara a verse en ninguna vista real —hasta entonces la entrada no existía de
+verdad—. Esta revisión final añadió el test que faltaba para sujetar el orden
+correcto: `EstadoZonaTest::test_una_entrada_de_sitios_confirmada_con_cero_sitios_es_validada`.
+
+**Un hallazgo aparte, en un fichero que no es de esta rama.** Investigando un
+reporte de fragilidad en `ConmutadorVistaTest` (de `permisos-y-navegacion`) se
+reprodujo, con semilla y en dos corridas independientes de la suite en orden
+aleatorio, que `test_el_admin_ve_jefe_y_miembros_en_las_dos_maquetaciones`
+falla de verdad cuando el nombre que genera Faker (`locale` `en_US`, sin
+configurar) lleva apóstrofe —`O'Kon`, `O'Keefe`...—: la vista lo pinta con
+`{{ }}`, que lo escapa a `&#039;`, y el test comparaba con `substr_count()`
+contra el nombre sin escapar. Mismo patrón que ya dejó anotado este documento
+para los correos de Faker, aplicado esta vez a un nombre. Corregido comparando
+contra `e($this->jefe->name)`. **No se confirmó una causa concreta para el test
+que sí se reportó**, `ConmutadorVistaTest::test_inventario_conserva_su_propia_preferencia`
+—no depende de ningún dato de Faker—: cientos de corridas en orden aleatorio no
+lo reprodujeron. Ver el detalle en el informe de esta revisión.
+
+**La migración contra PostgreSQL real y la suite completa contra Postgres —
+pedidas por la Tarea 6— no se pudieron ejecutar en esta máquina**: Docker
+Desktop no consigue levantar su backend (WSL2 se queda en `Stopped`, y el
+servicio `com.docker.service` está detenido sin permisos para arrancarlo desde
+esta sesión). Queda pendiente para quien tenga Docker operativo:
+`docker run --rm -d --name frecuentacion-pg -e POSTGRES_PASSWORD=... -p 5433:5432 postgres:16`,
+migrar, y comprobar que `st`/`det` quedan `numeric` nullable sin defecto y que
+los modelos los devuelven como `float`. El recorrido manual con
+`jefe@local.test` / `password` sobre SQLite sí se hizo completo —tres sitios,
+un DET a medias, ST en 0 rechazada, ST válida, validar, resultados con ÍETP e
+ÍEFT correctos, y la reapertura al editar un sitio ya validado— y se comportó
+exactamente como describe el diseño.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -1019,52 +1083,12 @@ niveles de anidamiento— y ninguno se movió con el cambio.
    faltaban. Suite: **222 tests**. Quedan fuera, a propósito, los formularios
    de alta y edición (`users/form`, `lugares/form`, `zonas/form`): comparten
    los defectos de tipografía pero se usan de forma puntual.
-3. **Una matriz sin implementar**: el **Índice Espacial de Frecuentación**, la
-   última. Su fichero está en `Documentación/Índice Espacial de Frecuentación
-   Turística.xlsx`, dentro del repositorio.
-
-   **DESBLOQUEADA el 11 de agosto de 2026.** Estuvo parada por una ambigüedad de
-   la hoja, ya resuelta. Lo que sigue es la especificación con la que se puede
-   implementar sin volver a preguntar.
-
-   **Corrección de lo que decía antes esta misma sección:** afirmaba que la hoja
-   «se contradice a sí misma» porque todas las filas dividen por el ST de la
-   primera. **Eso era falso.** `J6:J14` es una **celda combinada**: hay una sola
-   ST para todo el territorio, y las fórmulas `=I6/$J$6` apuntan a ella a
-   propósito. Las fórmulas siempre estuvieron bien. Quien escribió aquella nota
-   —yo— dedujo la contradicción de leer las fórmulas sin mirar las celdas
-   combinadas.
-
-   **La ambigüedad real, y su resolución.** La hoja tiene en `G17/H17` una celda
-   rotulada «Superficie Territorial» con el valor `1` que **ninguna fórmula
-   usa**, y el resultado final `H18` es `=K15`, la suma tal cual. Como esa celda
-   vale 1, `K15` y `K15 ÷ H17` dan el mismo número: en Excel las dos lecturas
-   son indistinguibles, pero en código hay que elegir, y equivocarse desvía
-   todos los resultados por un factor igual a la superficie del territorio.
-
-   **Decisión tomada:** la suma **es** el índice final; la celda de abajo es un
-   resto y no se implementa. El `1` era solo un valor de ejemplo.
-
-   **Especificación:**
-
-   - Una lista de sitios, cada uno con nombre y **DET**.
-   - Una única **ST** para todo el territorio, no una por sitio.
-   - Por sitio: `ÍETP = DET ÷ ST`.
-   - Índice del territorio: `ÍEFT = Σ ÍETP`, que equivale a `(Σ DET) ÷ ST`.
-   - La hoja trae nueve filas; **eso es maquetación, no un tope**. La lista es de
-     longitud variable, así que estructuralmente se parece a **Involucrados**
-     —CRUD de filas con estado— y no a un formulario de criterios. En el
-     registro sería `tipo => 'actores'` o un tipo nuevo análogo.
-
-   **Lo que queda sin confirmar, y no bloquea:** la unidad de DET (visitantes al
-   año, al día, por temporada) y la de ST (km², hectáreas). Se pueden pedir como
-   números sin unidad, como hace hoy el resto del sistema, y rotularlas cuando
-   el autor lo precise.
-
-   El **Índice de Concentración** ya está hecho —ver la rama `concentracion`—.
-   El solapamiento con el módulo de Inventario, que era la duda que lo tenía
-   parado, se resolvió a propósito **no** derivando uno del otro; el motivo está
-   arriba y en el diseño.
+3. ~~**Una matriz sin implementar**: el Índice Espacial de Frecuentación~~ —
+   hecho, rama `frecuentacion` (§3): **las diez matrices del sistema quedan
+   implementadas, ninguna pendiente**. `ÍETP = DET ÷ ST` por sitio, `ÍEFT = Σ ÍETP`
+   para el territorio, con la ST como escalar de la zona en
+   `frecuentacion_config`. Detalle completo, decisiones de diseño y el bug de
+   orden que corrigió, en §3.
 4. ~~**Migrar Percepción y Potencialidad**~~ — hecho. Percepción en la rama
    `percepcion-componentes`, Potencialidad en `potencialidad-componentes`
    (§3): 3 niveles, sin cuarto nivel real ni escala invertida en los 156
@@ -1128,8 +1152,13 @@ decía durante meses «`git checkout guardado-parcial`, comprueba que da 209
 tests», y era la instrucción más dañina del documento — quien la siguiera se
 llevaría una rama antigua y creería que el clon salió mal.
 
-Comprobar que la suite da **394 tests** antes de tocar nada. Si da menos, algo
+Comprobar que la suite da **480 tests** antes de tocar nada. Si da menos, algo
 no llegó; si fallan unos 57 de golpe, faltó el `npm run build` (ver §2).
+
+*(Este número llevaba desde `permisos-y-navegacion` sin actualizarse —decía
+394 cuando la propia sección de esa rama, arriba, ya declaraba 444—: otro caso
+de la misma deriva que describe el párrafo siguiente. 480 es lo que da esta
+rama, `frecuentacion`, la décima y última matriz.)*
 
 ```bash
 php artisan test

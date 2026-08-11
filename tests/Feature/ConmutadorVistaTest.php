@@ -108,7 +108,14 @@ class ConmutadorVistaTest extends TestCase
     {
         $html = $this->actingAs($this->admin)->get('/admin/zonas')->assertOk()->getContent();
 
-        $this->assertSame(2, substr_count($html, $this->jefe->name));
+        // e($this->jefe->name) y no el nombre en crudo: la vista lo pinta con
+        // {{ }}, que escapa comillas y ampersanes. El Faker de este proyecto
+        // (locale en_US, sin configurar) genera apellidos con apóstrofe
+        // -"O'Kon", "O'Keefe"...-, y buscar el nombre crudo dentro del HTML
+        // escapado da 0 en vez de 2 justo esas veces: no es un "flake" de
+        // orden, es este mismo choque -ya documentado en el proyecto para
+        // los correos de Faker- aplicado a un nombre.
+        $this->assertSame(2, substr_count($html, e($this->jefe->name)));
         $this->assertSame(2, substr_count($html, 'miembros'));
     }
 

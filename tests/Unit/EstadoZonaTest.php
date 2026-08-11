@@ -229,7 +229,7 @@ class EstadoZonaTest extends TestCase
     {
         $estado = new EstadoZona($this->zona, $this->jefe);
         $this->assertSame(0, $estado->validadas());
-        $this->assertSame(9, $estado->totalMatrices());
+        $this->assertSame(10, $estado->totalMatrices());
 
         EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'confirmado']);
         EvaluacionFet::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
@@ -440,6 +440,72 @@ class EstadoZonaTest extends TestCase
 
         $this->assertSame('sin_empezar', $fila->estado);
         $this->assertStringContainsString('sin actores', $fila->detalle);
+    }
+
+    /**
+     * El quinto tipo de entrada: un CRUD con estado, hermano de 'actores' y
+     * no una reutilización de él. Frecuentación tiene dos cosas que
+     * 'actores' no contempla: la Superficie Territorial (un escalar de la
+     * zona, no de cada fila) y una relación distinta a
+     * $zona->involucrados(). Reutilizar 'actores' habría hecho que esta fila
+     * contara actores de Involucrados, no sitios propios -filaActores() y su
+     * gemela de pestanas-matriz.blade.php llaman a esa relación a mano-.
+     *
+     * Igual que su hermano de Involucrados, se salta si todavía no hay
+     * ninguna entrada de este tipo: no es este test quien debe vigilar que
+     * exista.
+     */
+    public function test_una_entrada_de_sitios_sin_empezar_lo_dice(): void
+    {
+        $deSitios = array_filter(
+            \App\Matrices\Registro::ENTRADAS,
+            fn(array $e) => $e['tipo'] === 'sitios'
+        );
+
+        if ($deSitios === []) {
+            $this->markTestSkipped('No hay ninguna entrada de tipo sitios.');
+        }
+
+        $clave = array_key_first($deSitios);
+        $fila  = $this->filas()[$clave];
+
+        $this->assertSame('sin_empezar', $fila->estado);
+        $this->assertStringContainsString('sin sitios', $fila->detalle);
+    }
+
+    /**
+     * El orden importa: EstadoZona::filaSitios() decide primero por el
+     * estado de la configuración, y solo después por el recuento de sitios
+     * -igual que filaActores(), mismo motivo documentado en su docblock-.
+     * Antes de la Tarea 3 el orden estaba invertido (se comprobaba
+     * `cuantos === 0` antes que `validada`, tal como quedó escrito en el
+     * plan): una configuración confirmada con cero sitios -un dato
+     * inconsistente, porque validar() exige al menos un sitio, pero
+     * alcanzable por otro camino: una migración, un dato antiguo- se
+     * pintaba "sin empezar" mientras validadas() y progresoDe() ya la
+     * contaban como hecha, con cabecera y fila en contradicción. Este test
+     * fija el orden correcto para que no se repita sin que nadie lo note.
+     */
+    public function test_una_entrada_de_sitios_confirmada_con_cero_sitios_es_validada(): void
+    {
+        $deSitios = array_filter(
+            \App\Matrices\Registro::ENTRADAS,
+            fn(array $e) => $e['tipo'] === 'sitios'
+        );
+
+        if ($deSitios === []) {
+            $this->markTestSkipped('No hay ninguna entrada de tipo sitios.');
+        }
+
+        $clave  = array_key_first($deSitios);
+        $modelo = $deSitios[$clave]['modelo'];
+
+        $modelo::create(['zona_id' => $this->zona->id, 'estado' => 'confirmado']);
+
+        $fila = $this->filas()[$clave];
+
+        $this->assertSame('validada', $fila->estado);
+        $this->assertSame('Ver', $fila->accion);
     }
 
     public function test_el_contador_de_criterios_es_reutilizable_desde_fuera(): void

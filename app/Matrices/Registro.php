@@ -10,6 +10,7 @@ use App\Models\EvaluacionPaisaje;
 use App\Models\EvaluacionPercepcion;
 use App\Models\EvaluacionPotencialidad;
 use App\Models\EvaluacionValoracionTerritorial;
+use App\Models\FrecuentacionConfig;
 use App\Models\InvolucradosConfig;
 
 /**
@@ -49,6 +50,8 @@ final class Registro
      *   'inventario'— CRUD de recursos, sin estado
      *   'resultado' — derivado de otras entradas, no se rellena
      *   'actores'   — lista variable de actores con estado; cuenta para el progreso
+     *   'sitios'    — lista variable de sitios con estado Y un escalar de zona
+     *                 (la Superficie Territorial); cuenta para el progreso
      */
     public const ENTRADAS = [
         'inventario' => [
@@ -203,6 +206,20 @@ final class Registro
             ],
             'depende_de' => [],
         ],
+
+        'frecuentacion' => [
+            'nombre'     => 'Frecuentación turística',
+            'icono'      => 'ubicacion',
+            'grupo'      => 'presion',
+            'tipo'       => 'sitios',
+            'modelo'     => FrecuentacionConfig::class,
+            'criterios'  => null,
+            'rutas'      => [
+                'editar' => 'operativo.frecuentacion.index',
+                'ver'    => 'operativo.frecuentacion.resultados',
+            ],
+            'depende_de' => [],
+        ],
     ];
 
     /** Entradas de un grupo, conservando sus claves y el orden de declaración. */
@@ -219,7 +236,7 @@ final class Registro
      * la zona. `inventario` no está porque no tiene estado, y `resultado`
      * porque es derivado: contarlos haría que el denominador mintiera.
      */
-    public const TIPOS_VALIDABLES = ['matriz', 'actores'];
+    public const TIPOS_VALIDABLES = ['matriz', 'actores', 'sitios'];
 
     /** Solo las entradas validables: las que cuentan para el progreso. */
     public static function matrices(): array
