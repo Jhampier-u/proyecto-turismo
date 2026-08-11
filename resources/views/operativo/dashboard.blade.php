@@ -35,6 +35,11 @@
                         <div class="flex-1 min-w-0">
                             <p class="text-base text-gray-900">{{ $zona->nombre }}</p>
                             <p class="text-sm text-gray-600">📍 {{ $zona->lugar->nombre }}</p>
+                            {{-- Misma descripción que la tarjeta, para que cambiar de
+                                 formato no le esconda este dato al usuario. --}}
+                            <p class="text-sm text-gray-600 mt-1 line-clamp-1">
+                                {{ $zona->descripcion ?? 'Sin descripción disponible.' }}
+                            </p>
                         </div>
 
                         <div class="w-40 shrink-0">

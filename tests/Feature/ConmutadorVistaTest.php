@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Zona;
+use App\Servicios\EstadoZona;
 use Database\Seeders\SystemSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -71,6 +72,28 @@ class ConmutadorVistaTest extends TestCase
             substr_count($html, $url . '"'),
             'El enlace a la zona debe aparecer una vez en cada maquetación.'
         );
+    }
+
+    public function test_las_dos_maquetaciones_de_mis_zonas_llevan_los_mismos_datos(): void
+    {
+        // Descripción explícita (no el texto de reserva) para que el conteo
+        // demuestre que el propio dato viaja en las dos maquetaciones, no
+        // solo el "Sin descripción disponible." que saldría igual si el
+        // campo faltara en una de las dos.
+        $this->zona->update(['descripcion' => 'Zona costera con senderos y miradores.']);
+        $this->zona->refresh();
+
+        $html = $this->actingAs($this->jefe)->get('/mis-zonas')->assertOk()->getContent();
+
+        // Mismo cálculo que usa el controlador, para no inventar un número
+        // de progreso que luego no coincida con el que pinta la vista.
+        $p = EstadoZona::progresoDe(collect([$this->zona]))[$this->zona->id];
+        $progreso = "{$p['hechas']} / {$p['total']}";
+
+        $this->assertSame(2, substr_count($html, $this->zona->nombre), 'El nombre debe aparecer una vez por maquetación.');
+        $this->assertSame(2, substr_count($html, '📍 ' . $this->zona->lugar->nombre), 'El lugar debe aparecer una vez por maquetación.');
+        $this->assertSame(2, substr_count($html, 'Zona costera con senderos y miradores.'), 'La descripción debe aparecer una vez por maquetación.');
+        $this->assertSame(2, substr_count($html, $progreso), 'El progreso debe aparecer una vez por maquetación.');
     }
 
     public function test_la_lista_del_admin_trae_las_dos_maquetaciones(): void
