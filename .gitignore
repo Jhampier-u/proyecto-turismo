@@ -33,3 +33,6 @@ __pycache__/
 # Configuracion local del servidor de desarrollo (Claude Code): la decide
 # cada maquina, no el proyecto.
 /.claude/launch.json
+
+# Maquetas del brainstorming visual: son material de trabajo, no del proyecto.
+.superpowers/
