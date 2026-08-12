@@ -115,7 +115,14 @@
     </style>
 
     <div class="pt-root">
-      <div style="max-width:1160px;margin:0 auto;padding:0 1.25rem;">
+      {{--
+          Este contenedor de página era un estilo en línea —max-width:1160px—,
+          resto de cuando Potencialidad traía su propio CSS de layout. Al no
+          ser una clase de Tailwind, no aparecía en la búsqueda que encontró
+          los demás, y esta vista se habría quedado en 1160px mientras las
+          otras nueve matrices pasaban a 1440.
+      --}}
+      <x-contenedor>
 
         <x-pestanas-matriz clave="potencialidad" :zona="$zona" activa="formulario" />
 
@@ -457,7 +464,7 @@
             :respondidos="$respondidosActivos" />
 
         </div>{{-- /lg:grid --}}
-      </div>{{-- /container --}}
+      </x-contenedor>
     </div>{{-- /pt-root --}}
 
     <script>
