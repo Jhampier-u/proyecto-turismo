@@ -10,7 +10,6 @@
          a la otra. --}}
     <div class="py-12" x-data="{ vista: localStorage.getItem('zonas_vista') || 'tarjetas' }"
          x-init="$watch('vista', v => localStorage.setItem('zonas_vista', v))">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             @if(session('success'))
             <div class="mb-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded">{{ session('success') }}</div>
@@ -150,6 +149,5 @@
                 @endforeach
             </div>
 
-        </div>
     </div>
 </x-app-layout>

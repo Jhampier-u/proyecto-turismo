@@ -34,7 +34,6 @@
     @endphp
 
     <div class="py-12">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="paisaje" :zona="$zona" activa="resultados" />
 
@@ -127,7 +126,6 @@
                 <x-boton-volver :zona="$zona" />
             </div>
 
-        </div>
     </div>
 
     {{-- El gráfico va dentro del @else: sin evaluación no hay datos que pintar

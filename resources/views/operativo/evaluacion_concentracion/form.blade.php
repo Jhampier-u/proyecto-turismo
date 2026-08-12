@@ -6,7 +6,6 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="concentracion" :zona="$zona" activa="formulario" />
 
@@ -220,7 +219,6 @@
             <x-barra-lateral-formulario clave="concentracion" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-concentracion" />
 
             </div>{{-- /lg:grid --}}
-        </div>
     </div>
 
     <script>

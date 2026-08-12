@@ -21,7 +21,6 @@
         </x-matriz-sin-resultados>
     @else
         <div class="py-12">
-            <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
 
                 <x-pestanas-matriz clave="frecuentacion" :zona="$zona" activa="resultados" />
 
@@ -100,7 +99,6 @@
                     </div>
 
                 </div>
-            </div>
         </div>
     @endif
 </x-app-layout>

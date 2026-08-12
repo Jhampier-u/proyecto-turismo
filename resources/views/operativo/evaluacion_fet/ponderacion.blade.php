@@ -18,7 +18,6 @@
     @else
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="fet" :zona="$zona" activa="resultados" />
 
@@ -177,7 +176,6 @@
                      su candado y el motivo-; y "Mis Zonas" subió junto a las
                      pestañas, convertido en el botón de volver a la zona. --}}
             </div>
-        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>

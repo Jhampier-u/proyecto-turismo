@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
+        <x-contenedor ancho="estrecho">
 
             <a href="{{ route('operativo.frecuentacion.index', $zona->id) }}"
                class="inline-block px-5 py-2 mb-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">
@@ -78,6 +78,6 @@
                 </div>
             </form>
 
-        </div>
+        </x-contenedor>
     </div>
 </x-app-layout>

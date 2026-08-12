@@ -34,7 +34,6 @@
     @else
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="potencialidad" :zona="$zona" activa="resultados" />
 
@@ -386,7 +385,6 @@
                 </div>
 
             </div>
-        </div>
     </div>
 
     {{-- Gráfico de cuadrantes con Chart.js --}}

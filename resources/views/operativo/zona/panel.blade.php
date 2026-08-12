@@ -6,7 +6,6 @@
     </x-slot>
 
     <div class="py-10">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
 
             @if(session('success'))
                 <div class="mb-6 bg-green-50 border-l-4 border-green-500 text-green-800 p-4 rounded text-base">
@@ -69,6 +68,5 @@
                 <x-boton-volver texto="← Volver" />
             </div>
 
-        </div>
     </div>
 </x-app-layout>

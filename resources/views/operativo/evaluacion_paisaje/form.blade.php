@@ -6,7 +6,6 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="paisaje" :zona="$zona" activa="formulario" />
 
@@ -186,6 +185,5 @@
             <x-barra-lateral-formulario clave="paisaje" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-paisaje" />
 
             </div>{{-- /lg:grid --}}
-        </div>
     </div>
 </x-app-layout>
