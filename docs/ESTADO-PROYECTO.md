@@ -1264,12 +1264,43 @@ niveles de anidamiento— y ninguno se movió con el cambio.
     contenido: «5 sitios, 2 sin DET», el botón de validar, y en Frecuentación la
     Superficie Territorial, que hoy es un dato de zona perdido entre las filas.
     **Merece su propio diseño, corto.** No se empieza copiando el componente.
-11. **Tres etiquetas desalineadas** entre el formulario y la tabla de resultados
-    de FIT y FET: «Seguridad del Destino» frente a «…o Sitio de Visita»,
-    «Productos Territoriales» frente a «Producto Turístico Territorial», y la de
-    apertura de la comunidad. **Es decisión de contenido, no de código**: hay que
-    mirar el instrumento y decidir cuál es la buena.
-12. **La verificación contra PostgreSQL de Frecuentación quedó sin hacer**:
+11. **Etiquetas de FIT y FET** — dos de las tres resueltas, y una tercera cosa
+    peor que salió al mirarlo.
+
+    **Resueltas**, cotejadas contra `IMPLEMENTADA MATRIZ DE VOCACIÓN TURISTICA
+    RURAL .xlsx`: no eran decisión de contenido, eran **palabras caídas al
+    transcribir**. El instrumento dice «Grado de Apertura de la Comunidad
+    **Local**» en los tres sitios donde aparece, y «Productos **Turísticos**
+    Territoriales» siempre; nuestros formularios habían perdido una palabra en
+    cada uno. Corregido en `app/Matrices/{Fit,Fet}.php`.
+
+    **Pendiente, y esta sí es tuya:** «Seguridad del Destino». **El propio
+    instrumento usa dos formas** — la corta en la lista de criterios
+    (`Factores Extrínsecos Territorio!C12`) y la larga, «…o Sitio de Visita», en
+    la escala valorativa y en la ponderación. Hay que decidir cuál manda.
+
+    **Lo que no era desalineación:** en Productos, el formulario nombra el
+    *criterio* (plural) y la tabla el *bloque ponderado* «Producto Turístico
+    Territorial (PTt)» (singular). El instrumento hace esa misma distinción.
+
+12. ~~**La tabla de resultados de FIT enseñaba doce de sus dieciocho
+    criterios**~~ — arreglado. Faltaban los seis de Facilidades Turísticas:
+    recepción, centros de interpretación, senderos, estacionamientos,
+    campamentos y miradores. **Contaban para `media_ft` y para la nota, pero no
+    aparecían por ninguna parte**, así que nadie podía cuadrar su resultado con
+    lo que había respondido. El `rowspan="8"` del bloque ya las contaba y solo
+    había dos filas debajo.
+
+    Nadie lo detectó porque **las tablas de FIT y FET están escritas a mano fila
+    a fila**, mientras las demás matrices recorren su instrumento con un
+    `@foreach`. `tests/Unit/ResultadosMuestranTodosLosCriteriosTest.php` lo
+    vigila ahora para las cinco matrices con instrumento consultable.
+
+    Quedan fuera de ese test, y merecerían entrar: **Potencialidad** —sus campos
+    activos son configurables, así que «todos sus criterios» significa otra cosa
+    y necesita su propia comprobación—, **Irritación** y **Concentración**, cuyos
+    instrumentos no exponen `todos()`.
+13. **La verificación contra PostgreSQL de Frecuentación quedó sin hacer**:
     Docker no levantaba en la máquina donde se implementó (backend de WSL2
     parado, sin permiso para arrancar el servicio). Es la única matriz cuya
     migración no se ha probado contra la base de producción.
