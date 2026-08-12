@@ -58,6 +58,12 @@ class BadgeTest extends TestCase
     /**
      * El test que impide que el mapa vuelva a duplicarse: si alguien copia los
      * colores dentro del badge y luego cambia los de fila-matriz, esto falla.
+     *
+     * Se comprueba el código de los dos componentes y no su salida, a
+     * propósito: lo que se quiere garantizar no es «pintan igual» —podrían
+     * pintar igual por casualidad, con dos tablas idénticas que mañana se
+     * separan— sino que **leen del mismo sitio**, que es lo único que impide
+     * la divergencia.
      */
     public function test_el_badge_y_la_fila_leen_el_mismo_mapa(): void
     {
