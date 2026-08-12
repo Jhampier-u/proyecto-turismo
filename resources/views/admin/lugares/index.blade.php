@@ -4,14 +4,13 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Catálogo de Lugares Geográficos') }}
             </h2>
-            <a href="{{ route('admin.lugares.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">
+            <x-boton :href="route('admin.lugares.create')">
                 + Nuevo Lugar
-            </a>
+            </x-boton>
         </div>
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             @if(session('success'))
             <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
@@ -24,7 +23,7 @@
             </div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+            <x-tarjeta class="overflow-hidden">
 
                 <form method="GET" action="{{ route('admin.lugares.index') }}"
                       class="flex flex-wrap gap-3 mb-6">
@@ -32,15 +31,13 @@
                            placeholder="Buscar por nombre"
                            class="flex-1 min-w-64 text-base border-gray-300 rounded-lg shadow-sm
                                   focus:ring-indigo-500 focus:border-indigo-500">
-                    <button type="submit"
-                            class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-base font-medium hover:bg-indigo-700">
+                    <x-boton>
                         Buscar
-                    </button>
+                    </x-boton>
                     @if($buscar !== '')
-                        <a href="{{ route('admin.lugares.index') }}"
-                           class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-base text-gray-700 hover:bg-gray-50">
+                        <x-boton :href="route('admin.lugares.index')" variante="secundario">
                             Limpiar
-                        </a>
+                        </x-boton>
                     @endif
                 </form>
 
@@ -105,7 +102,6 @@
                 @endif
 
                 <div class="mt-4">{{ $lugares->links() }}</div>
-            </div>
-        </div>
+            </x-tarjeta>
     </div>
 </x-app-layout>

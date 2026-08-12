@@ -6,12 +6,11 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="concentracion" :zona="$zona" activa="formulario" />
 
             <x-boton-volver :zona="$zona" texto="Regresar"
-                class="!inline-flex !items-center !px-4 !py-2 !mb-4 !bg-blue-300 hover:!bg-blue-500 !text-black !font-bold !rounded-lg !shadow-sm" />
+                class="mb-4" />
 
             @php
                 $esJefe         = auth()->user()->esJefe();
@@ -126,7 +125,7 @@
                 @csrf
 
                 {{-- ═══════════════════ ATRACTIVOS TURÍSTICOS (77) ═══════════════════ --}}
-                <section id="atractivos" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $colorSeccion['atractivos'] }}">
+                <x-tarjeta id="atractivos" class="mb-6 border-l-4 {{ $colorSeccion['atractivos'] }}">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
                         <h3 class="text-xl font-bold text-gray-900">Atractivos Turísticos</h3>
                         {{-- "Respondido" incluye el 0 -significa "no hay
@@ -160,10 +159,10 @@
                             @endforeach
                         </div>
                     @endforeach
-                </section>
+                </x-tarjeta>
 
                 {{-- ═══════════════════ PLANTA TURÍSTICA (36) ═══════════════════ --}}
-                <section id="planta" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $colorSeccion['planta'] }}">
+                <x-tarjeta id="planta" class="mb-6 border-l-4 {{ $colorSeccion['planta'] }}">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
                         <h3 class="text-xl font-bold text-gray-900">Planta Turística</h3>
                         <span class="text-sm font-semibold text-blue-700">
@@ -184,7 +183,7 @@
                                 color-texto="text-blue-700" />
                         @endforeach
                     </div>
-                </section>
+                </x-tarjeta>
 
                 @unless($bloqueado)
                     {{-- El jefe siempre pasa por aquí (nunca está $bloqueado
@@ -195,17 +194,15 @@
                         <x-aviso-reapertura class="mb-3" />
                     @endif
                     <div class="flex justify-end gap-3">
-                        <button type="submit"
-                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">
+                        <x-boton variante="secundario">
                             Guardar Borrador
-                        </button>
+                        </x-boton>
 
                         @if($esJefe)
-                            <button type="submit" name="accion_estado" value="confirmado"
-                                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow"
+                            <x-boton name="accion_estado" value="confirmado"
                                     onclick="return confirm('Al validar, la evaluación queda cerrada para el equipo. ¿Continuar?');">
                                 Validar y Finalizar
-                            </button>
+                            </x-boton>
                         @endif
                     </div>
                 @else
@@ -220,7 +217,6 @@
             <x-barra-lateral-formulario clave="concentracion" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-concentracion" />
 
             </div>{{-- /lg:grid --}}
-        </div>
     </div>
 
     <script>

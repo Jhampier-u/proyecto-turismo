@@ -9,27 +9,37 @@
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
+        {{-- bg-gray-50 vale #F8FAFC con el alias de tailwind.config.js: el
+             fondo pedido, escrito con el único nombre de gris que usa el
+             proyecto. --}}
+        <div class="min-h-screen bg-gray-50">
             @include('layouts.navigation')
 
             <!-- Page Heading -->
             @isset($header)
                 <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                    <x-contenedor class="py-6">
                         {{ $header }}
-                    </div>
+                    </x-contenedor>
                 </header>
             @endisset
 
-            <!-- Page Content -->
+            {{--
+                El contenedor vive aquí y no en cada vista: si la cabecera y el
+                cuerpo llevaran anchos distintos, el título de la página no
+                alinearía con su contenido, y se nota en todas las páginas a la
+                vez.
+            --}}
             <main>
-                {{ $slot }}
+                <x-contenedor>
+                    {{ $slot }}
+                </x-contenedor>
             </main>
         </div>
     </body>

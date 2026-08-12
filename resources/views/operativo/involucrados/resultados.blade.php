@@ -12,16 +12,14 @@
             ruta-formulario="operativo.involucrados.index" />
     @else
         <div class="py-12">
-            <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
 
                 <x-pestanas-matriz clave="involucrados" :zona="$zona" activa="resultados" />
 
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
+                <x-tarjeta :padding="false" class="overflow-hidden p-8">
 
-                    <a href="{{ route('operativo.involucrados.index', $zona->id) }}"
-                       class="inline-block px-5 py-2 mb-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">
+                    <x-boton :href="route('operativo.involucrados.index', $zona->id)" variante="secundario" class="mb-4">
                         ← Volver al listado
-                    </a>
+                    </x-boton>
 
                     {{-- Involucrados no tiene un $evaluacion por actor: el
                          "quién tocó esto por última vez" vive en
@@ -131,8 +129,7 @@
                         </table>
                     </div>
 
-                </div>
-            </div>
+                </x-tarjeta>
         </div>
     @endif
 </x-app-layout>

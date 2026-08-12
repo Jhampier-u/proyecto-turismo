@@ -6,12 +6,11 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="valoracion_territorial" :zona="$zona" activa="formulario" />
 
             <x-boton-volver :zona="$zona" texto="Regresar"
-                class="!inline-flex !items-center !px-4 !py-2 !mb-4 !bg-blue-300 hover:!bg-blue-500 !text-black !font-bold !rounded-lg !shadow-sm" />
+                class="mb-4" />
 
             @php
                 $esJefe         = auth()->user()->esJefe();
@@ -94,10 +93,14 @@
                     $pesos = fn($grupo) => collect($grupo)->map(fn($c) => $c['peso']);
                 @endphp
 
-                <section id="rtt" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
+                <x-tarjeta id="rtt" class="mb-6"
                          x-data="{
-                            valores: @js($inicial($ct)),
-                            pesos: @js($pesos($ct)),
+                            // @js() no se compila dentro de un atributo de
+                            // <x-componente> -la etiqueta se procesa antes que
+                            // las @directivas, así que queda literal-; Js::from()
+                            // es lo mismo que usa @js() por debajo.
+                            valores: {{ Illuminate\Support\Js::from($inicial($ct)) }},
+                            pesos: {{ Illuminate\Support\Js::from($pesos($ct)) }},
                             // Con la dimensión a medias no hay subtotal que
                             // enseñar: contar los huecos como 0 daba una cifra
                             // baja que se lee como el resultado y solo dice que
@@ -135,12 +138,16 @@
                     @foreach($ct as $campo => $criterio)
                         <x-criterio-escala :campo="$campo" :criterio="$criterio" :bloqueado="$bloqueado" />
                     @endforeach
-                </section>
+                </x-tarjeta>
 
-                <section id="uc" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
+                <x-tarjeta id="uc" class="mb-6"
                          x-data="{
-                            valores: @js($inicial($uc)),
-                            pesos: @js($pesos($uc)),
+                            // @js() no se compila dentro de un atributo de
+                            // <x-componente> -la etiqueta se procesa antes que
+                            // las @directivas, así que queda literal-; Js::from()
+                            // es lo mismo que usa @js() por debajo.
+                            valores: {{ Illuminate\Support\Js::from($inicial($uc)) }},
+                            pesos: {{ Illuminate\Support\Js::from($pesos($uc)) }},
                             // Con la dimensión a medias no hay subtotal que
                             // enseñar: contar los huecos como 0 daba una cifra
                             // baja que se lee como el resultado y solo dice que
@@ -177,7 +184,7 @@
                     @foreach($uc as $campo => $criterio)
                         <x-criterio-escala :campo="$campo" :criterio="$criterio" :bloqueado="$bloqueado" />
                     @endforeach
-                </section>
+                </x-tarjeta>
 
                 @unless($bloqueado)
                     {{-- El jefe siempre pasa por aquí (nunca está $bloqueado
@@ -188,17 +195,15 @@
                         <x-aviso-reapertura class="mb-3" />
                     @endif
                     <div class="flex justify-end gap-3">
-                        <button type="submit"
-                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">
+                        <x-boton variante="secundario">
                             Guardar Borrador
-                        </button>
+                        </x-boton>
 
                         @if($esJefe)
-                            <button type="submit" name="accion_estado" value="confirmado"
-                                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow"
-                                    onclick="return confirm('Al validar, la evaluación queda cerrada para el equipo. ¿Continuar?');">
+                            <x-boton name="accion_estado" value="confirmado"
+                                     onclick="return confirm('Al validar, la evaluación queda cerrada para el equipo. ¿Continuar?');">
                                 Validar y Finalizar
-                            </button>
+                            </x-boton>
                         @endif
                     </div>
                 @endunless
@@ -209,6 +214,5 @@
             <x-barra-lateral-formulario clave="valoracion_territorial" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-valoracion-territorial" />
 
             </div>{{-- /lg:grid --}}
-        </div>
     </div>
 </x-app-layout>

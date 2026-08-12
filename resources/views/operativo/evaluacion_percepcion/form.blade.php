@@ -6,12 +6,11 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="percepcion" :zona="$zona" activa="formulario" />
 
             <x-boton-volver :zona="$zona" texto="Regresar"
-                class="!inline-flex !items-center !px-4 !py-2 !mb-4 !bg-blue-300 hover:!bg-blue-500 !text-black !font-bold !rounded-lg !shadow-sm" />
+                class="mb-4" />
 
             <div class="lg:grid lg:grid-cols-[1fr_256px] lg:gap-6 lg:items-start">
             <div class="lg:min-w-0">
@@ -69,7 +68,7 @@
                     );
                 @endphp
 
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 mb-6">
+                <x-tarjeta class="overflow-hidden mb-6">
 
                     @if($evaluacion?->exists && $evaluacion->user)
                         <p class="text-sm text-gray-500 mb-4">
@@ -167,29 +166,26 @@
                             @if($estaConfirmado && $esJefe)
                                 <x-aviso-reapertura class="w-full mb-1" />
                             @endif
-                            <button type="submit" name="accion_estado" value="borrador"
-                                    class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded shadow-lg">
+                            <x-boton variante="secundario" tamano="grande" name="accion_estado" value="borrador">
                                 Guardar Borrador
-                            </button>
+                            </x-boton>
 
                             @if($esJefe)
-                                <button type="submit" name="accion_estado" value="confirmado"
-                                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded shadow-lg transform hover:scale-105 transition"
+                                <x-boton tamano="grande" name="accion_estado" value="confirmado"
                                         onclick="return confirm('¿Está seguro? Al confirmar, el equipo ya no podrá editar esta matriz.')">
                                     Validar y Finalizar
-                                </button>
+                                </x-boton>
                             @endif
                         @else
                             <span class="text-gray-500 italic self-center"><x-aviso-bloqueo-matriz /></span>
                             @if($esJefe)
-                                <button type="submit" name="accion_estado" value="confirmado"
-                                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded shadow-lg">
+                                <x-boton tamano="grande" name="accion_estado" value="confirmado">
                                     Actualizar Datos
-                                </button>
+                                </x-boton>
                             @endif
                         @endif
                     </div>
-                </div>
+                </x-tarjeta>
             </form>
 
             </div>{{-- /lg:min-w-0 --}}
@@ -197,6 +193,5 @@
             <x-barra-lateral-formulario clave="percepcion" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-percepcion" />
 
             </div>{{-- /lg:grid --}}
-        </div>
     </div>
 </x-app-layout>

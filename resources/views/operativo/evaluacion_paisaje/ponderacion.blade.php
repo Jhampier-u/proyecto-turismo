@@ -34,7 +34,6 @@
     @endphp
 
     <div class="py-12">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="paisaje" :zona="$zona" activa="resultados" />
 
@@ -56,14 +55,14 @@
                 <p class="text-gray-600 mt-4 max-w-3xl mx-auto text-sm leading-relaxed">{{ $escenario['texto'] }}</p>
             </div>
 
-            <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-8">
+            <x-tarjeta class="mb-8">
                 <h3 class="text-lg font-bold text-gray-800 mb-4">Perfil por categoría</h3>
                 <div class="max-w-lg mx-auto">
                     <canvas id="radarPaisaje" height="360"></canvas>
                 </div>
-            </div>
+            </x-tarjeta>
 
-            <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-8">
+            <x-tarjeta class="mb-8">
                 <h3 class="text-lg font-bold text-gray-800 mb-4">Desglose y ponderación</h3>
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-sm border-collapse border border-gray-300">
@@ -99,9 +98,9 @@
                         </tfoot>
                     </table>
                 </div>
-            </div>
+            </x-tarjeta>
 
-            <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-8">
+            <x-tarjeta class="mb-8">
                 <h3 class="text-lg font-bold text-gray-800 mb-4">Detalle por criterio</h3>
                 @foreach($categorias as $clave => $categoria)
                     <h4 class="font-bold text-gray-700 mt-5 mb-2">{{ $categoria['nombre'] }}</h4>
@@ -117,7 +116,7 @@
                         </tbody>
                     </table>
                 @endforeach
-            </div>
+            </x-tarjeta>
 
             <div class="flex justify-end gap-3">
                 <a href="{{ route('operativo.evaluacion_paisaje.edit', $zona->id) }}"
@@ -127,7 +126,6 @@
                 <x-boton-volver :zona="$zona" />
             </div>
 
-        </div>
     </div>
 
     {{-- El gráfico va dentro del @else: sin evaluación no hay datos que pintar

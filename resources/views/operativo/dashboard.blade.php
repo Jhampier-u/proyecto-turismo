@@ -10,7 +10,6 @@
          a la otra. --}}
     <div class="py-12" x-data="{ vista: localStorage.getItem('zonas_vista') || 'tarjetas' }"
          x-init="$watch('vista', v => localStorage.setItem('zonas_vista', v))">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             @if(session('success'))
             <div class="mb-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded">{{ session('success') }}</div>
@@ -31,21 +30,21 @@
             @if($proximoPaso['ultima'] || $proximoPaso['siguiente'])
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 @if($proximoPaso['ultima'])
-                <div class="bg-white shadow-sm rounded-xl border border-gray-200 px-6 pt-5 pb-2">
+                <x-tarjeta :padding="false" class="px-6 pt-5 pb-2">
                     <h3 class="text-base font-semibold text-gray-800 mb-1">
                         {{ $proximoPaso['fusionado'] ? 'Sigue por aquí — es donde lo dejaste' : 'Sigue por aquí' }}
                     </h3>
                     <x-fila-matriz :fila="$proximoPaso['ultima']['fila']" :zona="$proximoPaso['ultima']['zona']" />
-                </div>
+                </x-tarjeta>
                 @endif
 
                 @if($proximoPaso['siguiente'])
-                <div class="bg-white shadow-sm rounded-xl border border-gray-200 px-6 pt-5 pb-2">
+                <x-tarjeta :padding="false" class="px-6 pt-5 pb-2">
                     <h3 class="text-base font-semibold text-gray-800 mb-1">
                         {{ $proximoPaso['ultima'] ? 'Todavía sin empezar' : 'Empieza por aquí' }}
                     </h3>
                     <x-fila-matriz :fila="$proximoPaso['siguiente']['fila']" :zona="$proximoPaso['siguiente']['zona']" />
-                </div>
+                </x-tarjeta>
                 @endif
             </div>
             @endif
@@ -55,8 +54,8 @@
             </div>
 
             {{-- ═══ VISTA LISTA ══════════════════════════════════════════════════ --}}
-            <div x-show="vista === 'lista'" x-transition
-                 class="bg-white shadow-sm rounded-xl border border-gray-200 divide-y divide-gray-200">
+            <x-tarjeta :padding="false" x-show="vista === 'lista'" x-transition
+                 class="divide-y divide-gray-200">
                 @foreach($zonas as $zona)
                     @php $p = $progreso[$zona->id]; @endphp
                     <div class="flex items-center gap-4 p-4">
@@ -79,33 +78,31 @@
                         </div>
 
                         <div class="flex gap-2 shrink-0">
-                            <a href="{{ route('operativo.zona.panel', $zona->id) }}"
-                               class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">
+                            <x-boton :href="route('operativo.zona.panel', $zona->id)">
                                 Abrir zona
-                            </a>
-                            <a href="{{ route('operativo.inventarios.index', $zona->id) }}"
-                               class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            </x-boton>
+                            <x-boton :href="route('operativo.inventarios.index', $zona->id)" variante="secundario">
                                 Inventario
-                            </a>
+                            </x-boton>
                         </div>
                     </div>
                 @endforeach
-            </div>
+            </x-tarjeta>
 
             {{-- ═══ VISTA TARJETAS ═══════════════════════════════════════════════ --}}
             <div x-show="vista === 'tarjetas'" x-transition
                  class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($zonas as $zona)
-                <div class="bg-white shadow-sm sm:rounded-lg hover:shadow-md transition duration-300 border border-gray-100">
+                <x-tarjeta :padding="false" class="hover:shadow-md transition duration-300">
 
                     {{-- Imagen de zona --}}
                     @if($zona->imagen_path)
-                        <div class="h-40 overflow-hidden rounded-t-lg">
+                        <div class="h-40 overflow-hidden rounded-t-xl">
                             <x-foto :ruta="$zona->imagen_path" :alt="$zona->nombre"
                                     class="w-full h-full object-cover" />
                         </div>
                     @else
-                        <div class="h-40 bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center rounded-t-lg">
+                        <div class="h-40 bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center rounded-t-xl">
                             <span class="text-5xl font-black text-blue-300 select-none">
                                 {{ strtoupper(substr($zona->nombre, 0, 2)) }}
                             </span>
@@ -134,22 +131,17 @@
                         {{-- Dos botones, no siete. El resto vive dentro de la zona.
                              Inventario se queda por ser lo que más se usa a diario. --}}
                         <div class="flex gap-2 mt-5">
-                            <a href="{{ route('operativo.zona.panel', $zona->id) }}"
-                               class="flex-1 text-center px-4 py-2 rounded-lg bg-indigo-600 text-white
-                                      text-sm font-medium hover:bg-indigo-700 shadow-sm">
+                            <x-boton :href="route('operativo.zona.panel', $zona->id)" class="flex-1 text-center">
                                 Abrir zona
-                            </a>
-                            <a href="{{ route('operativo.inventarios.index', $zona->id) }}"
-                               class="px-4 py-2 rounded-lg border border-gray-300 bg-white
-                                      text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">
+                            </x-boton>
+                            <x-boton :href="route('operativo.inventarios.index', $zona->id)" variante="secundario">
                                 Inventario
-                            </a>
+                            </x-boton>
                         </div>
                     </div>
-                </div>
+                </x-tarjeta>
                 @endforeach
             </div>
 
-        </div>
     </div>
 </x-app-layout>

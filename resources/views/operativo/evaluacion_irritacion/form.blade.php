@@ -6,12 +6,11 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="irritacion" :zona="$zona" activa="formulario" />
 
             <x-boton-volver :zona="$zona" texto="Regresar"
-                class="!inline-flex !items-center !px-4 !py-2 !mb-4 !bg-blue-300 hover:!bg-blue-500 !text-black !font-bold !rounded-lg !shadow-sm" />
+                class="mb-4" />
 
             @php
                 $esJefe         = auth()->user()->esJefe();
@@ -103,7 +102,7 @@
                      corregido— había que tocarlo dos veces sin que nada
                      avisara si se olvidaba una. --}}
                 @foreach($bloques as $clave => $bloque)
-                    <section id="{{ $clave }}" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $bordesPorBloque[$clave] }}">
+                    <x-tarjeta id="{{ $clave }}" class="mb-6 border-l-4 {{ $bordesPorBloque[$clave] }}">
                         <h3 class="text-xl font-bold text-gray-900 mb-1">{{ $bloque['titulo'] }}</h3>
                         <p class="text-sm text-gray-500 mb-5">{{ $bloque['subtitulo'] }}</p>
 
@@ -116,7 +115,7 @@
                                     :disabled="$bloqueado" />
                             @endforeach
                         </div>
-                    </section>
+                    </x-tarjeta>
                 @endforeach
 
                 @unless($bloqueado)
@@ -128,17 +127,15 @@
                         <x-aviso-reapertura class="mb-3" />
                     @endif
                     <div class="flex justify-end gap-3">
-                        <button type="submit"
-                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">
+                        <x-boton variante="secundario">
                             Guardar Borrador
-                        </button>
+                        </x-boton>
 
                         @if($esJefe)
-                            <button type="submit" name="accion_estado" value="confirmado"
-                                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow"
+                            <x-boton name="accion_estado" value="confirmado"
                                     onclick="return confirm('Al validar, la evaluación queda cerrada para el equipo. ¿Continuar?');">
                                 Validar y Finalizar
-                            </button>
+                            </x-boton>
                         @endif
                     </div>
                 @else
@@ -153,6 +150,5 @@
             <x-barra-lateral-formulario clave="irritacion" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-irritacion" />
 
             </div>{{-- /lg:grid --}}
-        </div>
     </div>
 </x-app-layout>

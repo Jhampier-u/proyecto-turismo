@@ -5,16 +5,14 @@
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Inventario: {{ $zona->nombre }}</h2>
                 <p class="text-sm text-gray-500">Recursos turísticos registrados</p>
             </div>
-            <a href="{{ route('operativo.inventarios.create', $zona->id) }}"
-               class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow">
+            <x-boton :href="route('operativo.inventarios.create', $zona->id)">
                 + Agregar Recurso
-            </a>
+            </x-boton>
         </div>
     </x-slot>
 
     <div class="py-12" x-data="{ vista: localStorage.getItem('inventario_vista') || 'lista' }"
          x-init="$watch('vista', v => localStorage.setItem('inventario_vista', v))">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <div class="mb-4 flex items-center justify-between">
                 {{-- El inventario está dentro de una zona: "volver" tiene que
@@ -32,7 +30,7 @@
 
             {{-- ═══ VISTA LISTA ══════════════════════════════════════════════════ --}}
             <div x-show="vista === 'lista'" x-transition>
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <x-tarjeta :padding="false" class="overflow-hidden">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
@@ -96,18 +94,18 @@
                         </tbody>
                     </table>
                     <div class="p-4">{{ $inventarios->links() }}</div>
-                </div>
+                </x-tarjeta>
             </div>
 
             {{-- ═══ VISTA TARJETAS ═══════════════════════════════════════════════ --}}
             <div x-show="vista === 'tarjetas'" x-transition>
                 @if($inventarios->isEmpty())
-                    <div class="bg-white rounded-lg shadow p-10 text-center text-gray-400">No hay recursos registrados.</div>
+                    <x-tarjeta :padding="false" class="p-10 text-center text-gray-400">No hay recursos registrados.</x-tarjeta>
                 @else
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                     @foreach ($inventarios as $inv)
                     @php $img = $inv->imagenes->first(); @endphp
-                    <div class="bg-white rounded-xl shadow hover:shadow-md transition overflow-hidden border border-gray-100 flex flex-col">
+                    <x-tarjeta :padding="false" class="hover:shadow-md transition overflow-hidden flex flex-col">
 
                         {{-- Imagen o placeholder --}}
                         @if($img)
@@ -166,13 +164,12 @@
                                 </form>
                             </div>
                         </div>
-                    </div>
+                    </x-tarjeta>
                     @endforeach
                 </div>
                 <div class="mt-6">{{ $inventarios->links() }}</div>
                 @endif
             </div>
 
-        </div>
     </div>
 </x-app-layout>

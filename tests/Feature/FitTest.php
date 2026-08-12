@@ -112,20 +112,23 @@ class FitTest extends TestCase
     }
 
     /**
-     * La barra lateral aparece con el ancho nuevo, con el total correcto y
-     * con un enlace por bloque -6 bloques en FIT-. No se usa assertSee con
-     * el texto suelto "6/18" porque podría coincidir por casualidad con
-     * otro número de la página: se cuentan los enlaces de ancla, que solo
-     * los pinta la barra lateral.
+     * La barra lateral aparece con el total correcto y con un enlace por
+     * bloque -6 bloques en FIT-. No se usa assertSee con el texto suelto
+     * "6/18" porque podría coincidir por casualidad con otro número de la
+     * página: se cuentan los enlaces de ancla, que solo los pinta la barra
+     * lateral.
+     *
+     * El ancho de la página ya no se comprueba aquí: ahora lo decide
+     * <x-contenedor> en el layout, y lo cubre ContenedorTest. Repetir un
+     * literal de clase Tailwind en cada vista era justo la duplicación que
+     * la fundación visual vino a quitar.
      */
-    public function test_el_formulario_ensancha_y_muestra_la_barra_lateral_con_sus_seis_bloques(): void
+    public function test_el_formulario_muestra_la_barra_lateral_con_sus_seis_bloques(): void
     {
         $html = $this->actingAs($this->jefe)
             ->get(route('operativo.evaluacion_fit.edit', $this->zona->id))
             ->assertOk()
             ->getContent();
-
-        $this->assertStringContainsString('max-w-7xl', $html);
 
         // Str::between() devuelve la cadena COMPLETA cuando el delimitador
         // no existe -nunca una cadena vacía-, así que assertNotEmpty()

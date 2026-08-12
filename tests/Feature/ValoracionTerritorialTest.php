@@ -223,7 +223,7 @@ class ValoracionTerritorialTest extends TestCase
         $respuesta = $this->actingAs($admin)->get($this->url())->assertOk();
 
         $respuesta->assertSee('Guardar Borrador');
-        $respuesta->assertDontSee('disabled', false);
+        $this->assertSame(0, $this->contarDeshabilitados($respuesta->getContent()));
     }
 
     /**
@@ -245,7 +245,7 @@ class ValoracionTerritorialTest extends TestCase
         $respuesta = $this->actingAs($admin)->get($this->url())->assertOk();
 
         $respuesta->assertDontSee('Guardar Borrador');
-        $respuesta->assertSee('disabled', false);
+        $this->assertGreaterThan(0, $this->contarDeshabilitados($respuesta->getContent()));
     }
 
     public function test_la_zona_aparece_en_el_dashboard_con_su_progreso(): void
@@ -516,15 +516,18 @@ class ValoracionTerritorialTest extends TestCase
      * campo => criterio, sin ningún agrupador -los títulos "RTT"/"UC" están
      * escritos a mano en la vista, no en la clase-. El índice tiene
      * exactamente dos entradas.
+     *
+     * El ancho de la página ya no se comprueba aquí: ahora lo decide
+     * <x-contenedor> en el layout, y lo cubre ContenedorTest. Repetir un
+     * literal de clase Tailwind en cada vista era justo la duplicación que
+     * la fundación visual vino a quitar.
      */
-    public function test_el_formulario_ensancha_y_muestra_la_barra_lateral_con_rtt_y_uc(): void
+    public function test_el_formulario_muestra_la_barra_lateral_con_rtt_y_uc(): void
     {
         $html = $this->actingAs($this->jefe)
             ->get($this->url())
             ->assertOk()
             ->getContent();
-
-        $this->assertStringContainsString('max-w-7xl', $html);
 
         // Str::between() devuelve la cadena COMPLETA cuando el delimitador
         // no existe -nunca una cadena vacía-, así que assertNotEmpty()

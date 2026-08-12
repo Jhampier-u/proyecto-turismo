@@ -41,11 +41,10 @@
     @else
 
     <div class="py-12">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="valoracion_territorial" :zona="$zona" activa="resultados" />
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
+            <x-tarjeta :padding="false" class="overflow-hidden p-8">
 
                 <h3 class="text-center font-bold text-xl text-gray-700 mb-8 uppercase tracking-wide">
                     Matriz de Valoración Territorial
@@ -75,16 +74,16 @@
                     <p class="text-2xl font-extrabold uppercase {{ $estilos['texto'] }}">{{ $evaluacion->cuadrante }}</p>
                     <p class="text-gray-600 mt-2 text-sm max-w-xl mx-auto">{{ $estilos['lectura'] }}</p>
                     <div class="grid grid-cols-2 gap-6 mt-6 max-w-sm mx-auto">
-                        <div class="bg-white rounded-lg p-4 shadow-sm">
+                        <x-tarjeta :padding="false" class="p-4">
                             <p class="text-xs text-gray-500 uppercase font-bold">Contenido Territorial (CT)</p>
                             <p class="text-4xl font-black text-indigo-600">{{ number_format($evaluacion->ct_total, 2) }}</p>
                             <p class="text-xs text-gray-400">Escala 0 – 2</p>
-                        </div>
-                        <div class="bg-white rounded-lg p-4 shadow-sm">
+                        </x-tarjeta>
+                        <x-tarjeta :padding="false" class="p-4">
                             <p class="text-xs text-gray-500 uppercase font-bold">Ubicación y Conectividad (UC)</p>
                             <p class="text-4xl font-black text-teal-600">{{ number_format($evaluacion->uc_total, 2) }}</p>
                             <p class="text-xs text-gray-400">Escala 0 – 2</p>
-                        </div>
+                        </x-tarjeta>
                     </div>
                 </div>
 
@@ -156,15 +155,13 @@
 
                 {{-- Botones --}}
                 <div class="mt-8 flex gap-4 justify-center flex-wrap">
-                    <a href="{{ route('operativo.evaluacion_valoracion_territorial.edit', $zona->id) }}"
-                        class="inline-block px-5 py-2 bg-indigo-600 text-white font-bold text-lg rounded-lg hover:bg-indigo-700 hover:scale-105 transition-transform duration-200 shadow-md">
+                    <x-boton :href="route('operativo.evaluacion_valoracion_territorial.edit', $zona->id)">
                         ← Volver al Formulario
-                    </a>
+                    </x-boton>
                     <x-boton-volver :zona="$zona" />
                 </div>
 
-            </div>
-        </div>
+            </x-tarjeta>
     </div>
     @endif
 

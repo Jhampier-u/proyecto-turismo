@@ -6,7 +6,6 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="paisaje" :zona="$zona" activa="formulario" />
 
@@ -61,7 +60,7 @@
                 </div>
             @endif
 
-            <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
+            <x-tarjeta class="mb-6">
                 <dl class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                         <dt class="text-gray-500">Región geográfica</dt>
@@ -80,7 +79,7 @@
                         <dd class="font-semibold text-gray-900">{{ $zona->nombre }}</dd>
                     </div>
                 </dl>
-            </div>
+            </x-tarjeta>
 
             <x-leyenda-escala :niveles="[0 => 'Desfavorable', 3 => 'Intermedio', 5 => 'Favorable']" />
 
@@ -111,9 +110,13 @@
                         );
                     @endphp
 
-                    <section id="{{ $clave }}" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
+                    <x-tarjeta id="{{ $clave }}" class="mb-6"
                              x-data="{
-                                valores: @js($inicial),
+                                // @js() no se compila dentro de un atributo de
+                                // <x-componente> -la etiqueta se procesa antes que
+                                // las @directivas, así que queda literal-; Js::from()
+                                // es lo mismo que usa @js() por debajo.
+                                valores: {{ Illuminate\Support\Js::from($inicial) }},
                                 // Con la categoría a medias no hay promedio que
                                 // enseñar: dividir entre el total daba un número
                                 // bajo que se lee como una nota mala cuando lo
@@ -153,7 +156,7 @@
                         @foreach($categoria['criterios'] as $campo => $criterio)
                             <x-criterio-pildoras :campo="$campo" :criterio="$criterio" :bloqueado="$bloqueado" />
                         @endforeach
-                    </section>
+                    </x-tarjeta>
                 @endforeach
 
                 @unless($bloqueado)
@@ -165,17 +168,15 @@
                         <x-aviso-reapertura class="mb-3" />
                     @endif
                     <div class="flex justify-end gap-3">
-                        <button type="submit"
-                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">
+                        <x-boton variante="secundario">
                             Guardar Borrador
-                        </button>
+                        </x-boton>
 
                         @if($esJefe)
-                            <button type="submit" name="accion_estado" value="confirmado"
-                                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow"
-                                    onclick="return confirm('Al validar, la evaluación queda cerrada para el equipo. ¿Continuar?');">
+                            <x-boton name="accion_estado" value="confirmado"
+                                     onclick="return confirm('Al validar, la evaluación queda cerrada para el equipo. ¿Continuar?');">
                                 Validar y Finalizar
-                            </button>
+                            </x-boton>
                         @endif
                     </div>
                 @endunless
@@ -186,6 +187,5 @@
             <x-barra-lateral-formulario clave="paisaje" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-paisaje" />
 
             </div>{{-- /lg:grid --}}
-        </div>
     </div>
 </x-app-layout>

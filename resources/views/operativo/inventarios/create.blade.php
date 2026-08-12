@@ -6,8 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+            <x-tarjeta class="overflow-hidden">
 
                 <form method="POST" action="{{ route('operativo.inventarios.store', $zona->id) }}" enctype="multipart/form-data">
                     @csrf
@@ -108,12 +107,11 @@
 
                     <div class="flex justify-end gap-4">
                         <a href="{{ route('operativo.inventarios.index', $zona->id) }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Cancelar</a>
-                        <button type="submit" class="px-6 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700">Guardar Recurso</button>
+                        <x-boton>Guardar Recurso</x-boton>
                     </div>
 
                 </form>
-            </div>
-        </div>
+            </x-tarjeta>
     </div>
 
 @vite(['resources/js/inventario_categoria.js'])

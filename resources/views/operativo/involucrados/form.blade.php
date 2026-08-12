@@ -6,12 +6,10 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
 
-            <a href="{{ route('operativo.involucrados.index', $zona->id) }}"
-               class="inline-block px-5 py-2 mb-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">
+            <x-boton :href="route('operativo.involucrados.index', $zona->id)" variante="secundario" class="mb-4">
                 ← Volver al listado
-            </a>
+            </x-boton>
 
             <x-flash-exito />
 
@@ -36,7 +34,7 @@
                     hace falta una segunda comprobación aquí.
                 --}}
 
-                <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
+                <x-tarjeta class="mb-6">
                     <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">
                         Nombre del actor
                     </label>
@@ -47,7 +45,7 @@
                     @error('nombre')
                         <span class="text-sm text-red-500">{{ $message }}</span>
                     @enderror
-                </section>
+                </x-tarjeta>
 
                 {{-- Los once criterios, agrupados en sus tres atributos. Un solo
                      bucle sobre Involucrados::ATRIBUTOS para las tres secciones,
@@ -55,7 +53,7 @@
                      sección nueva no se olvida de pintarse porque no hay que
                      copiar nada a mano. --}}
                 @foreach($atributos as $atributo)
-                    <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
+                    <x-tarjeta class="mb-6">
                         <h3 class="text-lg font-bold text-gray-900 mb-4">{{ $atributo['titulo'] }}</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             @foreach($atributo['campos'] as $campo => $etiqueta)
@@ -66,7 +64,7 @@
                                     :etiquetas="$etiquetasEscala[$campo]" />
                             @endforeach
                         </div>
-                    </section>
+                    </x-tarjeta>
                 @endforeach
 
                 {{-- Las tres casillas van juntas y con la explicación de qué
@@ -121,13 +119,11 @@
                 </section>
 
                 <div class="flex justify-end">
-                    <button type="submit"
-                            class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow">
+                    <x-boton>
                         Guardar
-                    </button>
+                    </x-boton>
                 </div>
             </form>
 
-        </div>
     </div>
 </x-app-layout>

@@ -6,8 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+            <x-tarjeta class="overflow-hidden">
 
                 <form method="POST"
                       action="{{ $zona->exists ? route('admin.zonas.update', $zona->id) : route('admin.zonas.store') }}"
@@ -110,12 +109,11 @@
 
                     <div class="flex items-center justify-end mt-6">
                         <a href="{{ route('admin.zonas.index') }}" class="text-base text-gray-600 hover:text-gray-900 mr-4">Cancelar</a>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-base py-2 px-6 rounded shadow">
+                        <x-boton>
                             {{ $zona->exists ? 'Actualizar Zona' : 'Guardar Zona' }}
-                        </button>
+                        </x-boton>
                     </div>
                 </form>
-            </div>
-        </div>
+            </x-tarjeta>
     </div>
 </x-app-layout>

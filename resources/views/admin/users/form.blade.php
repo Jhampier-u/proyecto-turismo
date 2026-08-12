@@ -6,9 +6,8 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                
+            <x-tarjeta class="overflow-hidden">
+
                 <form method="POST" action="{{ $user->exists ? route('admin.users.update', $user) : route('admin.users.store') }}">
                     @csrf
                     
@@ -74,13 +73,12 @@
 
                     <div class="flex items-center justify-end">
                         <a href="{{ route('admin.users.index') }}" class="text-base text-gray-600 hover:text-gray-900 mr-4">Cancelar</a>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-base py-2 px-4 rounded shadow">
+                        <x-boton>
                             {{ $user->exists ? 'Actualizar Usuario' : 'Guardar Usuario' }}
-                        </button>
+                        </x-boton>
                     </div>
                 </form>
 
-            </div>
-        </div>
+            </x-tarjeta>
     </div>
 </x-app-layout>

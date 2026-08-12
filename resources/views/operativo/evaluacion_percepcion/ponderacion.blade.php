@@ -32,7 +32,6 @@
     @else
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="percepcion" :zona="$zona" activa="resultados" />
 
@@ -42,7 +41,7 @@
                 </div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
+            <x-tarjeta :padding="false" class="overflow-hidden p-8">
 
                 @if($evaluacion?->exists && $evaluacion->user)
                     <p class="text-sm text-gray-500 mb-4">
@@ -169,14 +168,12 @@
                 @endif
 
                 <div class="mt-8 text-center space-x-3">
-                    <a href="{{ route('operativo.evaluacion_percepcion.edit', $zona->id) }}"
-                       class="inline-block px-5 py-2 bg-blue-600 text-white font-bold text-lg rounded-lg hover:bg-blue-700 hover:scale-105 transition-transform duration-200 shadow-md">
+                    <x-boton :href="route('operativo.evaluacion_percepcion.edit', $zona->id)">
                         Ver el Formulario
-                    </a>
+                    </x-boton>
                     <x-boton-volver :zona="$zona" />
                 </div>
-            </div>
-        </div>
+            </x-tarjeta>
     </div>
     @endif
 

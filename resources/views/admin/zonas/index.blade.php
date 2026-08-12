@@ -2,9 +2,9 @@
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Gestión de Zonas Turísticas</h2>
-            <a href="{{ route('admin.zonas.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow transition">
+            <x-boton :href="route('admin.zonas.create')">
                 + Nueva Zona
-            </a>
+            </x-boton>
         </div>
     </x-slot>
 
@@ -14,7 +14,6 @@
          comparten localStorage si son la misma persona en dos pestañas). --}}
     <div class="py-12" x-data="{ vista: localStorage.getItem('zonas_vista') || 'lista' }"
          x-init="$watch('vista', v => localStorage.setItem('zonas_vista', v))">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             @if(session('success'))
             <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">{{ session('success') }}</div>
@@ -25,8 +24,7 @@
             </div>
 
             {{-- ═══ VISTA LISTA ══════════════════════════════════════════════════ --}}
-            <div x-show="vista === 'lista'" x-transition
-                 class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+            <x-tarjeta x-show="vista === 'lista'" x-transition class="overflow-hidden">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
@@ -89,21 +87,21 @@
                         @endforeach
                     </tbody>
                 </table>
-            </div>
+            </x-tarjeta>
 
             {{-- ═══ VISTA TARJETAS ═══════════════════════════════════════════════ --}}
             <div x-show="vista === 'tarjetas'" x-transition
                  class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach ($zonas as $zona)
-                <div class="bg-white shadow-sm sm:rounded-lg hover:shadow-md transition duration-300 border border-gray-100">
+                <x-tarjeta :padding="false" class="hover:shadow-md transition duration-300">
 
                     @if($zona->imagen_path)
-                        <div class="h-40 overflow-hidden rounded-t-lg">
+                        <div class="h-40 overflow-hidden rounded-t-xl">
                             <x-foto :ruta="$zona->imagen_path" :alt="$zona->nombre"
                                     class="w-full h-full object-cover" />
                         </div>
                     @else
-                        <div class="h-40 bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center rounded-t-lg">
+                        <div class="h-40 bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center rounded-t-xl">
                             <span class="text-5xl font-black text-blue-300 select-none">
                                 {{ strtoupper(substr($zona->nombre, 0, 2)) }}
                             </span>
@@ -149,7 +147,7 @@
                             </form>
                         </div>
                     </div>
-                </div>
+                </x-tarjeta>
                 @endforeach
             </div>
 
@@ -157,6 +155,5 @@
                  la maquetación, no la consulta. La página sigue trayendo diez
                  zonas y el paginador sigue ahí, se mire como se mire. --}}
             <div class="mt-4">{{ $zonas->links() }}</div>
-        </div>
     </div>
 </x-app-layout>

@@ -491,8 +491,13 @@ Expected: **558 passed**, ningún test existente modificado. Los tests miran HTM
 - [ ] **Paso 5: Commit**
 
 ```bash
-git add tailwind.config.js resources/views/layouts/app.blade.php public/build
+git add tailwind.config.js resources/views/layouts/app.blade.php
 git commit -m "feat(estilo): gris azulado y tipografia Inter en toda la aplicacion"
+```
+
+**`public/build` NO se commitea**: está en `.gitignore` desde el primer commit del repositorio y nunca se ha versionado. Se construye para **verificar** que el purgado no se comió ninguna clase, no para guardarlo.
+
+```
 ```
 
 ---
@@ -1132,7 +1137,9 @@ git commit -m "feat(componentes): un solo boton con tres variantes"
 **Interfaces:**
 - Consumes: `<x-boton>` de la Tarea 9.
 
-**Contexto y límite:** esta tarea unifica **la forma**, no los colores por significado. Hoy la acción principal se escribe en verde, azul e índigo según la vista. Todos pasan a `primario`; los de borrar, a `peligro`; los de «Volver» y secundarios, a `secundario`.
+**Contexto y límite.** Esta tarea **sí cambia colores**, y hay que leerlo así de claro porque es lo que se va a notar al abrir la aplicación: hoy la acción principal se escribe en verde en una vista, en azul en otra y en índigo en una tercera, sin que la diferencia signifique nada. Todas pasan a `primario` —índigo—; las de borrar, a `peligro`; las de «Volver» y demás acciones de apoyo, a `secundario`.
+
+Lo que **no** cambia es qué acción es principal en cada pantalla. Si al convertir un botón hace falta decidir si es principal o de apoyo y la vista no lo deja claro, se conserva el peso que tenía —el que era grande y sólido queda `primario`, el que era pequeño o de contorno queda `secundario`— y se anota en el informe. Reordenar la jerarquía de acciones de una pantalla es rediseñarla, y eso es de otra fase.
 
 **Excepción, y va antes que la regla:** el botón de validar de `<x-resumen-lista>` es **verde a propósito** —lo eligió el diseño de esa franja, es la única acción que cierra una lista, y se revisó hace dos commits—. Se deja tal cual y se anota. Lo mismo el «Guardar Borrador» de `<x-barra-lateral-formulario>`.
 
@@ -1210,8 +1217,13 @@ Expected: todas mayores que 0. Una en 0 significa que la clase solo existe dentr
 - [ ] **Paso 5: Commit**
 
 ```bash
-git add resources/views/ public/build
+git add resources/views/
 git commit -m "refactor(vistas): los botones pasan a x-boton"
+```
+
+**`public/build` NO se commitea**: está en `.gitignore` desde el primer commit del repositorio y nunca se ha versionado. Se construye para **verificar** el purgado, no para guardarlo.
+
+```
 ```
 
 ---

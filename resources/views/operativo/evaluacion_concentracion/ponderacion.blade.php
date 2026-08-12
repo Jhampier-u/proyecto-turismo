@@ -60,11 +60,10 @@
     @endphp
 
     <div class="py-12">
-        <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="concentracion" :zona="$zona" activa="resultados" />
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
+            <x-tarjeta :padding="false" class="overflow-hidden p-8">
 
                 <x-flash-exito />
 
@@ -164,15 +163,13 @@
                 </div>
 
                 <div class="mt-8 flex gap-4 justify-center flex-wrap">
-                    <a href="{{ route('operativo.evaluacion_concentracion.edit', $zona->id) }}"
-                        class="inline-block px-5 py-2 bg-indigo-600 text-white font-bold text-lg rounded-lg hover:bg-indigo-700 hover:scale-105 transition-transform duration-200 shadow-md">
+                    <x-boton :href="route('operativo.evaluacion_concentracion.edit', $zona->id)">
                         ← Volver al Formulario
-                    </a>
+                    </x-boton>
                     <x-boton-volver :zona="$zona" />
                 </div>
 
-            </div>
-        </div>
+            </x-tarjeta>
     </div>
     @endif
 </x-app-layout>

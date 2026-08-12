@@ -6,9 +6,9 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                
+        <x-contenedor ancho="estrecho">
+            <x-tarjeta class="overflow-hidden">
+
                 <form method="POST" action="{{ $lugar->exists ? route('admin.lugares.update', $lugar) : route('admin.lugares.store') }}">
                     @csrf
                     @if($lugar->exists) @method('PUT') @endif
@@ -40,13 +40,13 @@
 
                     <div class="flex items-center justify-end">
                         <a href="{{ route('admin.lugares.index') }}" class="text-base text-gray-600 hover:text-gray-900 mr-4">Cancelar</a>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-base py-2 px-4 rounded shadow">
+                        <x-boton>
                             {{ $lugar->exists ? 'Actualizar' : 'Guardar' }}
-                        </button>
+                        </x-boton>
                     </div>
                 </form>
 
-            </div>
-        </div>
+            </x-tarjeta>
+        </x-contenedor>
     </div>
 </x-app-layout>

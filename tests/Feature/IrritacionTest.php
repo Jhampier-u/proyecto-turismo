@@ -525,15 +525,18 @@ class IrritacionTest extends TestCase
      * no tiene 'criterios' ni 'peso' -tiene 'titulo'/'subtitulo'/'campos', y
      * 'campos' ya es una lista plana de nombres-. El índice tiene un enlace
      * por bloque -2 en Irritación: visitantes y residentes-.
+     *
+     * El ancho de la página ya no se comprueba aquí: ahora lo decide
+     * <x-contenedor> en el layout, y lo cubre ContenedorTest. Repetir un
+     * literal de clase Tailwind en cada vista era justo la duplicación que
+     * la fundación visual vino a quitar.
      */
-    public function test_el_formulario_ensancha_y_muestra_la_barra_lateral_con_sus_bloques(): void
+    public function test_el_formulario_muestra_la_barra_lateral_con_sus_bloques(): void
     {
         $html = $this->actingAs($this->jefe)
             ->get($this->url())
             ->assertOk()
             ->getContent();
-
-        $this->assertStringContainsString('max-w-7xl', $html);
 
         // Str::between() devuelve la cadena COMPLETA cuando el delimitador
         // no existe -nunca una cadena vacía-, así que assertNotEmpty()

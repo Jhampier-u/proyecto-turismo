@@ -6,12 +6,11 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="fet" :zona="$zona" activa="formulario" />
 
             <x-boton-volver :zona="$zona" texto="Regresar"
-                class="!inline-flex !items-center !px-4 !py-2 !mb-4 !bg-blue-300 hover:!bg-blue-500 !text-black !font-bold !rounded-lg !shadow-sm" />
+                class="mb-4" />
 
             @php
                 $esJefe = auth()->user()->esJefe();
@@ -78,9 +77,13 @@
                 @endphp
 
                 @foreach($bloques as $clave => $bloque)
-                    <section id="{{ $clave }}" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
+                    <x-tarjeta id="{{ $clave }}" class="mb-6"
                              x-data="{
-                                valores: @js($inicial($bloque['criterios'])),
+                                // @js() no se compila dentro de un atributo de
+                                // <x-componente> -la etiqueta se procesa antes que
+                                // las @directivas, así que queda literal-; Js::from()
+                                // es lo mismo que usa @js() por debajo.
+                                valores: {{ Illuminate\Support\Js::from($inicial($bloque['criterios'])) }},
                                 get promedio() {
                                     const v = Object.values(this.valores);
                                     return v.some(x => x === null)
@@ -115,7 +118,7 @@
                         @foreach($bloque['criterios'] as $campo => $criterio)
                             <x-criterio-pildoras :campo="$campo" :criterio="$criterio" :bloqueado="$bloqueado" />
                         @endforeach
-                    </section>
+                    </x-tarjeta>
                 @endforeach
 
                 <div class="flex justify-end mt-8 gap-4 pt-4 border-t">
@@ -127,16 +130,15 @@
                     @if($estaConfirmado && $esJefe)
                         <x-aviso-reapertura class="w-full mb-1" />
                     @endif
-                    <button type="submit" name="accion_estado" value="borrador" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded shadow-lg">
+                    <x-boton variante="secundario" tamano="grande" name="accion_estado" value="borrador">
                         Guardar Borrador
-                    </button>
+                    </x-boton>
 
                     @if($esJefe)
-                    <button type="submit" name="accion_estado" value="confirmado"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded shadow-lg transform hover:scale-105 transition"
+                    <x-boton tamano="grande" name="accion_estado" value="confirmado"
                         onclick="return confirm('¿Está seguro? Al confirmar, el equipo ya no podrá editar esta evaluación.')">
                         Validar y Finalizar FET
-                    </button>
+                    </x-boton>
                     @endif
                     @else
                     <span class="text-gray-500 italic self-center"><x-aviso-bloqueo-matriz sustantivo="evaluación" /></span>
@@ -149,6 +151,5 @@
             <x-barra-lateral-formulario clave="fet" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-fet" />
 
             </div>{{-- /lg:grid --}}
-        </div>
     </div>
 </x-app-layout>
