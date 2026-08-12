@@ -491,8 +491,13 @@ Expected: **558 passed**, ningún test existente modificado. Los tests miran HTM
 - [ ] **Paso 5: Commit**
 
 ```bash
-git add tailwind.config.js resources/views/layouts/app.blade.php public/build
+git add tailwind.config.js resources/views/layouts/app.blade.php
 git commit -m "feat(estilo): gris azulado y tipografia Inter en toda la aplicacion"
+```
+
+**`public/build` NO se commitea**: está en `.gitignore` desde el primer commit del repositorio y nunca se ha versionado. Se construye para **verificar** que el purgado no se comió ninguna clase, no para guardarlo.
+
+```
 ```
 
 ---
@@ -1212,8 +1217,13 @@ Expected: todas mayores que 0. Una en 0 significa que la clase solo existe dentr
 - [ ] **Paso 5: Commit**
 
 ```bash
-git add resources/views/ public/build
+git add resources/views/
 git commit -m "refactor(vistas): los botones pasan a x-boton"
+```
+
+**`public/build` NO se commitea**: está en `.gitignore` desde el primer commit del repositorio y nunca se ha versionado. Se construye para **verificar** el purgado, no para guardarlo.
+
+```
 ```
 
 ---
