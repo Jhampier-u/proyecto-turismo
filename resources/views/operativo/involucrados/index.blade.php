@@ -56,6 +56,23 @@
                 </div>
             @endif
 
+            {{--
+                La franja de resumen sube el recuento de a medias y la acción
+                de validar arriba del todo, junto a la tabla: antes vivían
+                separados -"— sin responder —" fila por fila sin sumar en
+                ningún sitio, y el botón/aviso solo al final de la página-.
+                puedeValidar/avisoValidacion son el mismo mensaje para roles
+                distintos (jefe / equipo), así que viajan juntos aquí y ya no
+                se repiten al final.
+            --}}
+            <x-resumen-lista sustantivo="actor" plural="actores"
+                             :total="$actores->count()"
+                             :incompletos="$incompletos"
+                             :puede-validar="$puedeValidar"
+                             :ruta-validar="route('operativo.involucrados.validar', $zona->id)"
+                             :aviso-validacion="$avisoValidacion"
+                             :jefe="$zona->jefe?->name" />
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -123,23 +140,6 @@
                     </tbody>
                 </table>
             </div>
-
-            @if($puedeValidar)
-                <div class="mt-6 flex justify-end">
-                    <form action="{{ route('operativo.involucrados.validar', $zona->id) }}" method="POST"
-                          onsubmit="return confirm('Al validar, la lista queda cerrada para el equipo. ¿Continuar?');">
-                        @csrf
-                        <button type="submit"
-                                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow">
-                            Validar y Cerrar la Lista
-                        </button>
-                    </form>
-                </div>
-            @elseif($avisoValidacion)
-                <p class="mt-6 text-sm text-amber-700 text-right">
-                    Lista para validar — avísale a {{ $zona->jefe?->name ?? 'tu Jefe de Zona' }}
-                </p>
-            @endif
 
         </div>
     </div>

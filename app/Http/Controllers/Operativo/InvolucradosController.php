@@ -43,6 +43,7 @@ class InvolucradosController extends Controller
             'actores'     => $actores,
             'config'      => $config,
             'confirmada'  => $confirmada,
+            'incompletos' => $incompletos,
             'atributos'   => Involucrados::ATRIBUTOS,
             'escalaMax'   => Involucrados::ESCALA_MAX,
             // Mismo criterio que EvaluacionZonaController::update(): solo

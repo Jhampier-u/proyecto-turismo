@@ -256,6 +256,133 @@ class InvolucradosTest extends TestCase
         return "/operativo/zona/{$zona->id}/involucrados";
     }
 
+    /** Dos actores, uno de ellos a medias. */
+    private function dosActoresUnoIncompleto(): void
+    {
+        Involucrado::create($this->todosEn(2) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor completo',
+        ]);
+
+        $medias = Involucrado::create($this->todosEn(2) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor a medias',
+        ]);
+
+        // El null se asigna DESPUÉS de crear, no dentro del array: la unión
+        // con «+» conserva el operando izquierdo cuando la clave se repite,
+        // así que un null a la derecha de todosEn(2) nunca pisaría el 2.
+        $medias->leg_sociedad = null;
+        $medias->save();
+    }
+
+    public function test_la_franja_resume_cuantos_actores_faltan(): void
+    {
+        $this->dosActoresUnoIncompleto();
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('2 actores')
+            ->assertSee('1 sin completar');
+    }
+
+    public function test_no_queda_un_segundo_boton_de_validar_al_final(): void
+    {
+        Involucrado::create($this->todosEn(2) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor completo',
+        ]);
+
+        $html = $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->getContent();
+
+        // Con la lista completa el botón existe una sola vez. Dos botones que
+        // hacen lo mismo es la duplicación que se está quitando.
+        $this->assertSame(1, substr_count($html, 'Validar y Cerrar la Lista'));
+    }
+
+    /**
+     * Hallazgo 6b: con la lista ya validada y completa, el jefe no debe ver
+     * el botón -aunque $listaCompleta sea cierto-, porque no tiene sentido
+     * volver a validar lo que ya está confirmado. El término "! $confirmada"
+     * de puedeValidar es justo lo que sostiene esto, y hasta ahora ningún
+     * test lo comprobaba: se verificó a mano que quitándolo del controlador
+     * la suite entera seguía en verde.
+     */
+    public function test_el_jefe_no_ve_el_boton_con_la_lista_validada_y_completa(): void
+    {
+        Involucrado::create($this->todosEn(2) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor completo',
+        ]);
+
+        InvolucradosConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'confirmado',
+        ]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertDontSee('Validar y Cerrar la Lista');
+    }
+
+    /**
+     * El admin escribe listas pero no las valida, y tampoco es el equipo: no
+     * recibe ni el botón ni el aviso de «avísale a tu jefe».
+     */
+    public function test_el_admin_ve_el_recuento_y_ninguna_accion_de_validar(): void
+    {
+        Involucrado::create($this->todosEn(2) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor completo',
+        ]);
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('1 actor')
+            ->assertDontSee('Validar y Cerrar la Lista')
+            ->assertDontSee('avísale a');
+    }
+
+    /**
+     * El equipo ve el aviso de «avísale a tu jefe» cuando la lista está
+     * completa, pero no recibe el botón de validar que solo tiene el jefe.
+     * Cubre el caso de uso del componente resumen-lista cuando la vista de
+     * la lista cambió: el aviso no debe desaparecer al mover el botón.
+     */
+    public function test_el_equipo_ve_el_aviso_de_validar_cuando_la_lista_esta_completa(): void
+    {
+        Involucrado::create($this->todosEn(2) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor completo',
+        ]);
+
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+
+        // El equipo debe estar asignado a la zona para tener acceso a su
+        // listado de actores; sin esta línea, la respuesta sería 403.
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($equipo)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('1 actor')
+            ->assertSee('avísale a')
+            ->assertDontSee('Validar y Cerrar la Lista');
+    }
+
     public function test_se_puede_crear_editar_y_borrar_un_actor(): void
     {
         $this->actingAs($this->jefe)

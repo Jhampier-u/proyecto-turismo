@@ -225,4 +225,32 @@ class PestanasMatrizTest extends TestCase
         );
         $this->assertStringContainsString('sin actores completos', $html);
     }
+
+    /**
+     * Hallazgo 2 (revisión de la franja de resumen): con los sitios
+     * completos pero sin ST, "sin sitios completos" es sencillamente falso
+     * -los sitios SÍ están completos-, y contradecía a <x-resumen-lista> tres
+     * líneas más abajo en la misma pantalla. El candado tiene que nombrar el
+     * motivo real, igual que ya hace EstadoZona para el panel de la zona.
+     */
+    public function test_sitios_completos_sin_st_dice_el_motivo_real_en_vez_de_sin_sitios_completos(): void
+    {
+        \App\Models\SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Malecón 2000',
+            'det'     => 1500,
+        ]);
+
+        $html = $this->actingAs($this->jefe)
+            ->get(route('operativo.frecuentacion.index', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringNotContainsString(
+            route('operativo.frecuentacion.resultados', $this->zona->id),
+            $html
+        );
+        $this->assertStringContainsString('falta la Superficie Territorial', $html);
+        $this->assertStringNotContainsString('sin sitios completos', $html);
+    }
 }
