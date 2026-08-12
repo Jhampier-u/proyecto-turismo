@@ -510,4 +510,49 @@ class ValoracionTerritorialTest extends TestCase
             ->assertOk()
             ->assertSee('Bien conectado, pero sin base territorial suficiente.');
     }
+
+    /**
+     * Variante de Valoración Territorial: CT y UC son mapas planos
+     * campo => criterio, sin ningún agrupador -los títulos "RTT"/"UC" están
+     * escritos a mano en la vista, no en la clase-. El índice tiene
+     * exactamente dos entradas.
+     */
+    public function test_el_formulario_ensancha_y_muestra_la_barra_lateral_con_rtt_y_uc(): void
+    {
+        $html = $this->actingAs($this->jefe)
+            ->get($this->url())
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('max-w-7xl', $html);
+
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+        $this->assertNotEmpty($fragmento, 'No se encontró <aside>: la barra lateral no se está pintando.');
+
+        $this->assertStringContainsString('href="#rtt"', $fragmento);
+        $this->assertStringContainsString('href="#uc"', $fragmento);
+        $this->assertStringContainsString('/' . count(ValoracionTerritorial::CT), $fragmento);
+        $this->assertStringContainsString('/' . count(ValoracionTerritorial::UC), $fragmento);
+    }
+
+    /**
+     * Con 'ct_energia_electrica' respondido de los criterios de CT, la
+     * barra muestra 1/N para esa sección, sin marcador de completa.
+     */
+    public function test_la_barra_lateral_desglosa_los_respondidos_de_ct(): void
+    {
+        $evaluacion = EvaluacionValoracionTerritorial::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
+        $evaluacion->update(['ct_energia_electrica' => 2]);
+
+        $html = $this->actingAs($this->jefe)
+            ->get($this->url())
+            ->assertOk()
+            ->getContent();
+
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+        $rtt = \Illuminate\Support\Str::between($fragmento, 'href="#rtt"', '</a>');
+
+        $this->assertStringContainsString('1/' . count(ValoracionTerritorial::CT), $rtt);
+        $this->assertStringNotContainsString('✓', $rtt);
+    }
 }
