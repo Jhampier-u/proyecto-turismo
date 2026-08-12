@@ -90,7 +90,14 @@ class ConmutadorVistaTest extends TestCase
         $p = EstadoZona::progresoDe(collect([$this->zona]))[$this->zona->id];
         $progreso = "{$p['hechas']} / {$p['total']}";
 
-        $this->assertSame(2, substr_count($html, $this->zona->nombre), 'El nombre debe aparecer una vez por maquetación.');
+        // 3, no 2, desde la Tarea 3 del plan de dashboard: una zona recién
+        // creada tiene progreso pendiente, así que el panel nuevo de
+        // "siguiente paso" pinta una tarjeta "Empieza por aquí" que también
+        // lleva el nombre de la zona (<x-fila-matriz :zona="...">), además
+        // de las dos maquetaciones de siempre. El resto de asserts de este
+        // test no colisiona: el panel no pinta el lugar, la descripción ni
+        // la fracción de progreso, solo el nombre.
+        $this->assertSame(3, substr_count($html, $this->zona->nombre), 'El nombre debe aparecer una vez por maquetación, más una en el panel de siguiente paso.');
         $this->assertSame(2, substr_count($html, '📍 ' . $this->zona->lugar->nombre), 'El lugar debe aparecer una vez por maquetación.');
         $this->assertSame(2, substr_count($html, 'Zona costera con senderos y miradores.'), 'La descripción debe aparecer una vez por maquetación.');
         $this->assertSame(2, substr_count($html, $progreso), 'El progreso debe aparecer una vez por maquetación.');
