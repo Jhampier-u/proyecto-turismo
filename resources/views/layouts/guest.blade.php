@@ -9,7 +9,13 @@
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        {{--
+            La misma fuente que layouts/app: `fontFamily.sans` es global, así
+            que estas cinco páginas de autenticación ya pedían Inter por CSS
+            mientras descargaban Figtree, que ya no referencia ninguna regla.
+            El resultado no era Figtree ni Inter, sino la fuente del sistema.
+        --}}
+        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
