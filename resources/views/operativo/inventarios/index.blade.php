@@ -17,10 +17,11 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <div class="mb-4 flex items-center justify-between">
-                <a href="{{ route('operativo.dashboard') }}"
-                   class="inline-block px-5 py-2 bg-blue-600 text-white font-bold text-lg rounded-lg hover:bg-blue-700 hover:scale-105 transition-transform shadow-md">
-                    ← Volver a Mis Zonas
-                </a>
+                {{-- El inventario está dentro de una zona: "volver" tiene que
+                     bajar al panel de esa zona, no saltarse ese nivel hacia
+                     Mis Zonas -el mismo criterio que las matrices. --}}
+                <x-boton-volver :zona="$zona"
+                    class="!inline-block !border-0 !px-5 !bg-blue-600 !text-white !font-bold !text-lg hover:!bg-blue-700 hover:!scale-105 !transition-transform !shadow-md" />
 
                 <x-conmutador-vista modelo="vista" />
             </div>
