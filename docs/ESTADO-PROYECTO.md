@@ -1152,7 +1152,7 @@ decía durante meses «`git checkout guardado-parcial`, comprueba que da 209
 tests», y era la instrucción más dañina del documento — quien la siguiera se
 llevaría una rama antigua y creería que el clon salió mal.
 
-Comprobar que la suite da **480 tests** antes de tocar nada. Si da menos, algo
+Comprobar que la suite da **483 tests** antes de tocar nada. Si da menos, algo
 no llegó; si fallan unos 57 de golpe, faltó el `npm run build` (ver §2).
 
 *(Este número llevaba desde `permisos-y-navegacion` sin actualizarse —decía
