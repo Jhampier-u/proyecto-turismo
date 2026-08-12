@@ -114,15 +114,17 @@
 
     </style>
 
+    {{--
+        Aquí había un contenedor de página escrito como estilo en línea
+        —max-width:1160px;margin:0 auto—, resto de cuando esta vista traía su
+        propio CSS de layout. Al no ser una clase de Tailwind no aparecía en
+        la búsqueda que encontró los otros 28, y sin quitarlo Potencialidad se
+        habría quedado en 1160px mientras las demás matrices pasaban a 1440.
+
+        Se borra sin sustituirlo: el layout ya envuelve todo el contenido en
+        <x-contenedor>, y poner otro aquí aplicaría su padding dos veces.
+    --}}
     <div class="pt-root">
-      {{--
-          Este contenedor de página era un estilo en línea —max-width:1160px—,
-          resto de cuando Potencialidad traía su propio CSS de layout. Al no
-          ser una clase de Tailwind, no aparecía en la búsqueda que encontró
-          los demás, y esta vista se habría quedado en 1160px mientras las
-          otras nueve matrices pasaban a 1440.
-      --}}
-      <x-contenedor>
 
         <x-pestanas-matriz clave="potencialidad" :zona="$zona" activa="formulario" />
 
@@ -464,7 +466,6 @@
             :respondidos="$respondidosActivos" />
 
         </div>{{-- /lg:grid --}}
-      </x-contenedor>
     </div>{{-- /pt-root --}}
 
     <script>
