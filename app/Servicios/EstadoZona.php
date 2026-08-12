@@ -567,6 +567,25 @@ final class EstadoZona
     }
 
     /**
+     * Cuántos de los campos dados están respondidos en esta evaluación.
+     *
+     * Mismo criterio que criteriosRespondidos(), pero sobre un subconjunto
+     * de columnas que YA se conoce de antemano -los campos de un bloque, no
+     * toda la matriz-, así que no hace falta inferirlo por nombre con
+     * esColumnaDeCriterio(). Existe para no repetir el mismo array_filter en
+     * cada una de las vistas que pintan <x-barra-lateral-formulario>.
+     *
+     * @param  list<string>  $campos
+     */
+    public static function criteriosRespondidosDe(Model $evaluacion, array $campos): int
+    {
+        return count(array_filter(
+            $campos,
+            fn(string $campo) => $evaluacion->$campo !== null
+        ));
+    }
+
+    /**
      * ¿Es esta columna un criterio del instrumento, y no control ni cálculo?
      *
      * Es una heurística por nombre, y los nombres no siguen un patrón único
