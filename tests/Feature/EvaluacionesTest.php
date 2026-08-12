@@ -504,12 +504,14 @@ class EvaluacionesTest extends TestCase
      * Formulario» de esta vista no miraba el rol: era la tercera fuga del
      * mismo bug ya arreglado en Paisaje, Percepción y Valoración Territorial.
      *
-     * Ajustado en la Tarea 2 de permisos-y-navegación: el enlace «Ver el
-     * Formulario» ya no depende del rol -se muestra siempre, el admin
-     * también puede volver a editar-, y "Volver a Zonas" ya no es el texto
-     * que usa esta vista para el admin (x-boton-volver se invoca aquí con
-     * texto="Mis Zonas" fijo). Lo que sigue siendo cierto es que el botón de
-     * volver del admin apunta a SU listado, no al del jefe/equipo.
+     * Ajustado en volver-a-la-zona: el enlace «Ver el Formulario» ya no
+     * depende del rol -se muestra siempre, el admin también puede volver a
+     * editar-, y ya no hay «Volver a Zonas» que reservarle al admin en esta
+     * vista: x-boton-volver recibe la zona, y con zona el destino es el
+     * panel de ESA zona para los tres roles, no el listado de cada uno. Lo
+     * que sigue siendo cierto -y lo que este test tiene que seguir
+     * comprobando- es que el admin llega a un sitio sensato, no a un 403 ni
+     * a una página en blanco.
      */
     public function test_el_admin_ve_los_resultados_de_fit_en_modo_lectura(): void
     {
@@ -523,8 +525,7 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($admin)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit/ponderacion")
             ->assertOk()
-            ->assertSee(route('admin.zonas.index'), false)
-            ->assertDontSee(route('operativo.dashboard'), false);
+            ->assertSee(route('operativo.zona.panel', $this->zona->id), false);
     }
 
     /**
@@ -575,8 +576,7 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($admin)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fet/ponderacion")
             ->assertOk()
-            ->assertSee(route('admin.zonas.index'), false)
-            ->assertDontSee(route('operativo.dashboard'), false);
+            ->assertSee(route('operativo.zona.panel', $this->zona->id), false);
     }
 
     /** Mismo caso que FIT, para FET: el enlace no distingue por rol. */
@@ -858,8 +858,8 @@ class EvaluacionesTest extends TestCase
      * Valoración Territorial: un $readonly que nadie ponía se quedaba en
      * false para siempre y nada lo detectaba.
      *
-     * Ajustado en la Tarea 2 de permisos-y-navegación: ver el comentario
-     * equivalente en test_el_admin_ve_los_resultados_de_fit_en_modo_lectura.
+     * Ajustado en volver-a-la-zona: ver el comentario equivalente en
+     * test_el_admin_ve_los_resultados_de_fit_en_modo_lectura.
      */
     public function test_el_admin_ve_los_resultados_de_percepcion_en_modo_lectura(): void
     {
@@ -875,8 +875,7 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($admin)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-percepcion/resultados")
             ->assertOk()
-            ->assertSee(route('admin.zonas.index'), false)
-            ->assertDontSee(route('operativo.dashboard'), false);
+            ->assertSee(route('operativo.zona.panel', $this->zona->id), false);
     }
 
     /**

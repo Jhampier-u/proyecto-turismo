@@ -33,7 +33,7 @@
                            class="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-5 rounded shadow transition">
                             Ver Formulario de Evaluación
                         </a>
-                        <x-boton-volver texto="Mis Zonas" />
+                        <x-boton-volver :zona="$zona" />
                     </div>
                 </div>
             </div>
@@ -160,7 +160,7 @@
                         class="inline-block px-5 py-2 bg-indigo-600 text-white font-bold text-lg rounded-lg hover:bg-indigo-700 hover:scale-105 transition-transform duration-200 shadow-md">
                         ← Volver al Formulario
                     </a>
-                    <x-boton-volver texto="Mis Zonas" />
+                    <x-boton-volver :zona="$zona" />
                 </div>
 
             </div>
