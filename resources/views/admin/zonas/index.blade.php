@@ -14,7 +14,6 @@
          comparten localStorage si son la misma persona en dos pestañas). --}}
     <div class="py-12" x-data="{ vista: localStorage.getItem('zonas_vista') || 'lista' }"
          x-init="$watch('vista', v => localStorage.setItem('zonas_vista', v))">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             @if(session('success'))
             <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">{{ session('success') }}</div>
@@ -157,6 +156,5 @@
                  la maquetación, no la consulta. La página sigue trayendo diez
                  zonas y el paginador sigue ahí, se mire como se mire. --}}
             <div class="mt-4">{{ $zonas->links() }}</div>
-        </div>
     </div>
 </x-app-layout>

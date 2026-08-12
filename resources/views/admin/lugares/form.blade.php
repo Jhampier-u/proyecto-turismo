@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
+        <x-contenedor ancho="estrecho">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 
                 <form method="POST" action="{{ $lugar->exists ? route('admin.lugares.update', $lugar) : route('admin.lugares.store') }}">
@@ -47,6 +47,6 @@
                 </form>
 
             </div>
-        </div>
+        </x-contenedor>
     </div>
 </x-app-layout>

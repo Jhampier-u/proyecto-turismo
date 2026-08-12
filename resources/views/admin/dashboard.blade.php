@@ -6,7 +6,6 @@
     </x-slot>
 
     <div class="py-10">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             {{-- Lo único de este panel que pide actuar. Va arriba y solo aparece
                  cuando hay algo que hacer: un aviso permanente deja de leerse. --}}
@@ -64,6 +63,5 @@
                 </div>
             </div>
 
-        </div>
     </div>
 </x-app-layout>
