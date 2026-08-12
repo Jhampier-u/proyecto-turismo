@@ -99,18 +99,21 @@ class FetTest extends TestCase
 
     /**
      * Igual que en FIT (ver Tarea 5 del plan): la barra lateral aparece con
-     * el ancho nuevo, con un enlace por bloque -3 bloques en FET-. Se cuentan
-     * los enlaces de ancla, no el texto suelto de la fracción, porque ese
-     * texto podría coincidir por casualidad con otro número de la página.
+     * un enlace por bloque -3 bloques en FET-. Se cuentan los enlaces de
+     * ancla, no el texto suelto de la fracción, porque ese texto podría
+     * coincidir por casualidad con otro número de la página.
+     *
+     * El ancho de la página ya no se comprueba aquí: ahora lo decide
+     * <x-contenedor> en el layout, y lo cubre ContenedorTest. Repetir un
+     * literal de clase Tailwind en cada vista era justo la duplicación que
+     * la fundación visual vino a quitar.
      */
-    public function test_el_formulario_ensancha_y_muestra_la_barra_lateral_con_sus_bloques(): void
+    public function test_el_formulario_muestra_la_barra_lateral_con_sus_bloques(): void
     {
         $html = $this->actingAs($this->jefe)
             ->get(route('operativo.evaluacion_fet.edit', $this->zona->id))
             ->assertOk()
             ->getContent();
-
-        $this->assertStringContainsString('max-w-7xl', $html);
 
         // Str::between() devuelve la cadena COMPLETA cuando el delimitador
         // no existe -nunca una cadena vacía-, así que assertNotEmpty()

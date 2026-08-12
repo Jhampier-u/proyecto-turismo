@@ -467,15 +467,18 @@ class ConcentracionTest extends TestCase
      * Atractivos (3 niveles: categoría => tipo => campo) y Planta (2
      * niveles: sector => campo)-, así que el índice de la barra se queda en
      * los DOS grupos de primer nivel, no en cada categoría/tipo/sector.
+     *
+     * El ancho de la página ya no se comprueba aquí: ahora lo decide
+     * <x-contenedor> en el layout, y lo cubre ContenedorTest. Repetir un
+     * literal de clase Tailwind en cada vista era justo la duplicación que
+     * la fundación visual vino a quitar.
      */
-    public function test_el_formulario_ensancha_y_muestra_la_barra_lateral_con_atractivos_y_planta(): void
+    public function test_el_formulario_muestra_la_barra_lateral_con_atractivos_y_planta(): void
     {
         $html = $this->actingAs($this->jefe)
             ->get($this->url())
             ->assertOk()
             ->getContent();
-
-        $this->assertStringContainsString('max-w-7xl', $html);
 
         // Str::between() devuelve la cadena COMPLETA cuando el delimitador
         // no existe -nunca una cadena vacía-, así que assertNotEmpty()

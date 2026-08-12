@@ -431,18 +431,21 @@ class PaisajeTest extends TestCase
     }
 
     /**
-     * Igual que en FIT/FET: la barra lateral aparece con el ancho nuevo, con
-     * un enlace por categoría -5 en Paisaje-. Se cuentan los enlaces de
-     * ancla, no el texto suelto de la fracción.
+     * Igual que en FIT/FET: la barra lateral aparece con un enlace por
+     * categoría -5 en Paisaje-. Se cuentan los enlaces de ancla, no el texto
+     * suelto de la fracción.
+     *
+     * El ancho de la página ya no se comprueba aquí: ahora lo decide
+     * <x-contenedor> en el layout, y lo cubre ContenedorTest. Repetir un
+     * literal de clase Tailwind en cada vista era justo la duplicación que
+     * la fundación visual vino a quitar.
      */
-    public function test_el_formulario_ensancha_y_muestra_la_barra_lateral_con_sus_categorias(): void
+    public function test_el_formulario_muestra_la_barra_lateral_con_sus_categorias(): void
     {
         $html = $this->actingAs($this->jefe)
             ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
             ->assertOk()
             ->getContent();
-
-        $this->assertStringContainsString('max-w-7xl', $html);
 
         // Str::between() devuelve la cadena COMPLETA cuando el delimitador
         // no existe -nunca una cadena vacía-, así que assertNotEmpty()
