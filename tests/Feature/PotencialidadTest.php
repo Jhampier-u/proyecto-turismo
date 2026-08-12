@@ -259,8 +259,13 @@ class PotencialidadTest extends TestCase
     {
         $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
 
+        // Str::between() devuelve la cadena COMPLETA cuando el delimitador
+        // no existe -nunca una cadena vacía-, así que assertNotEmpty()
+        // sobre el resultado no protegía nada: sin <aside>, $fragmento
+        // habría sido la página entera y este assert habría pasado igual.
+        // Se comprueba la presencia real del delimitador antes de recortar.
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
         $fragmento = Str::between($html, '<aside', '</aside>');
-        $this->assertNotEmpty($fragmento, 'No se encontró <aside>: la barra lateral no se está pintando.');
 
         foreach ([
             'Recursos Naturales', 'Recursos Culturales', 'Planta Turística',
@@ -302,6 +307,7 @@ class PotencialidadTest extends TestCase
         $evaluacion->update(['rn_litoral_playas' => 1]);
 
         $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
         $fragmento = Str::between($html, '<aside', '</aside>');
 
         // Honesto: 5 de 5 activos. Un recuento ingenuo sobre toda la fila
@@ -322,6 +328,7 @@ class PotencialidadTest extends TestCase
         ]);
 
         $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
         $fragmento = Str::between($html, '<aside', '</aside>');
 
         $this->assertStringContainsString('de ' . count($mitad) . ' respondidos', $fragmento);
@@ -347,6 +354,7 @@ class PotencialidadTest extends TestCase
         $this->zona->equipo()->attach($equipo->id);
 
         $html = $this->actingAs($equipo)->get($this->url())->assertOk()->getContent();
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
         $fragmento = Str::between($html, '<aside', '</aside>');
 
         $this->assertStringNotContainsString('Guardar Borrador', $fragmento);
@@ -356,6 +364,7 @@ class PotencialidadTest extends TestCase
     public function test_la_barra_lateral_ofrece_guardar_al_jefe_ligado_al_formulario_real(): void
     {
         $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
         $fragmento = Str::between($html, '<aside', '</aside>');
 
         $this->assertStringContainsString('Guardar Borrador', $fragmento);

@@ -535,8 +535,13 @@ class IrritacionTest extends TestCase
 
         $this->assertStringContainsString('max-w-7xl', $html);
 
+        // Str::between() devuelve la cadena COMPLETA cuando el delimitador
+        // no existe -nunca una cadena vacía-, así que assertNotEmpty()
+        // sobre el resultado no protegía nada: sin <aside>, $fragmento
+        // habría sido la página entera y este assert habría pasado igual.
+        // Se comprueba la presencia real del delimitador antes de recortar.
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
         $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
-        $this->assertNotEmpty($fragmento, 'No se encontró <aside>: la barra lateral no se está pintando.');
 
         foreach (array_keys(Irritacion::BLOQUES) as $clave) {
             $this->assertStringContainsString("href=\"#{$clave}\"", $fragmento, "Falta el enlace al bloque '{$clave}'.");
@@ -557,6 +562,7 @@ class IrritacionTest extends TestCase
             ->assertOk()
             ->getContent();
 
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
         $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
         $visitantes = \Illuminate\Support\Str::between($fragmento, 'href="#visitantes"', '</a>');
 
