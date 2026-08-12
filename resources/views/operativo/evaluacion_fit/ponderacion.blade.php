@@ -120,6 +120,36 @@
                                 <td class="border border-gray-400 p-2 text-left">Señalética</td>
                                 <td class="border border-gray-400 p-2 bg-yellow-50 font-bold">{{ $fit->facilidades_senaletica }}</td>
                             </tr>
+                            {{-- Estas seis faltaban. El rowspan="8" de arriba ya
+                                 las contaba, así que la tabla prometía ocho
+                                 filas y pintaba dos: entraban en media_ft y en
+                                 la nota, pero no había forma de cuadrar el
+                                 resultado con lo respondido. Van en el orden en
+                                 que las declara App\Matrices\Fit. --}}
+                            <tr>
+                                <td class="border border-gray-400 p-2 text-left">Recepción Visitantes</td>
+                                <td class="border border-gray-400 p-2 bg-yellow-50 font-bold">{{ $fit->facilidades_recepcion }}</td>
+                            </tr>
+                            <tr>
+                                <td class="border border-gray-400 p-2 text-left">Centros Interpretación</td>
+                                <td class="border border-gray-400 p-2 bg-yellow-50 font-bold">{{ $fit->facilidades_interpretacion }}</td>
+                            </tr>
+                            <tr>
+                                <td class="border border-gray-400 p-2 text-left">Senderos</td>
+                                <td class="border border-gray-400 p-2 bg-yellow-50 font-bold">{{ $fit->facilidades_senderos }}</td>
+                            </tr>
+                            <tr>
+                                <td class="border border-gray-400 p-2 text-left">Estacionamientos</td>
+                                <td class="border border-gray-400 p-2 bg-yellow-50 font-bold">{{ $fit->facilidades_estacionamientos }}</td>
+                            </tr>
+                            <tr>
+                                <td class="border border-gray-400 p-2 text-left">Campamentos</td>
+                                <td class="border border-gray-400 p-2 bg-yellow-50 font-bold">{{ $fit->facilidades_campamentos }}</td>
+                            </tr>
+                            <tr>
+                                <td class="border border-gray-400 p-2 text-left">Miradores</td>
+                                <td class="border border-gray-400 p-2 bg-yellow-50 font-bold">{{ $fit->facilidades_miradores }}</td>
+                            </tr>
                             <tr>
                                 <td class="border border-gray-400 p-2 text-left">Baterías Sanitarias</td>
                                 <td class="border border-gray-400 p-2 bg-yellow-50 font-bold">{{ $fit->facilidades_sanitarios }}</td>
