@@ -93,10 +93,14 @@
                     $pesos = fn($grupo) => collect($grupo)->map(fn($c) => $c['peso']);
                 @endphp
 
-                <section id="rtt" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
+                <x-tarjeta id="rtt" class="mb-6"
                          x-data="{
-                            valores: @js($inicial($ct)),
-                            pesos: @js($pesos($ct)),
+                            // @js() no se compila dentro de un atributo de
+                            // <x-componente> -la etiqueta se procesa antes que
+                            // las @directivas, así que queda literal-; Js::from()
+                            // es lo mismo que usa @js() por debajo.
+                            valores: {{ Illuminate\Support\Js::from($inicial($ct)) }},
+                            pesos: {{ Illuminate\Support\Js::from($pesos($ct)) }},
                             // Con la dimensión a medias no hay subtotal que
                             // enseñar: contar los huecos como 0 daba una cifra
                             // baja que se lee como el resultado y solo dice que
@@ -134,12 +138,16 @@
                     @foreach($ct as $campo => $criterio)
                         <x-criterio-escala :campo="$campo" :criterio="$criterio" :bloqueado="$bloqueado" />
                     @endforeach
-                </section>
+                </x-tarjeta>
 
-                <section id="uc" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
+                <x-tarjeta id="uc" class="mb-6"
                          x-data="{
-                            valores: @js($inicial($uc)),
-                            pesos: @js($pesos($uc)),
+                            // @js() no se compila dentro de un atributo de
+                            // <x-componente> -la etiqueta se procesa antes que
+                            // las @directivas, así que queda literal-; Js::from()
+                            // es lo mismo que usa @js() por debajo.
+                            valores: {{ Illuminate\Support\Js::from($inicial($uc)) }},
+                            pesos: {{ Illuminate\Support\Js::from($pesos($uc)) }},
                             // Con la dimensión a medias no hay subtotal que
                             // enseñar: contar los huecos como 0 daba una cifra
                             // baja que se lee como el resultado y solo dice que
@@ -176,7 +184,7 @@
                     @foreach($uc as $campo => $criterio)
                         <x-criterio-escala :campo="$campo" :criterio="$criterio" :bloqueado="$bloqueado" />
                     @endforeach
-                </section>
+                </x-tarjeta>
 
                 @unless($bloqueado)
                     {{-- El jefe siempre pasa por aquí (nunca está $bloqueado

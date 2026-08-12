@@ -41,7 +41,7 @@
                 </div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
+            <x-tarjeta :padding="false" class="overflow-hidden p-8">
 
                 @if($evaluacion?->exists && $evaluacion->user)
                     <p class="text-sm text-gray-500 mb-4">
@@ -174,7 +174,7 @@
                     </a>
                     <x-boton-volver :zona="$zona" />
                 </div>
-            </div>
+            </x-tarjeta>
     </div>
     @endif
 

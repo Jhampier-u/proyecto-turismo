@@ -72,7 +72,7 @@
                              :aviso-validacion="$avisoValidacion"
                              :jefe="$zona->jefe?->name" />
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <x-tarjeta :padding="false" class="overflow-hidden">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
@@ -138,7 +138,7 @@
                         @endforelse
                     </tbody>
                 </table>
-            </div>
+            </x-tarjeta>
 
     </div>
 </x-app-layout>

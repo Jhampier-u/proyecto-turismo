@@ -58,7 +58,7 @@
 @endphp
 
 <aside class="hidden lg:block lg:sticky lg:top-6 lg:self-start w-64 shrink-0">
-    <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-4">
+    <x-tarjeta :padding="false" class="p-4">
 
         <p class="text-sm font-medium text-gray-900">
             {{ $respondidos }} de {{ $total }} respondidos
@@ -96,5 +96,5 @@
                 Guardar Borrador
             </button>
         @endunless
-    </div>
+    </x-tarjeta>
 </aside>

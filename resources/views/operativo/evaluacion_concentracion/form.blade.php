@@ -125,7 +125,7 @@
                 @csrf
 
                 {{-- ═══════════════════ ATRACTIVOS TURÍSTICOS (77) ═══════════════════ --}}
-                <section id="atractivos" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $colorSeccion['atractivos'] }}">
+                <x-tarjeta id="atractivos" class="mb-6 border-l-4 {{ $colorSeccion['atractivos'] }}">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
                         <h3 class="text-xl font-bold text-gray-900">Atractivos Turísticos</h3>
                         {{-- "Respondido" incluye el 0 -significa "no hay
@@ -159,10 +159,10 @@
                             @endforeach
                         </div>
                     @endforeach
-                </section>
+                </x-tarjeta>
 
                 {{-- ═══════════════════ PLANTA TURÍSTICA (36) ═══════════════════ --}}
-                <section id="planta" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $colorSeccion['planta'] }}">
+                <x-tarjeta id="planta" class="mb-6 border-l-4 {{ $colorSeccion['planta'] }}">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
                         <h3 class="text-xl font-bold text-gray-900">Planta Turística</h3>
                         <span class="text-sm font-semibold text-blue-700">
@@ -183,7 +183,7 @@
                                 color-texto="text-blue-700" />
                         @endforeach
                     </div>
-                </section>
+                </x-tarjeta>
 
                 @unless($bloqueado)
                     {{-- El jefe siempre pasa por aquí (nunca está $bloqueado

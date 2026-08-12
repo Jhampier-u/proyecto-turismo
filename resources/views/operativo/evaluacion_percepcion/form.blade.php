@@ -68,7 +68,7 @@
                     );
                 @endphp
 
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 mb-6">
+                <x-tarjeta class="overflow-hidden mb-6">
 
                     @if($evaluacion?->exists && $evaluacion->user)
                         <p class="text-sm text-gray-500 mb-4">
@@ -188,7 +188,7 @@
                             @endif
                         @endif
                     </div>
-                </div>
+                </x-tarjeta>
             </form>
 
             </div>{{-- /lg:min-w-0 --}}

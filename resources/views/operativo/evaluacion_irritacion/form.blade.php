@@ -102,7 +102,7 @@
                      corregido— había que tocarlo dos veces sin que nada
                      avisara si se olvidaba una. --}}
                 @foreach($bloques as $clave => $bloque)
-                    <section id="{{ $clave }}" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $bordesPorBloque[$clave] }}">
+                    <x-tarjeta id="{{ $clave }}" class="mb-6 border-l-4 {{ $bordesPorBloque[$clave] }}">
                         <h3 class="text-xl font-bold text-gray-900 mb-1">{{ $bloque['titulo'] }}</h3>
                         <p class="text-sm text-gray-500 mb-5">{{ $bloque['subtitulo'] }}</p>
 
@@ -115,7 +115,7 @@
                                     :disabled="$bloqueado" />
                             @endforeach
                         </div>
-                    </section>
+                    </x-tarjeta>
                 @endforeach
 
                 @unless($bloqueado)

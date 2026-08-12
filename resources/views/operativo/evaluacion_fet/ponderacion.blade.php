@@ -28,7 +28,7 @@
                  abajo, donde estaban). --}}
             <x-boton-volver :zona="$zona" class="mb-4" />
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
+            <x-tarjeta :padding="false" class="overflow-hidden p-8">
 
                 @if($fet?->exists && $fet->user)
                     <p class="text-sm text-gray-500 mb-4">
@@ -175,7 +175,7 @@
                      que ninguno, el panel de la zona ya muestra Vocación con
                      su candado y el motivo-; y "Mis Zonas" subió junto a las
                      pestañas, convertido en el botón de volver a la zona. --}}
-            </div>
+            </x-tarjeta>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>

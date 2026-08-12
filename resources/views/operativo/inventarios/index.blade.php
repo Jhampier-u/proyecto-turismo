@@ -31,7 +31,7 @@
 
             {{-- ═══ VISTA LISTA ══════════════════════════════════════════════════ --}}
             <div x-show="vista === 'lista'" x-transition>
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <x-tarjeta :padding="false" class="overflow-hidden">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
@@ -95,18 +95,18 @@
                         </tbody>
                     </table>
                     <div class="p-4">{{ $inventarios->links() }}</div>
-                </div>
+                </x-tarjeta>
             </div>
 
             {{-- ═══ VISTA TARJETAS ═══════════════════════════════════════════════ --}}
             <div x-show="vista === 'tarjetas'" x-transition>
                 @if($inventarios->isEmpty())
-                    <div class="bg-white rounded-lg shadow p-10 text-center text-gray-400">No hay recursos registrados.</div>
+                    <x-tarjeta :padding="false" class="p-10 text-center text-gray-400">No hay recursos registrados.</x-tarjeta>
                 @else
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                     @foreach ($inventarios as $inv)
                     @php $img = $inv->imagenes->first(); @endphp
-                    <div class="bg-white rounded-xl shadow hover:shadow-md transition overflow-hidden border border-gray-100 flex flex-col">
+                    <x-tarjeta :padding="false" class="hover:shadow-md transition overflow-hidden flex flex-col">
 
                         {{-- Imagen o placeholder --}}
                         @if($img)
@@ -165,7 +165,7 @@
                                 </form>
                             </div>
                         </div>
-                    </div>
+                    </x-tarjeta>
                     @endforeach
                 </div>
                 <div class="mt-6">{{ $inventarios->links() }}</div>

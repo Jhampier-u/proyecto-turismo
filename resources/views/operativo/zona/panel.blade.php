@@ -18,7 +18,7 @@
                 </div>
             @endif
 
-            <div class="bg-white shadow-sm rounded-xl border border-gray-200 mb-6 p-6">
+            <x-tarjeta class="mb-6">
                 <div class="flex items-start justify-between gap-4">
                     <div class="min-w-0">
                         <p class="text-base text-gray-600">📍 {{ $zona->lugar->nombre }}</p>
@@ -52,16 +52,16 @@
                         {{ $hechas }} de {{ $total }} validadas
                     </span>
                 </div>
-            </div>
+            </x-tarjeta>
 
             @foreach($estado->grupos() as $grupo)
-                <div class="bg-white shadow-sm rounded-xl border border-gray-200 mb-6 px-6 pt-5 pb-2">
+                <x-tarjeta :padding="false" class="mb-6 px-6 pt-5 pb-2">
                     <h3 class="text-lg font-semibold text-gray-800 mb-1">{{ $grupo['titulo'] }}</h3>
 
                     @foreach($grupo['filas'] as $fila)
                         <x-fila-matriz :fila="$fila" />
                     @endforeach
-                </div>
+                </x-tarjeta>
             @endforeach
 
             <div class="flex justify-end">

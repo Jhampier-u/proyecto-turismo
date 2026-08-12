@@ -24,7 +24,7 @@
 
                 <x-pestanas-matriz clave="frecuentacion" :zona="$zona" activa="resultados" />
 
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
+                <x-tarjeta :padding="false" class="overflow-hidden p-8">
 
                     <a href="{{ route('operativo.frecuentacion.index', $zona->id) }}"
                        class="inline-block px-5 py-2 mb-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">
@@ -98,7 +98,7 @@
                         <span class="text-2xl font-bold text-indigo-900">{{ number_format($ieft, 4) }}</span>
                     </div>
 
-                </div>
+                </x-tarjeta>
         </div>
     @endif
 </x-app-layout>

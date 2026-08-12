@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+            <x-tarjeta class="overflow-hidden">
 
                 <form method="POST" action="{{ route('operativo.inventarios.store', $zona->id) }}" enctype="multipart/form-data">
                     @csrf
@@ -111,7 +111,7 @@
                     </div>
 
                 </form>
-            </div>
+            </x-tarjeta>
     </div>
 
 @vite(['resources/js/inventario_categoria.js'])

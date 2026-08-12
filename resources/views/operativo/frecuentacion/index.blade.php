@@ -97,7 +97,7 @@
                 campo editable con envío propio, y eso no encaja en un
                 resumen.
             --}}
-            <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
+            <x-tarjeta class="mb-6">
                 <h3 class="text-lg font-bold text-gray-900 mb-1">Superficie Territorial (ST)</h3>
                 <p class="text-sm text-gray-500 mb-4">
                     Un solo valor para todo el territorio: sin él, ningún sitio tiene ÍETP, aunque todos tengan su DET respondido.
@@ -123,9 +123,9 @@
                         </button>
                     @endif
                 </form>
-            </section>
+            </x-tarjeta>
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <x-tarjeta :padding="false" class="overflow-hidden">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
@@ -184,7 +184,7 @@
                         @endforelse
                     </tbody>
                 </table>
-            </div>
+            </x-tarjeta>
 
     </div>
 </x-app-layout>

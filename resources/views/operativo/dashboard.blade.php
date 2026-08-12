@@ -30,21 +30,21 @@
             @if($proximoPaso['ultima'] || $proximoPaso['siguiente'])
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 @if($proximoPaso['ultima'])
-                <div class="bg-white shadow-sm rounded-xl border border-gray-200 px-6 pt-5 pb-2">
+                <x-tarjeta :padding="false" class="px-6 pt-5 pb-2">
                     <h3 class="text-base font-semibold text-gray-800 mb-1">
                         {{ $proximoPaso['fusionado'] ? 'Sigue por aquí — es donde lo dejaste' : 'Sigue por aquí' }}
                     </h3>
                     <x-fila-matriz :fila="$proximoPaso['ultima']['fila']" :zona="$proximoPaso['ultima']['zona']" />
-                </div>
+                </x-tarjeta>
                 @endif
 
                 @if($proximoPaso['siguiente'])
-                <div class="bg-white shadow-sm rounded-xl border border-gray-200 px-6 pt-5 pb-2">
+                <x-tarjeta :padding="false" class="px-6 pt-5 pb-2">
                     <h3 class="text-base font-semibold text-gray-800 mb-1">
                         {{ $proximoPaso['ultima'] ? 'Todavía sin empezar' : 'Empieza por aquí' }}
                     </h3>
                     <x-fila-matriz :fila="$proximoPaso['siguiente']['fila']" :zona="$proximoPaso['siguiente']['zona']" />
-                </div>
+                </x-tarjeta>
                 @endif
             </div>
             @endif
@@ -54,8 +54,8 @@
             </div>
 
             {{-- ═══ VISTA LISTA ══════════════════════════════════════════════════ --}}
-            <div x-show="vista === 'lista'" x-transition
-                 class="bg-white shadow-sm rounded-xl border border-gray-200 divide-y divide-gray-200">
+            <x-tarjeta :padding="false" x-show="vista === 'lista'" x-transition
+                 class="divide-y divide-gray-200">
                 @foreach($zonas as $zona)
                     @php $p = $progreso[$zona->id]; @endphp
                     <div class="flex items-center gap-4 p-4">
@@ -89,13 +89,13 @@
                         </div>
                     </div>
                 @endforeach
-            </div>
+            </x-tarjeta>
 
             {{-- ═══ VISTA TARJETAS ═══════════════════════════════════════════════ --}}
             <div x-show="vista === 'tarjetas'" x-transition
                  class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($zonas as $zona)
-                <div class="bg-white shadow-sm sm:rounded-lg hover:shadow-md transition duration-300 border border-gray-100">
+                <x-tarjeta :padding="false" class="hover:shadow-md transition duration-300">
 
                     {{-- Imagen de zona --}}
                     @if($zona->imagen_path)
@@ -145,7 +145,7 @@
                             </a>
                         </div>
                     </div>
-                </div>
+                </x-tarjeta>
                 @endforeach
             </div>
 

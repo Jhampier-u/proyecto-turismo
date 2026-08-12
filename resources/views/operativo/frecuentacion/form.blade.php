@@ -33,7 +33,7 @@
                     falta una segunda comprobación en la vista.
                 --}}
 
-                <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
+                <x-tarjeta class="mb-6">
                     <div class="mb-4">
                         <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">
                             Nombre del sitio
@@ -68,7 +68,7 @@
                             <span class="text-sm text-red-500 block mt-1">{{ $message }}</span>
                         @enderror
                     </div>
-                </section>
+                </x-tarjeta>
 
                 <div class="flex justify-end">
                     <button type="submit"

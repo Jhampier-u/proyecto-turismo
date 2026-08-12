@@ -28,7 +28,7 @@
 
             <x-pestanas-matriz clave="irritacion" :zona="$zona" activa="resultados" />
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
+            <x-tarjeta :padding="false" class="overflow-hidden p-8">
 
                 <x-flash-exito />
 
@@ -114,7 +114,7 @@
                     <x-boton-volver :zona="$zona" />
                 </div>
 
-            </div>
+            </x-tarjeta>
     </div>
     @endif
 </x-app-layout>

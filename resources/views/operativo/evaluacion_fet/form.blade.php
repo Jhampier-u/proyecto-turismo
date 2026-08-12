@@ -77,9 +77,13 @@
                 @endphp
 
                 @foreach($bloques as $clave => $bloque)
-                    <section id="{{ $clave }}" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
+                    <x-tarjeta id="{{ $clave }}" class="mb-6"
                              x-data="{
-                                valores: @js($inicial($bloque['criterios'])),
+                                // @js() no se compila dentro de un atributo de
+                                // <x-componente> -la etiqueta se procesa antes que
+                                // las @directivas, así que queda literal-; Js::from()
+                                // es lo mismo que usa @js() por debajo.
+                                valores: {{ Illuminate\Support\Js::from($inicial($bloque['criterios'])) }},
                                 get promedio() {
                                     const v = Object.values(this.valores);
                                     return v.some(x => x === null)
@@ -114,7 +118,7 @@
                         @foreach($bloque['criterios'] as $campo => $criterio)
                             <x-criterio-pildoras :campo="$campo" :criterio="$criterio" :bloqueado="$bloqueado" />
                         @endforeach
-                    </section>
+                    </x-tarjeta>
                 @endforeach
 
                 <div class="flex justify-end mt-8 gap-4 pt-4 border-t">

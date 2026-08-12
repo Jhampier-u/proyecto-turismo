@@ -37,7 +37,7 @@
 
             <x-pestanas-matriz clave="potencialidad" :zona="$zona" activa="resultados" />
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
+            <x-tarjeta :padding="false" class="overflow-hidden p-8">
 
                 <h3 class="text-center font-bold text-xl text-gray-700 mb-8 uppercase tracking-wide">
                     Análisis de Potencialidad Turística del Territorio
@@ -107,16 +107,16 @@
                     <p class="text-2xl font-extrabold uppercase {{ $colorText }}">{{ $cuadrante }}</p>
                     <p class="text-gray-600 mt-2 text-sm max-w-xl mx-auto">{{ $descripcion }}</p>
                     <div class="grid grid-cols-2 gap-6 mt-6 max-w-sm mx-auto">
-                        <div class="bg-white rounded-lg p-4 shadow-sm">
+                        <x-tarjeta :padding="false" class="p-4">
                             <p class="text-xs text-gray-500 uppercase font-bold">Factores Endógenos (FN)</p>
                             <p class="text-4xl font-black text-indigo-600">{{ $cifra($fn, 2) }}</p>
                             <p class="text-xs text-gray-400">Oferta + Infraestructura</p>
-                        </div>
-                        <div class="bg-white rounded-lg p-4 shadow-sm">
+                        </x-tarjeta>
+                        <x-tarjeta :padding="false" class="p-4">
                             <p class="text-xs text-gray-500 uppercase font-bold">Factores Exógenos (FX)</p>
                             <p class="text-4xl font-black text-teal-600">{{ $cifra($fx, 2) }}</p>
                             <p class="text-xs text-gray-400">Demanda + Superestructura</p>
-                        </div>
+                        </x-tarjeta>
                     </div>
                 </div>
 
@@ -384,7 +384,7 @@
                         class="!inline-block !border-0 !px-5 !bg-gray-200 !text-black !font-bold !text-lg hover:!bg-gray-400 hover:!scale-105 !transition-transform !shadow-md" />
                 </div>
 
-            </div>
+            </x-tarjeta>
     </div>
 
     {{-- Gráfico de cuadrantes con Chart.js --}}
