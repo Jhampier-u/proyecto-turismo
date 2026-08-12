@@ -22,6 +22,13 @@
 
             <x-pestanas-matriz clave="fit" :zona="$zona" activa="resultados" />
 
+            {{-- "Volver a la Zona" sube aquí, junto a las pestañas -mismo
+                 sitio que ocupa "Regresar" en el formulario-: es la misma
+                 acción de navegación, y antes vivía duplicada al pie junto a
+                 dos enlaces que ya no existen (ver el comentario de más
+                 abajo, donde estaban). --}}
+            <x-boton-volver :zona="$zona" class="mb-4" />
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
 
                 @if($fit?->exists && $fit->user)
@@ -195,24 +202,14 @@
                     </div>
                 </div>
 
-                <div class="mt-8 text-center">
-                    {{-- Ahora todos pueden ir al formulario, admin incluido:
-                         el enlace ya no depende del rol. --}}
-                    <a href="{{ route('operativo.evaluacion_fit.edit', $zona->id) }}"
-                        class="inline-block px-5 py-2 bg-blue-600 text-white font-bold text-lg rounded-lg
-          hover:bg-blue-700 hover:scale-105 transition-transform duration-200 shadow-md">
-                        Ver el Formulario
-                    </a>
-
-                    <a href="{{ route('operativo.vtt.final', $zona->id) }}"
-                        class="inline-block px-5 py-2 bg-gray-200 text-black font-bold text-lg rounded-lg
-          hover:bg-gray-400 hover:scale-105 transition-transform duration-200 shadow-md">
-                        Volver a Vocaci&oacute;n Tur&iacute;stica
-                    </a>
-
-                    <x-boton-volver texto="Mis Zonas" />
-
-                </div>
+                {{-- La fila de botones que iba aquí se quitó entera:
+                     "Ver el Formulario" era exactamente lo que ya hacen las
+                     pestañas de arriba; "Volver a Vocación Turística"
+                     enlazaba a operativo.vtt.final, que da error si FIT y FET
+                     no están las dos confirmadas -un enlace que falla es peor
+                     que ninguno, el panel de la zona ya muestra Vocación con
+                     su candado y el motivo-; y "Mis Zonas" subió junto a las
+                     pestañas, convertido en el botón de volver a la zona. --}}
 
             </div>
         </div>

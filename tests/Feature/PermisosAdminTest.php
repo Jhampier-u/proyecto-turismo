@@ -404,18 +404,27 @@ class PermisosAdminTest extends TestCase
             ->assertSee('Agregar Recurso');
     }
 
-    /** El único resto del antiguo readonly: a dónde vuelve cada rol. */
-    public function test_el_boton_volver_lleva_a_cada_rol_a_su_listado(): void
+    /**
+     * Ajustado en volver-a-la-zona: el formulario de una matriz vive dentro
+     * de una zona, así que x-boton-volver recibe esa zona -ver
+     * evaluacion_paisaje/form.blade.php- y "Regresar" baja al panel de esa
+     * zona para los tres roles, no al listado de cada uno. Esto sustituye
+     * al antiguo "a dónde vuelve cada rol": aquí ya no hay rol que mirar,
+     * solo la zona.
+     */
+    public function test_el_boton_volver_del_formulario_lleva_a_la_zona_sin_importar_el_rol(): void
     {
+        $destino = route('operativo.zona.panel', $this->zona->id);
+
         $this->actingAs($this->admin)
             ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
             ->assertOk()
-            ->assertSee(route('admin.zonas.index'), false);
+            ->assertSee($destino, false);
 
         $this->actingAs($this->jefe)
             ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
             ->assertOk()
-            ->assertSee(route('operativo.dashboard'), false);
+            ->assertSee($destino, false);
     }
 
     public function test_la_matriz_dice_quien_la_edito_por_ultima_vez(): void

@@ -33,14 +33,15 @@
         </div>
 
         {{-- Todos pueden ir al formulario ahora, admin incluido: el enlace ya
-             no depende del rol. El botón de volver sí sigue dependiendo de él
-             -a dónde vuelves-, por eso vive en <x-boton-volver />. --}}
+             no depende del rol. El botón de volver siempre tiene una zona
+             aquí -es el prop que ya recibe este componente-, así que vuelve
+             al panel de esa zona para los tres roles, no a una lista. --}}
         <div class="mt-6 flex justify-center gap-3">
             <a href="{{ route($rutaFormulario, $zona->id) }}"
                class="inline-block px-5 py-2 bg-gray-200 text-black font-bold rounded-lg hover:bg-gray-400 shadow">
                 Ir al formulario
             </a>
-            <x-boton-volver texto="Mis Zonas" />
+            <x-boton-volver :zona="$zona" />
         </div>
     </div>
 </div>

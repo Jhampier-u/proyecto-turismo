@@ -25,7 +25,7 @@
                     <p>Esta zona aún no cuenta con una Matriz de Percepción registrada. El Jefe de Zona o el Equipo operativo deben completarla primero.</p>
                 </div>
                 <div class="mt-6 text-center">
-                    <x-boton-volver />
+                    <x-boton-volver :zona="$zona" />
                 </div>
             </div>
         </div>
@@ -173,7 +173,7 @@
                        class="inline-block px-5 py-2 bg-blue-600 text-white font-bold text-lg rounded-lg hover:bg-blue-700 hover:scale-105 transition-transform duration-200 shadow-md">
                         Ver el Formulario
                     </a>
-                    <x-boton-volver texto="Mis Zonas" />
+                    <x-boton-volver :zona="$zona" />
                 </div>
             </div>
         </div>

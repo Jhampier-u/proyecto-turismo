@@ -10,10 +10,8 @@
 
             <x-pestanas-matriz clave="valoracion_territorial" :zona="$zona" activa="formulario" />
 
-            <a href="{{ url()->previous() }}"
-                class="inline-flex items-center px-4 py-2 mb-4 bg-blue-300 hover:bg-blue-500 text-black-700 font-bold rounded-lg shadow-sm">
-                Regresar
-            </a>
+            <x-boton-volver :zona="$zona" texto="Regresar"
+                class="!inline-flex !items-center !px-4 !py-2 !mb-4 !bg-blue-300 hover:!bg-blue-500 !text-black !font-bold !rounded-lg !shadow-sm" />
 
             @php
                 $esJefe         = auth()->user()->esJefe();

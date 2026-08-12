@@ -452,13 +452,13 @@ class IrritacionTest extends TestCase
      * corrigió en Paisaje y Valoración Territorial, y esta matriz aterrizó
      * sin la prueba que lo impide.
      *
-     * Ajustado en la Tarea 2 de permisos-y-navegación: "Volver a Zonas" ya no
-     * es el texto que ve el admin aquí -x-boton-volver se invoca en esta
-     * vista con texto="Mis Zonas" fijo-, y el enlace "Volver al Formulario"
-     * ya no depende del rol: se muestra siempre, porque el admin también
-     * puede volver a editar un borrador. Lo que sigue siendo cierto -y lo
-     * que este test tiene que seguir comprobando- es que el botón de volver
-     * del admin apunta a SU listado, no al del jefe/equipo.
+     * Ajustado en volver-a-la-zona: ya no hay "Volver a Zonas" que reservarle
+     * al admin en esta vista -x-boton-volver recibe la zona, y con zona el
+     * destino es el panel de ESA zona para los tres roles, no el listado de
+     * cada uno-, y el enlace "Volver al Formulario" ya no depende del rol:
+     * se muestra siempre, porque el admin también puede volver a editar un
+     * borrador. Lo que sigue siendo cierto -y lo que este test tiene que
+     * seguir comprobando- es que el admin llega a un sitio sensato.
      */
     public function test_el_admin_ve_los_resultados_en_modo_lectura(): void
     {
@@ -470,8 +470,7 @@ class IrritacionTest extends TestCase
 
         $this->actingAs($admin)->get($this->url('/resultados'))
             ->assertOk()
-            ->assertSee(route('admin.zonas.index'), false)
-            ->assertDontSee(route('operativo.dashboard'), false);
+            ->assertSee(route('operativo.zona.panel', $this->zona->id), false);
     }
 
     /**

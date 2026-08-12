@@ -168,7 +168,7 @@
                         class="inline-block px-5 py-2 bg-indigo-600 text-white font-bold text-lg rounded-lg hover:bg-indigo-700 hover:scale-105 transition-transform duration-200 shadow-md">
                         ← Volver al Formulario
                     </a>
-                    <x-boton-volver texto="Mis Zonas" />
+                    <x-boton-volver :zona="$zona" />
                 </div>
 
             </div>

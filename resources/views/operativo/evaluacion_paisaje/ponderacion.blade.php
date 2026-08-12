@@ -124,7 +124,7 @@
                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">
                     ← Volver al Formulario
                 </a>
-                <x-boton-volver texto="Mis Zonas" />
+                <x-boton-volver :zona="$zona" />
             </div>
 
         </div>

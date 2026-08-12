@@ -198,18 +198,15 @@
                 </div>
 
                 <div class="mt-6 text-center">
-                    {{-- El destino (a dónde vuelve cada rol) lo decide <x-boton-volver>, no esta vista.
-                         El texto y el color siguen siendo propios de esta página, así que se
-                         sobreescriben con el modificador "!" de Tailwind: fuerza la victoria sobre
-                         las clases por defecto del componente sin depender del orden de fusión. --}}
-                    @php $user = Auth::user(); @endphp
-                    @if($user->esAdmin())
-                        <x-boton-volver texto="Volver a Gestión de Zonas"
-                            class="!inline-block !border-0 !px-5 !bg-red-600 !text-white !font-bold !text-lg hover:!bg-red-700 !shadow-md" />
-                    @else
-                        <x-boton-volver texto="Volver a Mis Zonas"
-                            class="!inline-block !border-0 !px-5 !bg-blue-600 !text-white !font-bold !text-lg hover:!bg-blue-700 !shadow-md" />
-                    @endif
+                    {{-- Este reporte es de UNA zona: volver baja al panel de esa
+                         zona para los tres roles, igual que en cualquier matriz.
+                         Ya no hay ternario de rol -ni en el destino ni en el
+                         texto-, así que tampoco hace falta el color de aviso que
+                         antes distinguía al admin. El color y el tamaño siguen
+                         siendo propios de esta página, sobreescritos con el
+                         modificador "!" de Tailwind. --}}
+                    <x-boton-volver :zona="$zona"
+                        class="!inline-block !border-0 !px-5 !bg-blue-600 !text-white !font-bold !text-lg hover:!bg-blue-700 !shadow-md" />
                 </div>
 
             </div>

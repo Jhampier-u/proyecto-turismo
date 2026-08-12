@@ -10,7 +10,7 @@
 
             <x-pestanas-matriz clave="paisaje" :zona="$zona" activa="formulario" />
 
-            <x-boton-volver texto="Regresar" class="mb-4" />
+            <x-boton-volver :zona="$zona" texto="Regresar" class="mb-4" />
 
             @php
                 $esJefe         = auth()->user()->esJefe();
