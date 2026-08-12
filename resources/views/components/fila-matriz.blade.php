@@ -1,15 +1,10 @@
 @props(['fila', 'zona' => null])
 
 @php
-    // Clases completas: Tailwind purga las construidas por concatenación.
     // El color codifica SOLO el estado. La identidad la dan icono y nombre.
-    $estilos = [
-        'sin_empezar' => ['icono' => 'text-gray-400',  'detalle' => 'text-gray-500'],
-        'sin_estado'  => ['icono' => 'text-gray-500',  'detalle' => 'text-gray-600'],
-        'borrador'    => ['icono' => 'text-amber-600', 'detalle' => 'text-amber-700'],
-        'validada'    => ['icono' => 'text-green-600', 'detalle' => 'text-gray-600'],
-        'bloqueada'   => ['icono' => 'text-gray-300',  'detalle' => 'text-gray-400'],
-    ][$fila->estado];
+    // El mapa vive en EstadoZona porque <x-badge> pinta los mismos cinco
+    // estados y dos copias se separan sin que nada falle.
+    $estilos = \App\Servicios\EstadoZona::ESTILOS_ESTADO[$fila->estado];
 
     $bloqueada = $fila->estado === 'bloqueada';
 @endphp
@@ -29,8 +24,12 @@
 
         {{-- Sin botones desactivados: donde el equipo no puede validar, va el
              texto que dice quién lo hace. --}}
+        {{-- Mismo ámbar que el detalle: avisoValidacion solo existe en filas
+             en borrador, así que $estilos ya es el de 'borrador' aquí -no es
+             un color aparte escrito a mano, es el mismo que la línea de
+             arriba, reafirmado en vez de repetido. --}}
         @if($fila->avisoValidacion)
-            <p class="text-sm text-amber-700 mt-1">{{ $fila->avisoValidacion }}</p>
+            <p class="text-sm {{ $estilos['detalle'] }} mt-1">{{ $fila->avisoValidacion }}</p>
         @endif
 
         {{-- La máquina de estados vive en el formulario de la matriz
@@ -38,7 +37,7 @@
              así que al jefe se le da la pista, no un botón que no lleva a
              ningún sitio. Mismo tratamiento visual que avisoValidacion. --}}
         @if($fila->puedeValidar)
-            <p class="text-sm text-amber-700 mt-1">Lista para validar</p>
+            <p class="text-sm {{ $estilos['detalle'] }} mt-1">Lista para validar</p>
         @endif
     </div>
 

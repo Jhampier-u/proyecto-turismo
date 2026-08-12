@@ -17,6 +17,60 @@ use Illuminate\Support\Collection;
  */
 final class EstadoZona
 {
+    /**
+     * Estado → cómo se pinta, una sola vez para todo el sistema.
+     *
+     * Vivía dentro de <x-fila-matriz>. Al añadir <x-badge>, que pinta los
+     * mismos cinco estados, habrían quedado dos tablas del mismo
+     * conocimiento: el día que se añada un estado o se cambie un color, una
+     * de las dos se queda atrás y nada falla en rojo.
+     *
+     * Tres claves por estado porque los dos consumidores necesitan cosas
+     * distintas y ninguno debería cambiar lo que pinta solo para compartir de
+     * dónde lo lee: `icono` y `detalle` son las que ya usaba fila-matriz,
+     * `insignia` es la pareja fondo+texto+borde que necesita el badge.
+     *
+     * Clases completas: Tailwind purga las construidas por concatenación.
+     *
+     * @var array<string, array{icono: string, detalle: string, insignia: string}>
+     */
+    public const ESTILOS_ESTADO = [
+        'sin_empezar' => [
+            'icono'    => 'text-gray-400',
+            'detalle'  => 'text-gray-500',
+            'insignia' => 'bg-gray-100 text-gray-600 border-gray-200',
+        ],
+        'sin_estado' => [
+            'icono'    => 'text-gray-500',
+            'detalle'  => 'text-gray-600',
+            'insignia' => 'bg-gray-100 text-gray-700 border-gray-200',
+        ],
+        'borrador' => [
+            'icono'    => 'text-amber-600',
+            'detalle'  => 'text-amber-700',
+            'insignia' => 'bg-amber-100 text-amber-800 border-amber-200',
+        ],
+        'validada' => [
+            'icono'    => 'text-green-600',
+            'detalle'  => 'text-gray-600',
+            'insignia' => 'bg-green-100 text-green-800 border-green-200',
+        ],
+        'bloqueada' => [
+            'icono'    => 'text-gray-300',
+            'detalle'  => 'text-gray-400',
+            'insignia' => 'bg-gray-100 text-gray-400 border-gray-200',
+        ],
+    ];
+
+    /** Estado → cómo se llama en pantalla. */
+    public const NOMBRES_ESTADO = [
+        'sin_empezar' => 'Sin empezar',
+        'sin_estado'  => 'Sin estado',
+        'borrador'    => 'Borrador',
+        'validada'    => 'Validada',
+        'bloqueada'   => 'Bloqueada',
+    ];
+
     /** @var array<string, ?Model> evaluación cargada por clave de matriz */
     private array $evaluaciones = [];
 
