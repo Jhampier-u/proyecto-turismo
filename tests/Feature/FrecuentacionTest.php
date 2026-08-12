@@ -180,6 +180,14 @@ class FrecuentacionTest extends TestCase
      * este estado: test_la_franja_avisa_si_falta_la_superficie_territorial
      * prueba la falta de ST con la lista VACÍA, donde esta rama de
      * $stDefinida ni siquiera llega a ejecutarse junto a sitios completos.
+     *
+     * La frase "falta la Superficie Territorial" la pinta también el candado
+     * de la pestaña de Resultados (pestanas-matriz.blade.php) cuando los
+     * sitios están completos y falta la ST: un assertSee simple pasaría
+     * aunque la FRANJA no dijera nada, con solo la pestaña bastando. Por eso
+     * se ata la frase a la clase text-amber-700, que es propia de la franja
+     * -el candado usa text-sm sin color-, y así la aserción distingue de
+     * verdad quién la está pintando.
      */
     public function test_con_sitios_completos_y_sin_st_el_jefe_ve_el_aviso_ambar_y_no_el_boton(): void
     {
@@ -189,11 +197,13 @@ class FrecuentacionTest extends TestCase
             'det'     => 1500,
         ]);
 
-        $this->actingAs($this->jefe)
+        $html = $this->actingAs($this->jefe)
             ->get($this->urlIndex($this->zona))
             ->assertOk()
-            ->assertSee('falta la Superficie Territorial')
-            ->assertDontSee('Validar y Cerrar la Lista');
+            ->assertDontSee('Validar y Cerrar la Lista')
+            ->getContent();
+
+        $this->assertStringContainsString('text-amber-700">falta la Superficie Territorial', $html);
     }
 
     /**

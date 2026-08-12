@@ -76,6 +76,21 @@ class ResumenListaTest extends TestCase
         $this->assertStringNotContainsString('1 sitios', $html);
     }
 
+    /**
+     * total viaja como cadena cuando una vista lo pasa por un atributo Blade
+     * sin ":" -"total="1"" en vez de ":total="1""-, y en PHP '1' === 1 es
+     * falso: sin convertir a entero antes de comparar, el singular se
+     * perdería en silencio y nadie lo notaría hasta verlo en pantalla. El
+     * test anterior no lo cubre porque pasa 1 ya como entero.
+     */
+    public function test_el_singular_no_dice_1_sitios_con_total_en_cadena(): void
+    {
+        $html = $this->renderizar(['total' => '1', 'incompletos' => 0]);
+
+        $this->assertStringContainsString('1 sitio', $html);
+        $this->assertStringNotContainsString('1 sitios', $html);
+    }
+
     /** El plural del castellano no es añadir una s: actor da actores. */
     public function test_el_plural_se_puede_dar_a_mano(): void
     {
