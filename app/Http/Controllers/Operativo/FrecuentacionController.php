@@ -55,6 +55,10 @@ class FrecuentacionController extends Controller
             'puedeEditar'     => $user->esJefe() || ! $confirmada,
             'puedeValidar'    => ! $confirmada && $user->esJefe() && $listaCompleta,
             'avisoValidacion' => ! $confirmada && $user->esEquipo() && $listaCompleta,
+            // Para la franja de resumen (<x-resumen-lista>): ya estaban
+            // calculados arriba para $listaCompleta, solo faltaba pasarlos.
+            'incompletos' => $incompletos,
+            'stDefinida'  => $stDefinida,
         ]);
     }
 

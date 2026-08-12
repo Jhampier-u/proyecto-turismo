@@ -48,6 +48,155 @@ class FrecuentacionTest extends TestCase
         return "/operativo/zona/{$zona->id}/frecuentacion";
     }
 
+    // ── Tarea 6: la franja de resumen ───────────────────────────────────────
+
+    /** Dos sitios, uno sin DET. */
+    private function dosSitiosUnoSinDet(): void
+    {
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Malecón 2000',
+            'det'     => 1500,
+        ]);
+
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Sitio a medias',
+        ]);
+    }
+
+    public function test_la_franja_resume_cuantos_sitios_faltan(): void
+    {
+        $this->dosSitiosUnoSinDet();
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('2 sitios')
+            ->assertSee('1 sin DET');
+    }
+
+    /**
+     * El admin escribe listas pero no las valida, y tampoco es el equipo: no
+     * recibe ni el botón ni el aviso de «avísale a tu jefe».
+     */
+    public function test_el_admin_ve_el_recuento_y_ninguna_accion_de_validar(): void
+    {
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Malecón 2000',
+            'det'     => 1500,
+        ]);
+
+        $this->actingAs($this->jefe)->post($this->urlSuperficie(), ['st' => 1200]);
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('1 sitio')
+            ->assertDontSee('Validar y Cerrar la Lista')
+            ->assertDontSee('avísale a');
+    }
+
+    /**
+     * El equipo ve el aviso de «avísale a tu jefe» cuando la lista está
+     * completa -sitios con DET y ST definida-, pero no recibe el botón de
+     * validar, que solo tiene el Jefe de Zona. Mismo hueco que quedó sin
+     * cubrir en la tarea de Involucrados: el brief de esta tarea trae tests
+     * para el jefe y el admin, pero no para el equipo.
+     */
+    public function test_el_equipo_ve_el_aviso_de_validar_cuando_la_lista_esta_completa(): void
+    {
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Malecón 2000',
+            'det'     => 1500,
+        ]);
+
+        $this->actingAs($this->jefe)->post($this->urlSuperficie(), ['st' => 1200]);
+
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+
+        // Sin asignarlo a la zona, la petición recibiría un 403 y el test
+        // fallaría por el motivo equivocado, no por lo que se quiere probar.
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($equipo)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('1 sitio')
+            ->assertSee('avísale a')
+            ->assertDontSee('Validar y Cerrar la Lista');
+    }
+
+    /**
+     * La ST aparece como dato en la franja, pero se sigue editando en su
+     * sección: sin ella ningún sitio tiene ÍETP aunque todos tengan DET.
+     */
+    public function test_la_franja_avisa_si_falta_la_superficie_territorial(): void
+    {
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('ST sin responder');
+    }
+
+    public function test_con_superficie_definida_la_franja_la_muestra(): void
+    {
+        // Fija la ST por el camino real -la ruta de superficie-, no escribiendo
+        // en la base a mano: así el test también cubre que ese camino funciona.
+        $this->actingAs($this->jefe)->post(
+            $this->urlSuperficie(),
+            ['st' => 1200]
+        );
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('ST: 1200')
+            ->assertDontSee('ST sin responder');
+    }
+
+    public function test_el_campo_de_superficie_sigue_siendo_editable(): void
+    {
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('name="st"', false)
+            ->assertSee($this->urlSuperficie(), false);
+    }
+
+    public function test_el_boton_de_validar_esta_arriba_y_no_al_final(): void
+    {
+        // El brief de esta tarea trae este test sin datos: con la zona
+        // recién creada -sin sitios ni ST- $listaCompleta es siempre falso y
+        // el botón nunca se pinta, así que el "1" no se podría cumplir con
+        // ninguna implementación. Mismo arreglo que
+        // InvolucradosTest::test_el_boton_de_validar_esta_arriba_y_no_al_final():
+        // una lista completa primero, para que puedaValidar sea cierto.
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Malecón 2000',
+            'det'     => 1500,
+        ]);
+        $this->actingAs($this->jefe)->post($this->urlSuperficie(), ['st' => 1200]);
+
+        $html = $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->getContent();
+
+        // Con la lista completa el botón existe una sola vez. Dos botones que
+        // hacen lo mismo es la duplicación que se está quitando.
+        $this->assertSame(1, substr_count($html, 'Validar y Cerrar la Lista'));
+    }
+
     public function test_se_puede_crear_editar_y_borrar_un_sitio(): void
     {
         $this->actingAs($this->jefe)

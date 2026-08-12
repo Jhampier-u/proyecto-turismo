@@ -50,10 +50,39 @@
             @endif
 
             {{--
+                La franja de resumen sube el recuento de a medias y la acción
+                de validar arriba del todo, junto a la tabla: antes vivían
+                separados -el botón/aviso solo al final de la página-.
+                puedeValidar/avisoValidacion son el mismo mensaje para roles
+                distintos (jefe / equipo), así que viajan juntos aquí y ya no
+                se repiten al final.
+
+                La ST es propia de Frecuentación y no tiene equivalente en
+                Involucrados: se pasa por la ranura del componente, como un
+                dato más de la franja, no como un prop nuevo -el componente no
+                deriva nada, solo pinta lo que le dan-. Va ENCIMA de la
+                sección de ST y no debajo: si fueran pegadas, el mismo dato
+                aparecería dos veces seguidas y la franja parecería un
+                duplicado en vez de un resumen.
+            --}}
+            <x-resumen-lista sustantivo="sitio" faltante="sin DET"
+                             :total="$sitios->count()"
+                             :incompletos="$incompletos"
+                             :puede-validar="$puedeValidar"
+                             :ruta-validar="route('operativo.frecuentacion.validar', $zona->id)"
+                             :aviso-validacion="$avisoValidacion"
+                             :jefe="$zona->jefe?->name">
+                {{ $stDefinida ? 'ST: ' . $config->st : 'ST sin responder' }}
+            </x-resumen-lista>
+
+            {{--
                 La Superficie Territorial (ST): un escalar de la ZONA, uno
                 solo para todos los sitios -no una fila más de la tabla de
                 abajo-, así que vive en su propia sección con su propio
-                formulario y su propio botón de guardar.
+                formulario y su propio botón de guardar. La franja de arriba
+                solo la NOMBRA como dato -no la sustituye-: sigue siendo un
+                campo editable con envío propio, y eso no encaja en un
+                resumen.
             --}}
             <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
                 <h3 class="text-lg font-bold text-gray-900 mb-1">Superficie Territorial (ST)</h3>
@@ -143,23 +172,6 @@
                     </tbody>
                 </table>
             </div>
-
-            @if($puedeValidar)
-                <div class="mt-6 flex justify-end">
-                    <form action="{{ route('operativo.frecuentacion.validar', $zona->id) }}" method="POST"
-                          onsubmit="return confirm('Al validar, la lista queda cerrada para el equipo. ¿Continuar?');">
-                        @csrf
-                        <button type="submit"
-                                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow">
-                            Validar y Cerrar la Lista
-                        </button>
-                    </form>
-                </div>
-            @elseif($avisoValidacion)
-                <p class="mt-6 text-sm text-amber-700 text-right">
-                    Lista para validar — avísale a {{ $zona->jefe?->name ?? 'tu Jefe de Zona' }}
-                </p>
-            @endif
 
         </div>
     </div>
