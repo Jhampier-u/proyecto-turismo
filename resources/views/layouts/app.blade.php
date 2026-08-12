@@ -9,13 +9,16 @@
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
+        {{-- bg-gray-50 vale #F8FAFC con el alias de tailwind.config.js: el
+             fondo pedido, escrito con el único nombre de gris que usa el
+             proyecto. --}}
+        <div class="min-h-screen bg-gray-50">
             @include('layouts.navigation')
 
             <!-- Page Heading -->
