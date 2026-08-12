@@ -387,7 +387,7 @@ class PaisajeTest extends TestCase
         $respuesta = $this->actingAs($admin)->get($this->url())->assertOk();
 
         $respuesta->assertSee('Guardar Borrador');
-        $respuesta->assertDontSee('disabled', false);
+        $this->assertSame(0, $this->contarDeshabilitados($respuesta->getContent()));
     }
 
     /**
@@ -409,7 +409,7 @@ class PaisajeTest extends TestCase
         $respuesta = $this->actingAs($admin)->get($this->url())->assertOk();
 
         $respuesta->assertDontSee('Guardar Borrador');
-        $respuesta->assertSee('disabled', false);
+        $this->assertGreaterThan(0, $this->contarDeshabilitados($respuesta->getContent()));
     }
 
     public function test_la_zona_aparece_en_el_dashboard_con_su_progreso(): void

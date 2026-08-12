@@ -219,7 +219,7 @@ class EvaluacionesTest extends TestCase
             ->assertOk();
 
         $respuesta->assertSee('Guardar Borrador');
-        $this->assertSame(0, substr_count($respuesta->getContent(), 'disabled'));
+        $this->assertSame(0, $this->contarDeshabilitados($respuesta->getContent()));
     }
 
     /**
@@ -241,7 +241,7 @@ class EvaluacionesTest extends TestCase
             ->assertOk();
 
         $respuesta->assertDontSee('Guardar Borrador');
-        $this->assertSame(18 * 4, substr_count($respuesta->getContent(), 'disabled'));
+        $this->assertSame(18 * 4, $this->contarDeshabilitados($respuesta->getContent()));
     }
 
     /**
@@ -285,7 +285,7 @@ class EvaluacionesTest extends TestCase
             ->assertOk();
 
         $respuesta->assertSee('Guardar Borrador');
-        $this->assertSame(0, substr_count($respuesta->getContent(), 'disabled'));
+        $this->assertSame(0, $this->contarDeshabilitados($respuesta->getContent()));
     }
 
     /**
@@ -307,7 +307,7 @@ class EvaluacionesTest extends TestCase
             ->assertOk();
 
         $respuesta->assertDontSee('Guardar Borrador');
-        $this->assertSame(9 * 4, substr_count($respuesta->getContent(), 'disabled'));
+        $this->assertSame(9 * 4, $this->contarDeshabilitados($respuesta->getContent()));
     }
 
     /**
