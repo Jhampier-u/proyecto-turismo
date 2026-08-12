@@ -17,7 +17,11 @@
                     </button>
                 </form>
                 @endif
-                <a href="{{ route('operativo.dashboard') }}" class="text-sm text-blue-600 hover:underline">← Mis Zonas</a>
+                {{-- Este formulario vive dentro de una zona: "volver" baja a
+                     su panel, no salta a Mis Zonas -mismo criterio que el
+                     resto de matrices. --}}
+                <x-boton-volver :zona="$zona" texto="← Volver a la Zona"
+                    class="!inline !p-0 !border-0 !rounded-none !shadow-none !bg-transparent !text-sm !text-blue-600 hover:!bg-transparent hover:!underline" />
             </div>
         </div>
     </x-slot>
