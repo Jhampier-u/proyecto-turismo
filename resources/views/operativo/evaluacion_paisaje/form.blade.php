@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="paisaje" :zona="$zona" activa="formulario" />
 
@@ -23,7 +23,20 @@
                 $lugar     = $zona->lugar;
                 $provincia = $lugar?->provincia;
                 $region    = $provincia?->region;
+
+                // El índice de la barra lateral: una categoría de Paisaje es
+                // 'clave' => ['nombre','peso','criterios' => [campo => ...]],
+                // igual forma que FIT/FET.
+                $indiceBloques = collect($categorias)->map(fn($categoria, $clave) => [
+                    'ancla'       => $clave,
+                    'etiqueta'    => $categoria['nombre'],
+                    'respondidos' => \App\Servicios\EstadoZona::criteriosRespondidosDe($evaluacion, array_keys($categoria['criterios'])),
+                    'total'       => count($categoria['criterios']),
+                ])->values()->all();
             @endphp
+
+            <div class="lg:grid lg:grid-cols-[1fr_256px] lg:gap-6 lg:items-start">
+            <div class="lg:min-w-0">
 
             @if($evaluacion?->exists && $evaluacion->user)
                 <p class="text-sm text-gray-500 mb-4">
@@ -74,7 +87,7 @@
             <x-flash-exito />
 
 
-            <form method="POST" action="{{ route('operativo.evaluacion_paisaje.update', $zona->id) }}">
+            <form method="POST" action="{{ route('operativo.evaluacion_paisaje.update', $zona->id) }}" id="form-paisaje">
                 @csrf
 
                 @foreach($categorias as $clave => $categoria)
@@ -98,7 +111,7 @@
                         );
                     @endphp
 
-                    <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
+                    <section id="{{ $clave }}" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
                              x-data="{
                                 valores: @js($inicial),
                                 // Con la categoría a medias no hay promedio que
@@ -168,6 +181,11 @@
                 @endunless
             </form>
 
+            </div>{{-- /lg:min-w-0 --}}
+
+            <x-barra-lateral-formulario clave="paisaje" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-paisaje" />
+
+            </div>{{-- /lg:grid --}}
         </div>
     </div>
 </x-app-layout>

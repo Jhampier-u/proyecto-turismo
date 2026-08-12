@@ -617,4 +617,29 @@ class EstadoZonaTest extends TestCase
         $this->assertNull($resultado['siguiente']);
         $this->assertFalse($resultado['fusionado']);
     }
+
+    /**
+     * El desglose por bloque que necesita la barra lateral: cuenta solo un
+     * subconjunto de campos, no toda la evaluación como criteriosRespondidos().
+     *
+     * La anulación de recursos_culturales es en memoria, sin guardar -no hace
+     * falta tocar la base para probar un filtro que solo mira el objeto que
+     * recibe-. Por eso el segundo assert espera 17 y no 18: getAttributes(),
+     * que usa criteriosRespondidos(), sí ve esa mutación local. El punto del
+     * test no es que los dos métodos den el mismo número -nunca lo darían,
+     * cuentan dominios distintos-, sino que aplican la MISMA regla de "no
+     * nulo" cada uno sobre su propio subconjunto: 1 de 2 campos aquí, 17 de
+     * 18 columnas de criterio en toda la evaluación.
+     */
+    public function test_criterios_respondidos_de_cuenta_solo_el_subconjunto_dado(): void
+    {
+        $evaluacion = $this->fitCompleta();
+        $evaluacion->recursos_culturales = null;
+
+        $this->assertSame(
+            1,
+            EstadoZona::criteriosRespondidosDe($evaluacion, ['recursos_culturales', 'recursos_naturales'])
+        );
+        $this->assertSame(17, EstadoZona::criteriosRespondidos($evaluacion));
+    }
 }

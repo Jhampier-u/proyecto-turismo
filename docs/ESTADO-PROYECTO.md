@@ -924,6 +924,147 @@ un DET a medias, ST en 0 rechazada, ST válida, validar, resultados con ÍETP e
 ÍEFT correctos, y la reapertura al editar un sitio ya validado— y se comportó
 exactamente como describe el diseño.
 
+### Rama `barra-lateral` — dashboard con panel de "siguiente paso" (Parte A, ya en `main`) y barra lateral fija en ocho formularios de matriz (Parte B, en esta rama, sin fusionar)
+
+Dos mejoras de interfaz independientes, ver el diseño
+(`docs/superpowers/specs/2026-08-12-dashboard-y-formularios-design.md`) y su
+plan. **Parte A ya está en `main`** —fusionada por el commit de merge
+`4116787`, que este documento no había recogido hasta ahora—. **Parte B vive
+solo en esta rama**, con sus nueve commits encima de esa fusión; no se ha
+fusionado ni empujado.
+
+Suite de esta rama: **524 tests**. El desglose, porque este documento lleva
+meses insistiendo en no dejar un número suelto sin explicar de dónde sale:
+483 antes de esta iniciativa (el número que este documento seguía dando,
+desahogado) + 11 de la Parte A (ya en `main`, que hoy tiene **494**, no 483 —
+la misma deriva documental que esta sección corrige de paso) + 30 de la
+Parte B.
+
+**Parte A — el dashboard deja de ser un índice.** `/mis-zonas` abre con un
+panel de "lo siguiente que toca hacer": la última matriz que el usuario tocó
+(`EstadoZona::ultimaTocadaPor()`, por `user_id`/`updated_at` sobre las ocho
+matrices de tipo `matriz`) y la primera sin terminar
+(`EstadoZona::siguientePendiente()`), fusionadas en una sola tarjeta cuando
+coinciden. Reutiliza `<x-fila-matriz>`, que ahora acepta una prop `zona`
+opcional para pintarse fuera de la página de una sola zona sin cambiar su
+aspecto donde no se pasa. Sin actividad ni zonas asignadas, no se pinta
+ningún panel —un "continuar" vacío sería peor que nada—. El admin no lo ve:
+sigue redirigido a su propio dashboard, sin tocar.
+
+Limitación conocida, documentada en el plan y dejada así a propósito: para
+Involucrados y Frecuentación, "última tocada" no es fiable —sus filas de
+detalle (`Involucrado`, `SitioFrecuentacion`) no tienen `user_id`, y la
+configuración solo lo fija al validar o reabrir, no al editar en borrador—.
+Se suma a las demás deudas de atribución que ya arrastra el registro; cerrarla
+de verdad son dos migraciones + dos controladores + tests, fuera de este plan.
+
+**Parte B — barra lateral fija en ocho formularios de matriz.** FIT, FET,
+Paisaje, Valoración Territorial, Percepción, Irritación y Concentración
+ensanchan a `max-w-7xl` (los que no lo estaban ya) y ganan
+`<x-barra-lateral-formulario>`: recuento de cabecera, índice de bloques con
+`✓`/fracción/color, y "Guardar Borrador" siempre a la vista, ligado al
+formulario real vía `form="..."`. Oculta por debajo de `lg` (1024px): el
+formulario vuelve a una sola columna, sin ningún cambio de comportamiento —
+verificado en el navegador, no solo leído, ver más abajo.
+
+El componente no deriva su índice de bloques —las diez matrices no comparten
+una forma para ellos (`criterios` en FIT/FET/Paisaje, `items` en Percepción,
+lista plana sin `array_keys()` en Irritación, dos niveles sin envoltorio en
+Concentración, mapas planos sin agrupador en Valoración Territorial)—: cada
+vista construye su propio array normalizado (`ancla`/`etiqueta`/`respondidos`/
+`total`) y el componente solo lo pinta, mismo reparto de trabajo que ya usa
+`<x-criterio-pildoras>`. El total de cabecera sí se deriva por defecto de
+`Registro`/`EstadoZona::criteriosRespondidos()` —como `<x-pestanas-matriz>`—,
+salvo que la vista pase `:total`/`:respondidos` explícitos (ver Potencialidad).
+
+**Potencialidad entra también (Tarea 11 bis), migrando su barra propia.** Ya
+tenía una barra lateral fija equivalente —`.pt-sidebar`, CSS en línea propio
+con su propia media query a 900px—, y dejarla fuera habría dejado dos barras
+distintas haciendo lo mismo. Se sustituyó por el componente compartido y se
+borró el CSS entero de layout/sidebar (`.pt-layout`, `.pt-sidebar`, `.pt-card`,
+`.pt-card-title`, `.pt-scale-row`, `.pt-scale-badge`, `.pt-nav-item`,
+`.pt-nav-label`, `.pt-nav-sub` y la media query) — verificado en el navegador
+que no queda ningún resto de esas clases en el DOM. El componente gana dos
+props opcionales, `:total`/`:respondidos` —solo para este caso—, que
+sustituyen el cálculo de cabecera por defecto: el Jefe de Zona elige qué
+criterios aplican (`PotencialidadCamposActivos`), así que 156 deja de ser un
+denominador honesto en cuanto se desactiva un solo campo. Se exige que los dos
+props lleguen juntos o ninguno —nunca uno solo, para no mezclar un numerador
+calculado con un denominador ajeno—, y revienta con una excepción clara si no,
+en vez de adivinar. Un área que el Jefe deja sin ningún campo activo se omite
+del índice en vez de fingir un "0 de 0 ✓".
+
+**El hallazgo de la propia Tarea 11 bis, y lo que esta revisión final
+corrigió.** `Str::between($html, '<aside', '</aside>')` —el patrón con el que
+las ocho suites acotan sus aserciones al `<aside>` de la barra— devuelve la
+cadena COMPLETA cuando el delimitador no existe, **no** una cadena vacía: si
+la barra desapareciera de una vista, `assertNotEmpty($fragmento)` seguiría en
+verde, porque `$fragmento` sería la página entera. Comprobado de verdad, no
+por lectura: se quitó el `<aside>` de las ocho vistas, una por una, y se
+volvió a correr cada suite. Resultado — siete de las ocho fallaron de todos
+modos, pero por una coincidencia distinta cada vez (otra aserción de la misma
+prueba, más específica, encontraba el hueco antes de necesitar el
+`assertNotEmpty`); la octava no:
+`PotencialidadTest::test_la_barra_lateral_no_ofrece_guardar_si_la_evaluacion_esta_confirmada_y_no_es_el_jefe`
+**pasó igual sin ninguna barra**, porque una matriz confirmada vista por el
+equipo tampoco pinta "Guardar Borrador" en el CUERPO del formulario —la misma
+variable `$bloqueado` esconde las dos copias del botón—, así que la ausencia
+era cierta con o sin barra: un test en verde por la razón equivocada, el mismo
+patrón que esta serie de ramas lleva meses encontrando. Corregido en los ocho
+ficheros de test: cada extracción del fragmento ahora empieza con
+`assertStringContainsString('<aside', $html, ...)` sobre la página completa
+—que sí falla si la barra no está—, antes de recortar con un delimitador que
+podría no existir. Re-verificado tras el arreglo: con el `<aside>` quitado, la
+prueba que antes pasaba en falso ahora falla, como debe.
+
+**`PermisosAdminTest::test_el_admin_no_ve_el_boton_de_validar` se apretó, no
+se relajó.** Comprobaba la ausencia de la cadena `accion_estado` en toda la
+página como sustituto de "no hay botón de validar" —bastaba porque antes el
+único emisor era el botón exclusivo del jefe—. Desde que
+`<x-barra-lateral-formulario>` trae su propio "Guardar Borrador"
+(`accion_estado=borrador`, visible para el admin igual que para el jefe en
+una matriz en borrador), ese proxy dejó de ser exclusivo del botón de validar.
+Se ajustó al valor concreto que sí sigue siéndolo:
+`value="confirmado"`, el único que manda "Validar y Finalizar". Ya estaba
+hecho y comentado en el propio commit de integración; esta revisión lo
+confirma correcto y no encontró necesidad de tocarlo más.
+
+**Recorrido manual, en el navegador, no solo por los tests —`jefe@local.test`
+/ `password`—:**
+
+- **1366px:** el panel del dashboard mostró "Sigue por aquí" (FET, validada) y
+  "Todavía sin empezar" (Potencialidad) como dos tarjetas distintas, con datos
+  reales de la zona semilla. En FIT, FET, Paisaje, Percepción, Irritación,
+  Concentración, Valoración Territorial y Potencialidad la barra aparece a la
+  derecha con su recuento correcto (verificado con `getComputedStyle`/DOM,
+  no solo visualmente): Concentración mostró "Atractivos turísticos 0/77" y
+  "Planta turística 0/36"; Potencialidad, seis áreas sumando 156. Los enlaces
+  de ancla desplazan al bloque correcto (comprobado con `#ft` en FIT: el
+  `scrollY` salta al bloque real). El "Guardar Borrador" de la barra de FIT
+  reabrió una matriz validada exactamente igual que el de abajo —confirmado
+  contra la base de datos, `estado` pasó a `borrador` y `updated_at` se
+  actualizó—; se volvió a validar después para dejar la zona semilla como se
+  encontró.
+- **1024px (el límite exacto de `lg`):** la barra sigue visible, `display:
+  block`, 256px de ancho.
+- **1023px, un píxel por debajo:** la barra pasa a `display: none` en las
+  cuatro matrices probadas (FIT, Concentración, Potencialidad), el documento
+  no gana scroll horizontal (`scrollWidth === clientWidth`) y el formulario
+  vuelve a una columna de ancho completo. **Se esconde, no se apila.**
+- **768px (tablet):** mismo resultado, sin scroll horizontal.
+- **Regla de las 14px y `uppercase`:** revisado con `getComputedStyle` sobre
+  todos los nodos de texto de la barra en Irritación —`font-size` solo usa
+  `14px`/`16px`, ningún `text-transform: uppercase`—, y confirmado además por
+  `grep` que ningún `text-xs` ni `uppercase` se añadió en todo el diff de la
+  Parte B.
+
+**Lo que NO se tocó, a propósito.** Involucrados y Frecuentación: CRUD de
+filas, sin bloques que indexar, fuera de alcance del diseño. Ningún
+controlador, modelo ni migración cambia en toda la Parte B —el único fichero
+de `app/` tocado es `EstadoZona::criteriosRespondidosDe()`, un contador de
+solo lectura sobre un subconjunto de columnas ya conocido—: lo que se guarda,
+se valida y se calcula es exactamente lo mismo que antes de esta rama.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -1147,24 +1288,33 @@ La base es SQLite y el fichero **no viaja en el repositorio**: hay que crear
 `database/database.sqlite` vacío antes del `migrate`, o Laravel no encuentra la
 conexión.
 
-**No hay ninguna rama que retomar: todo está fusionado en `main`.** Esta sección
-decía durante meses «`git checkout guardado-parcial`, comprueba que da 209
-tests», y era la instrucción más dañina del documento — quien la siguiera se
-llevaría una rama antigua y creería que el clon salió mal.
+**Hay una rama que retomar, por primera vez en un tiempo: `barra-lateral`
+(Parte B del dashboard-y-formularios, ver §3), todavía sin fusionar.** El resto
+—incluida la Parte A de esa misma iniciativa— sí está en `main`.
 
-Comprobar que la suite da **483 tests** antes de tocar nada. Si da menos, algo
-no llegó; si fallan unos 57 de golpe, faltó el `npm run build` (ver §2).
-
-*(Este número llevaba desde `permisos-y-navegacion` sin actualizarse —decía
-394 cuando la propia sección de esa rama, arriba, ya declaraba 444—: otro caso
-de la misma deriva que describe el párrafo siguiente. 480 es lo que da esta
-rama, `frecuentacion`, la décima y última matriz.)*
+En `main`, comprobar que la suite da **494 tests** antes de tocar nada -no 483:
+ese número quedó desfasado en cuanto se fusionó la Parte A del dashboard y
+nadie tocó esta sección, la misma deriva que describe el párrafo siguiente,
+otra vez-. Si da menos, algo no llegó; si fallan unos 57 de golpe, faltó el
+`npm run build` (ver §2).
 
 ```bash
 php artisan test
 ```
 
+En la rama `barra-lateral` -`git checkout barra-lateral`-, la misma suite da
+**524 tests**: los 494 de `main` más los 30 que añade la Parte B, todavía sin
+fusionar. Cuando se fusione, esta sección vuelve a decir «no hay ninguna rama
+que retomar» y el número de `main` sube a 524.
+
+*(Historial de esta cifra, para que quede rastro: 480 en `frecuentacion`; subió
+a 483 con `volver-a-la-zona`; se quedó ahí, sin actualizar, mientras `main`
+llegaba a 494 con la Parte A del dashboard -commit de merge `4116787`-, que
+esta revisión de la Parte B es la primera en documentar. Antes de eso, decía
+394 cuando la propia sección de `permisos-y-navegacion`, arriba, ya declaraba
+444.)*
+
 **Este número hay que actualizarlo cada vez que se fusione algo**, o vuelve a
 mentir como acaba de hacerlo. Es el mismo tipo de deriva que esta sesión
-encontró cuatro veces en el propio código: documentación que se quedó atrás sin
+encontró varias veces en el propio código: documentación que se quedó atrás sin
 que nada fallara.

@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="valoracion_territorial" :zona="$zona" activa="formulario" />
 
@@ -19,7 +19,29 @@
                 // Un solo motivo de bloqueo desde que el admin edita: la
                 // matriz está validada y tú no eres quien la valida.
                 $bloqueado      = $estaConfirmado && ! $esJefe;
+
+                // El índice de la barra lateral: CT y UC son mapas planos
+                // campo => criterio, sin ningún agrupador -los títulos
+                // "RTT"/"UC" están escritos a mano aquí, no en la clase-,
+                // así que el índice tiene exactamente dos entradas fijas.
+                $indiceBloques = [
+                    [
+                        'ancla'       => 'rtt',
+                        'etiqueta'    => 'Recursos Turísticos (RTT)',
+                        'respondidos' => \App\Servicios\EstadoZona::criteriosRespondidosDe($evaluacion, array_keys($ct)),
+                        'total'       => count($ct),
+                    ],
+                    [
+                        'ancla'       => 'uc',
+                        'etiqueta'    => 'Ubicación y Conectividad (UC)',
+                        'respondidos' => \App\Servicios\EstadoZona::criteriosRespondidosDe($evaluacion, array_keys($uc)),
+                        'total'       => count($uc),
+                    ],
+                ];
             @endphp
+
+            <div class="lg:grid lg:grid-cols-[1fr_256px] lg:gap-6 lg:items-start">
+            <div class="lg:min-w-0">
 
             @if($evaluacion?->exists && $evaluacion->user)
                 <p class="text-sm text-gray-500 mb-4">
@@ -47,7 +69,7 @@
             <x-flash-exito />
 
 
-            <form method="POST" action="{{ route('operativo.evaluacion_valoracion_territorial.update', $zona->id) }}">
+            <form method="POST" action="{{ route('operativo.evaluacion_valoracion_territorial.update', $zona->id) }}" id="form-valoracion-territorial">
                 @csrf
 
                 <x-leyenda-escala />
@@ -72,7 +94,7 @@
                     $pesos = fn($grupo) => collect($grupo)->map(fn($c) => $c['peso']);
                 @endphp
 
-                <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
+                <section id="rtt" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
                          x-data="{
                             valores: @js($inicial($ct)),
                             pesos: @js($pesos($ct)),
@@ -115,7 +137,7 @@
                     @endforeach
                 </section>
 
-                <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
+                <section id="uc" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
                          x-data="{
                             valores: @js($inicial($uc)),
                             pesos: @js($pesos($uc)),
@@ -181,6 +203,12 @@
                     </div>
                 @endunless
             </form>
+
+            </div>{{-- /lg:min-w-0 --}}
+
+            <x-barra-lateral-formulario clave="valoracion_territorial" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-valoracion-territorial" />
+
+            </div>{{-- /lg:grid --}}
         </div>
     </div>
 </x-app-layout>

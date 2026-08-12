@@ -385,7 +385,16 @@ class PermisosAdminTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertStringNotContainsString('accion_estado', $html);
+        // Antes se comprobaba con la ausencia de "accion_estado" en toda la
+        // página: bastaba porque el único sitio que lo mandaba era el botón
+        // "Validar y Finalizar", exclusivo del jefe. Desde la Tarea 7,
+        // <x-barra-lateral-formulario> también trae su propio botón
+        // "Guardar Borrador" -que manda accion_estado=borrador, visible
+        // para el admin igual que para el jefe-, así que ese proxy deja de
+        // ser exclusivo del botón de validar. Se ajusta al valor concreto
+        // que sí sigue siendo exclusivo: accion_estado=confirmado, el que
+        // solo manda "Validar y Finalizar". Más estricto, no más laxo.
+        $this->assertStringNotContainsString('value="confirmado"', $html);
     }
 
     public function test_el_jefe_si_ve_el_boton_de_validar(): void

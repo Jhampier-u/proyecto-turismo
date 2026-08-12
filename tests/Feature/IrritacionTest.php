@@ -519,4 +519,54 @@ class IrritacionTest extends TestCase
             ->assertSee('todavía no está completa')
             ->assertDontSee('0.00');
     }
+
+    /**
+     * Variante de Irritación frente a FIT/FET/Paisaje: Irritacion::BLOQUES
+     * no tiene 'criterios' ni 'peso' -tiene 'titulo'/'subtitulo'/'campos', y
+     * 'campos' ya es una lista plana de nombres-. El índice tiene un enlace
+     * por bloque -2 en Irritación: visitantes y residentes-.
+     */
+    public function test_el_formulario_ensancha_y_muestra_la_barra_lateral_con_sus_bloques(): void
+    {
+        $html = $this->actingAs($this->jefe)
+            ->get($this->url())
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('max-w-7xl', $html);
+
+        // Str::between() devuelve la cadena COMPLETA cuando el delimitador
+        // no existe -nunca una cadena vacía-, así que assertNotEmpty()
+        // sobre el resultado no protegía nada: sin <aside>, $fragmento
+        // habría sido la página entera y este assert habría pasado igual.
+        // Se comprueba la presencia real del delimitador antes de recortar.
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+
+        foreach (array_keys(Irritacion::BLOQUES) as $clave) {
+            $this->assertStringContainsString("href=\"#{$clave}\"", $fragmento, "Falta el enlace al bloque '{$clave}'.");
+        }
+    }
+
+    /**
+     * Con 'vis_congestion' respondido de los 6 campos de 'visitantes', la
+     * barra muestra 1/6 para ese bloque, sin marcador de completo.
+     */
+    public function test_la_barra_lateral_desglosa_los_respondidos_por_bloque(): void
+    {
+        $evaluacion = EvaluacionIrritacion::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
+        $evaluacion->update(['vis_congestion' => 4]);
+
+        $html = $this->actingAs($this->jefe)
+            ->get($this->url())
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+        $visitantes = \Illuminate\Support\Str::between($fragmento, 'href="#visitantes"', '</a>');
+
+        $this->assertStringContainsString('1/6', $visitantes);
+        $this->assertStringNotContainsString('✓', $visitantes);
+    }
 }

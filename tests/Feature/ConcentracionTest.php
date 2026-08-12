@@ -460,4 +460,81 @@ class ConcentracionTest extends TestCase
             ->assertDontSee('Sia')
             ->assertDontSee('% sobre la tabla');
     }
+
+    /**
+     * Variante mayor de Concentración (ver Tarea 10 del plan): sin bloques
+     * al estilo de las otras seis matrices -113 campos en dos secciones,
+     * Atractivos (3 niveles: categoría => tipo => campo) y Planta (2
+     * niveles: sector => campo)-, así que el índice de la barra se queda en
+     * los DOS grupos de primer nivel, no en cada categoría/tipo/sector.
+     */
+    public function test_el_formulario_ensancha_y_muestra_la_barra_lateral_con_atractivos_y_planta(): void
+    {
+        $html = $this->actingAs($this->jefe)
+            ->get($this->url())
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('max-w-7xl', $html);
+
+        // Str::between() devuelve la cadena COMPLETA cuando el delimitador
+        // no existe -nunca una cadena vacía-, así que assertNotEmpty()
+        // sobre el resultado no protegía nada: sin <aside>, $fragmento
+        // habría sido la página entera y este assert habría pasado igual.
+        // Se comprueba la presencia real del delimitador antes de recortar.
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+
+        $this->assertStringContainsString('href="#atractivos"', $fragmento);
+        $this->assertStringContainsString('href="#planta"', $fragmento);
+        $this->assertStringContainsString('/77', $fragmento); // 77 campos de atractivos
+        $this->assertStringContainsString('/36', $fragmento); // 36 campos de planta
+    }
+
+    /**
+     * El total de la barra (77/36) tiene que cuadrar con el total que ya
+     * muestra el contador en vivo de cada sección -"Respondidos: X / 77" y
+     * "X / 36"-, derivado de la misma estructura ($atractivos/$planta). No
+     * son el mismo número por casualidad: ambos cuentan las mismas 113
+     * columnas, solo que el contador en vivo las recalcula en el cliente
+     * sin guardar, y la barra lateral lee lo ya guardado en el servidor.
+     */
+    public function test_el_total_de_la_barra_cuadra_con_el_contador_en_vivo_de_cada_seccion(): void
+    {
+        $html = $this->actingAs($this->jefe)
+            ->get($this->url())
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('/ 77', $html); // contador en vivo de Atractivos
+        $this->assertStringContainsString('/ 36', $html); // contador en vivo de Planta
+
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+        $this->assertStringContainsString('/77', $fragmento);
+        $this->assertStringContainsString('/36', $fragmento);
+    }
+
+    /**
+     * Con 'at_mc_arquitectura_museos' respondido -uno de los 77 campos de
+     * Atractivos-, la barra muestra 1/77 para esa sección, sin marcador de
+     * completa.
+     */
+    public function test_la_barra_lateral_desglosa_los_respondidos_de_atractivos(): void
+    {
+        $evaluacion = EvaluacionConcentracion::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
+        $evaluacion->update(['at_mc_arquitectura_museos' => 3]);
+
+        $html = $this->actingAs($this->jefe)
+            ->get($this->url())
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+        $atractivos = \Illuminate\Support\Str::between($fragmento, 'href="#atractivos"', '</a>');
+
+        $this->assertStringContainsString('1/77', $atractivos);
+        $this->assertStringNotContainsString('✓', $atractivos);
+    }
 }

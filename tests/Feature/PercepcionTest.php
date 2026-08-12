@@ -136,4 +136,51 @@ class PercepcionTest extends TestCase
         $this->assertNull($percepcion->percepcion_total);
         $this->assertSame(3, (int) $percepcion->pl3_conoc_motivo_visita);
     }
+
+    /**
+     * Percepción ya está en max-w-7xl -no se toca el ancho, solo se añade
+     * la barra lateral-. Un enlace por categoría -4 en Percepción-, cada
+     * una con su clave 'items' en vez de 'criterios'.
+     */
+    public function test_el_formulario_muestra_la_barra_lateral_con_sus_categorias(): void
+    {
+        $html = $this->actingAs($this->jefe)
+            ->get($this->url())
+            ->assertOk()
+            ->getContent();
+
+        // Str::between() devuelve la cadena COMPLETA cuando el delimitador
+        // no existe -nunca una cadena vacía-, así que assertNotEmpty()
+        // sobre el resultado no protegía nada: sin <aside>, $fragmento
+        // habría sido la página entera y este assert habría pasado igual.
+        // Se comprueba la presencia real del delimitador antes de recortar.
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+
+        foreach (array_keys(Percepcion::$categorias) as $clave) {
+            $this->assertStringContainsString("href=\"#{$clave}\"", $fragmento, "Falta el enlace a la categoría '{$clave}'.");
+        }
+    }
+
+    /**
+     * Con 'ds1_posicion_turistica' respondido de los 3 items de 'DS', la
+     * barra muestra 1/3 para esa categoría, sin marcador de completa.
+     */
+    public function test_la_barra_lateral_desglosa_los_respondidos_por_categoria(): void
+    {
+        $evaluacion = \App\Models\EvaluacionPercepcion::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
+        $evaluacion->update(['ds1_posicion_turistica' => 3]);
+
+        $html = $this->actingAs($this->jefe)
+            ->get($this->url())
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('<aside', $html, 'No se encontró <aside>: la barra lateral no se está pintando.');
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+        $ds = \Illuminate\Support\Str::between($fragmento, 'href="#DS"', '</a>');
+
+        $this->assertStringContainsString('1/3', $ds);
+        $this->assertStringNotContainsString('✓', $ds);
+    }
 }

@@ -50,19 +50,6 @@
 
         .pt-root { font-family:'DM Sans',sans-serif; background:#f0f4f8; min-height:100vh; padding:1.5rem 0 5rem; }
 
-        /* ── Layout ────────────────────────────────────────────────────────── */
-        .pt-layout { display:grid; grid-template-columns:1fr 252px; gap:18px; align-items:start; }
-        @media(max-width:900px){ .pt-layout{grid-template-columns:1fr} .pt-sidebar{display:none} }
-
-        /* ── Sidebar ───────────────────────────────────────────────────────── */
-        .pt-sidebar { position:sticky; top:20px; display:flex; flex-direction:column; gap:12px; }
-        .pt-card { background:#fff; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.04); }
-        .pt-card-title { font-size:.68rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.07em; margin-bottom:10px; }
-
-        /* ── Scale legend ──────────────────────────────────────────────────── */
-        .pt-scale-row { display:flex; align-items:center; gap:8px; padding:5px 0; }
-        .pt-scale-badge { font-size:.72rem; font-weight:700; padding:2px 9px; border-radius:6px; min-width:28px; text-align:center; }
-
         /* ── Area accordion ────────────────────────────────────────────────── */
         .pt-area { background:#fff; border-radius:14px; border:1.5px solid #e2e8f0; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.04); }
         .pt-area-header { display:flex; align-items:center; justify-content:space-between; padding:13px 18px; cursor:pointer; user-select:none; transition:opacity .15s; }
@@ -125,11 +112,6 @@
         .pt-btn-draft:hover   { background:#f1f5f9; }
         .pt-btn-confirm:hover { opacity:.9; }
 
-        /* Nav items in sidebar */
-        .pt-nav-item { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; cursor:pointer; text-decoration:none; transition:background .12s; }
-        .pt-nav-item:hover { background:#f8fafc; }
-        .pt-nav-label { font-size:.79rem; font-weight:500; color:#374151; }
-        .pt-nav-sub { font-size:.68rem; color:#94a3b8; }
     </style>
 
     <div class="pt-root">
@@ -181,10 +163,63 @@
         </div>
         @endif
 
-        <div class="pt-layout">
+        {{-- Escala de calificación: vivía en una tarjeta de la .pt-sidebar
+             de siempre; se traslada al cuerpo con el mismo componente que
+             ya usan FIT, FET, Paisaje y Valoración Territorial -Potencialidad
+             recibe $niveles desde el controlador desde siempre, pero nunca
+             lo había usado-. --}}
+        <x-leyenda-escala :niveles="$niveles" />
 
-          {{-- ══════════════ COLUMNA PRINCIPAL ══════════════ --}}
-          <div>
+        @if($puedeConfigurar)
+        {{-- Nota "Modo Jefe": la misma que vivía en su propia tarjeta de la
+             .pt-sidebar, reubicada aquí con las mismas utilidades Tailwind
+             que ya usa el aviso del equipo justo arriba. --}}
+        <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-4 mb-4 text-sm">
+            <strong class="font-semibold">Modo Jefe:</strong> usa los interruptores para activar o
+            desactivar un campo según la realidad de tu zona. Solo los campos activos se incluyen
+            en el cálculo final.
+        </div>
+        @endif
+
+        @php
+            // El índice de la barra lateral: una entrada por área -las
+            // mismas seis que ya recorre el cuerpo, más abajo-, contada
+            // sobre los campos ACTIVOS de cada una, no sobre todos los que
+            // declara Potencialidad::SECCIONES. El Jefe decide qué
+            // criterios aplican (PotencialidadCamposActivos), así que el
+            // denominador de cada área se mueve igual que el de la
+            // cabecera -ver el comentario de <x-barra-lateral-formulario>-.
+            //
+            // Un área que el Jefe dejó sin ningún campo activo no tiene
+            // fracción que enseñar -sería un "0 de 0" que el componente
+            // pintaría con su marcador de completa, sin serlo-, así que se
+            // omite del índice en vez de fingir un dato.
+            $indiceAreas = collect($areaConfig)
+                ->map(function ($areaData, $areaName) use ($camposActivos, $evaluacion) {
+                    $camposArea  = collect($areaData['secs'])->flatMap(fn($campos) => array_keys($campos))->all();
+                    $activosArea = array_values(array_intersect($camposArea, $camposActivos));
+
+                    return [
+                        'ancla'       => 'area-' . Str::slug($areaName),
+                        'etiqueta'    => $areaName,
+                        'total'       => count($activosArea),
+                        'respondidos' => \App\Servicios\EstadoZona::criteriosRespondidosDe($evaluacion, $activosArea),
+                    ];
+                })
+                ->filter(fn($seccion) => $seccion['total'] > 0)
+                ->values()
+                ->all();
+
+            // Misma idea para la cabecera: el override de
+            // <x-barra-lateral-formulario> exige :total y :respondidos
+            // juntos, los dos sobre los campos activos -nunca sobre los 156
+            // fijos del registro-.
+            $totalActivos       = count($camposActivos);
+            $respondidosActivos = \App\Servicios\EstadoZona::criteriosRespondidosDe($evaluacion, $camposActivos);
+        @endphp
+
+        <div class="lg:grid lg:grid-cols-[1fr_256px] lg:gap-6 lg:items-start">
+        <div class="lg:min-w-0">
             <form method="POST"
                   action="{{ route('operativo.evaluacion_potencialidad.update', $zona->id) }}"
                   id="pt-form">
@@ -410,106 +445,21 @@
               @endif
 
             </form>
-          </div>{{-- /columna principal --}}
+        </div>{{-- /lg:min-w-0 --}}
 
-          {{-- ══════════════ SIDEBAR ══════════════ --}}
-          <div class="pt-sidebar">
+        <x-barra-lateral-formulario
+            clave="potencialidad"
+            :zona="$zona"
+            :secciones="$indiceAreas"
+            :bloqueado="$soloLectura"
+            formulario="pt-form"
+            :total="$totalActivos"
+            :respondidos="$respondidosActivos" />
 
-            {{-- Escala de valores ──────────────────────────────────────── --}}
-            <div class="pt-card">
-              <div class="pt-card-title">Escala de calificación</div>
-              <div class="pt-scale-row">
-                <span class="pt-scale-badge" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;">0</span>
-                <div>
-                  <div style="font-size:.81rem;font-weight:600;color:#374151;">Ausencia</div>
-                  <div style="font-size:.71rem;color:#94a3b8;">No existe o es inexistente</div>
-                </div>
-              </div>
-              <div class="pt-scale-row">
-                <span class="pt-scale-badge" style="background:#fffbeb;color:#d97706;border:1px solid #fde68a;">1</span>
-                <div>
-                  <div style="font-size:.81rem;font-weight:600;color:#374151;">Fragilidad</div>
-                  <div style="font-size:.71rem;color:#94a3b8;">Existe pero es débil / incipiente</div>
-                </div>
-              </div>
-              <div class="pt-scale-row">
-                <span class="pt-scale-badge" style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;">2</span>
-                <div>
-                  <div style="font-size:.81rem;font-weight:600;color:#374151;">Aprovechable</div>
-                  <div style="font-size:.71rem;color:#94a3b8;">Consolidado y funcional</div>
-                </div>
-              </div>
-            </div>
-
-            @if($puedeConfigurar)
-            {{-- Nota para el Jefe ──────────────────────────────────────── --}}
-            <div class="pt-card" style="background:#eff6ff;border-color:#bfdbfe;">
-              <div class="pt-card-title" style="color:#3b82f6;">Modo Jefe</div>
-              <p style="font-size:.78rem;color:#1e40af;line-height:1.5;">
-                Usa los <strong>toggles</strong> para activar o desactivar campos según la realidad de tu zona.
-                Solo los campos activos se incluirán en el cálculo final.
-              </p>
-            </div>
-            @endif
-
-            {{-- Navegación por áreas ──────────────────────────────────── --}}
-            <div class="pt-card">
-              <div class="pt-card-title">Áreas</div>
-              @foreach($areaConfig as $areaName => $areaData)
-                @php
-                    $totalA = 0; $activosA = 0;
-                    foreach($areaData['secs'] as $sec => $cam) {
-                        foreach($cam as $c => $l) {
-                            if ($puedeConfigurar || in_array($c, $camposActivos)) $totalA++;
-                            if (in_array($c, $camposActivos)) $activosA++;
-                        }
-                    }
-                    if ($totalA === 0) continue;
-                @endphp
-                <a href="#area-{{ Str::slug($areaName) }}" class="pt-nav-item">
-                  <span style="font-size:15px;">{{ $areaData['emoji'] }}</span>
-                  <div>
-                    <div class="pt-nav-label">{{ $areaName }}</div>
-                    <div class="pt-nav-sub">{{ $activosA }} activos · {{ $totalA }} campos</div>
-                  </div>
-                </a>
-              @endforeach
-            </div>
-
-            {{-- Estado ────────────────────────────────────────────────── --}}
-            <div class="pt-card">
-              <div class="pt-card-title">Estado</div>
-              @if($isConfirmado)
-                <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f0fdf4;border-radius:8px;border:1px solid #86efac;">
-                  <span style="font-size:15px;">✅</span>
-                  <span style="font-size:.81rem;font-weight:600;color:#15803d;">Confirmado</span>
-                </div>
-              @elseif($evaluacion->exists)
-                <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fffbeb;border-radius:8px;border:1px solid #fde68a;">
-                  <span style="font-size:15px;">✏️</span>
-                  <span style="font-size:.81rem;font-weight:600;color:#92400e;">Borrador</span>
-                </div>
-              @else
-                <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
-                  <span style="font-size:15px;">🆕</span>
-                  <span style="font-size:.81rem;font-weight:600;color:#64748b;">Sin iniciar</span>
-                </div>
-              @endif
-
-              @if($evaluacion->exists && $evaluacion->updated_at)
-              <div style="font-size:.71rem;color:#94a3b8;margin-top:8px;">
-                Última edición:<br>
-                <strong style="color:#64748b;">{{ $evaluacion->updated_at->format('d/m/Y H:i') }}</strong>
-              </div>
-              @endif
-            </div>
-
-          </div>{{-- /sidebar --}}
-        </div>{{-- /pt-layout --}}
+        </div>{{-- /lg:grid --}}
       </div>{{-- /container --}}
     </div>{{-- /pt-root --}}
 
-    {{-- Smooth scroll para la navegación del sidebar ──────────────────────── --}}
     <script>
         // ── Componente Alpine por sección ─────────────────────────────────────
         // `valoresIniciales` alimenta al componente de criterio (pildoras),
@@ -536,15 +486,5 @@
                 }
             };
         }
-
-        // ── Smooth scroll ──────────────────────────────────────────────────
-        document.querySelectorAll('.pt-nav-item[href^="#"]').forEach(a => {
-            a.addEventListener('click', e => {
-                e.preventDefault();
-                const id = a.getAttribute('href').slice(1);
-                const target = document.getElementById(id);
-                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
-        });
     </script>
 </x-app-layout>

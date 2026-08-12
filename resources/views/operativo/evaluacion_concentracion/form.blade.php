@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="concentracion" :zona="$zona" activa="formulario" />
 
@@ -29,7 +29,51 @@
                     $atractivos
                 ));
                 $totalPlanta = array_sum(array_map('count', $planta));
+
+                // El índice de la barra lateral se queda en los DOS grupos
+                // de primer nivel -Atractivos y Planta-, no en cada
+                // categoría/tipo/sector: con 113 campos en más de una
+                // docena de subgrupos, indexarlos todos saturaría una barra
+                // de 256px. Arr::flatten() no sirve aquí -aplanado a fondo
+                // colapsa hasta las etiquetas y las claves de campo no
+                // sobreviven-, así que los nombres de campo se recogen con
+                // un bucle explícito, uno por cada forma de anidado.
+                //
+                // El TOTAL reutiliza $totalAtractivos/$totalPlanta -ya
+                // calculados arriba para el contador en vivo de cada
+                // sección-, en vez de recalcularlo con count(): un solo
+                // sitio fija ese número, no dos que pudieran discreparse el
+                // día que el instrumento cambie de forma.
+                $camposAtractivos = [];
+                foreach ($atractivos as $tipos) {
+                    foreach ($tipos as $campos) {
+                        $camposAtractivos = array_merge($camposAtractivos, array_keys($campos));
+                    }
+                }
+
+                $camposPlanta = [];
+                foreach ($planta as $campos) {
+                    $camposPlanta = array_merge($camposPlanta, array_keys($campos));
+                }
+
+                $indiceBloques = [
+                    [
+                        'ancla'       => 'atractivos',
+                        'etiqueta'    => 'Atractivos turísticos',
+                        'respondidos' => \App\Servicios\EstadoZona::criteriosRespondidosDe($evaluacion, $camposAtractivos),
+                        'total'       => $totalAtractivos,
+                    ],
+                    [
+                        'ancla'       => 'planta',
+                        'etiqueta'    => 'Planta turística',
+                        'respondidos' => \App\Servicios\EstadoZona::criteriosRespondidosDe($evaluacion, $camposPlanta),
+                        'total'       => $totalPlanta,
+                    ],
+                ];
             @endphp
+
+            <div class="lg:grid lg:grid-cols-[1fr_256px] lg:gap-6 lg:items-start">
+            <div class="lg:min-w-0">
 
             @if($evaluacion?->exists && $evaluacion->user)
                 <p class="text-sm text-gray-500 mb-4">
@@ -82,7 +126,7 @@
                 @csrf
 
                 {{-- ═══════════════════ ATRACTIVOS TURÍSTICOS (77) ═══════════════════ --}}
-                <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $colorSeccion['atractivos'] }}">
+                <section id="atractivos" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $colorSeccion['atractivos'] }}">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
                         <h3 class="text-xl font-bold text-gray-900">Atractivos Turísticos</h3>
                         {{-- "Respondido" incluye el 0 -significa "no hay
@@ -119,7 +163,7 @@
                 </section>
 
                 {{-- ═══════════════════ PLANTA TURÍSTICA (36) ═══════════════════ --}}
-                <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $colorSeccion['planta'] }}">
+                <section id="planta" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $colorSeccion['planta'] }}">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
                         <h3 class="text-xl font-bold text-gray-900">Planta Turística</h3>
                         <span class="text-sm font-semibold text-blue-700">
@@ -170,6 +214,12 @@
                     </p>
                 @endunless
             </form>
+
+            </div>{{-- /lg:min-w-0 --}}
+
+            <x-barra-lateral-formulario clave="concentracion" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-concentracion" />
+
+            </div>{{-- /lg:grid --}}
         </div>
     </div>
 
