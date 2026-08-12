@@ -168,24 +168,15 @@
                         <x-aviso-reapertura class="mb-3" />
                     @endif
                     <div class="flex justify-end gap-3">
-                        {{-- Sigue escrito a mano, no con <x-boton>: sus clases
-                             `disabled:opacity-50 disabled:cursor-not-allowed`
-                             meten la palabra "disabled" en la página aunque
-                             ningún control esté deshabilitado, y
-                             PaisajeTest::test_el_admin_recibe_el_formulario_editable_estando_en_borrador()
-                             hace assertDontSee('disabled') en este estado.
-                             Ver task-10-report.md. --}}
-                        <button type="submit"
-                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">
+                        <x-boton variante="secundario">
                             Guardar Borrador
-                        </button>
+                        </x-boton>
 
                         @if($esJefe)
-                            <button type="submit" name="accion_estado" value="confirmado"
-                                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow"
-                                    onclick="return confirm('Al validar, la evaluación queda cerrada para el equipo. ¿Continuar?');">
+                            <x-boton name="accion_estado" value="confirmado"
+                                     onclick="return confirm('Al validar, la evaluación queda cerrada para el equipo. ¿Continuar?');">
                                 Validar y Finalizar
-                            </button>
+                            </x-boton>
                         @endif
                     </div>
                 @endunless

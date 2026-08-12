@@ -130,23 +130,15 @@
                     @if($estaConfirmado && $esJefe)
                         <x-aviso-reapertura class="w-full mb-1" />
                     @endif
-                    {{-- Sigue escrito a mano, no con <x-boton>: sus clases
-                         `disabled:opacity-50 disabled:cursor-not-allowed`
-                         meten la palabra "disabled" en la página aunque
-                         ningún control esté deshabilitado, y
-                         EvaluacionesTest::test_el_admin_recibe_el_formulario_fet_editable_estando_en_borrador()
-                         cuenta esa palabra a cero en este estado. Ver
-                         task-10-report.md. --}}
-                    <button type="submit" name="accion_estado" value="borrador" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded shadow-lg">
+                    <x-boton variante="secundario" tamano="grande" name="accion_estado" value="borrador">
                         Guardar Borrador
-                    </button>
+                    </x-boton>
 
                     @if($esJefe)
-                    <button type="submit" name="accion_estado" value="confirmado"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded shadow-lg transform hover:scale-105 transition"
+                    <x-boton tamano="grande" name="accion_estado" value="confirmado"
                         onclick="return confirm('¿Está seguro? Al confirmar, el equipo ya no podrá editar esta evaluación.')">
                         Validar y Finalizar FET
-                    </button>
+                    </x-boton>
                     @endif
                     @else
                     <span class="text-gray-500 italic self-center"><x-aviso-bloqueo-matriz sustantivo="evaluación" /></span>
