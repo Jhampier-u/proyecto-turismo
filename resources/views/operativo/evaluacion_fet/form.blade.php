@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="fet" :zona="$zona" activa="formulario" />
 
@@ -19,7 +19,20 @@
                 // Un solo motivo de bloqueo desde que el admin edita: la
                 // matriz está validada y tú no eres quien la valida.
                 $bloqueado = $estaConfirmado && ! $esJefe;
+
+                // El índice de la barra lateral: un bloque de FET es
+                // 'clave' => ['nombre','peso','criterios' => [campo => ...]],
+                // igual forma que FIT.
+                $indiceBloques = collect($bloques)->map(fn($bloque, $clave) => [
+                    'ancla'       => $clave,
+                    'etiqueta'    => $bloque['nombre'],
+                    'respondidos' => \App\Servicios\EstadoZona::criteriosRespondidosDe($evaluacion, array_keys($bloque['criterios'])),
+                    'total'       => count($bloque['criterios']),
+                ])->values()->all();
             @endphp
+
+            <div class="lg:grid lg:grid-cols-[1fr_256px] lg:gap-6 lg:items-start">
+            <div class="lg:min-w-0">
 
             @if($evaluacion?->exists && $evaluacion->user)
                 <p class="text-sm text-gray-500 mb-4">
@@ -48,7 +61,7 @@
 
             <x-flash-exito />
 
-            <form method="POST" action="{{ route('operativo.evaluacion_fet.update', $zona->id) }}">
+            <form method="POST" action="{{ route('operativo.evaluacion_fet.update', $zona->id) }}" id="form-fet">
                 @csrf
 
                 @php
@@ -65,7 +78,7 @@
                 @endphp
 
                 @foreach($bloques as $clave => $bloque)
-                    <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
+                    <section id="{{ $clave }}" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6"
                              x-data="{
                                 valores: @js($inicial($bloque['criterios'])),
                                 get promedio() {
@@ -130,6 +143,12 @@
                     @endif
                 </div>
             </form>
+
+            </div>{{-- /lg:min-w-0 --}}
+
+            <x-barra-lateral-formulario clave="fet" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-fet" />
+
+            </div>{{-- /lg:grid --}}
         </div>
     </div>
 </x-app-layout>

@@ -96,4 +96,49 @@ class FetTest extends TestCase
 
         $this->actingAs($ajeno)->get($this->url())->assertForbidden();
     }
+
+    /**
+     * Igual que en FIT (ver Tarea 5 del plan): la barra lateral aparece con
+     * el ancho nuevo, con un enlace por bloque -3 bloques en FET-. Se cuentan
+     * los enlaces de ancla, no el texto suelto de la fracción, porque ese
+     * texto podría coincidir por casualidad con otro número de la página.
+     */
+    public function test_el_formulario_ensancha_y_muestra_la_barra_lateral_con_sus_bloques(): void
+    {
+        $html = $this->actingAs($this->jefe)
+            ->get(route('operativo.evaluacion_fet.edit', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('max-w-7xl', $html);
+
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+        $this->assertNotEmpty($fragmento, 'No se encontró <aside>: la barra lateral no se está pintando.');
+
+        foreach (array_keys(Fet::BLOQUES) as $clave) {
+            $this->assertStringContainsString("href=\"#{$clave}\"", $fragmento, "Falta el enlace al bloque '{$clave}'.");
+        }
+    }
+
+    /**
+     * El desglose por bloque desglosa lo que se ha respondido de verdad -no
+     * un total fijo-: aquí solo 'demanda_flujos' (del bloque 'demanda') está
+     * respondido, así que 'demanda' aparece como 1/2, no como completo.
+     */
+    public function test_la_barra_lateral_desglosa_los_respondidos_por_bloque(): void
+    {
+        $evaluacion = \App\Models\EvaluacionFet::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
+        $evaluacion->update(['demanda_flujos' => 2]);
+
+        $html = $this->actingAs($this->jefe)
+            ->get(route('operativo.evaluacion_fet.edit', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+        $demanda = \Illuminate\Support\Str::between($fragmento, 'href="#demanda"', '</a>');
+
+        $this->assertStringContainsString('1/2', $demanda);
+        $this->assertStringNotContainsString('✓', $demanda);
+    }
 }
