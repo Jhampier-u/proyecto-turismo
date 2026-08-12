@@ -1,4 +1,4 @@
-@props(['fila'])
+@props(['fila', 'zona' => null])
 
 @php
     // Clases completas: Tailwind purga las construidas por concatenación.
@@ -19,6 +19,9 @@
              class="w-6 h-6 shrink-0 {{ $estilos['icono'] }}" />
 
     <div class="flex-1 min-w-0">
+        @if($zona)
+            <p class="text-sm text-gray-500">{{ $zona->nombre }}</p>
+        @endif
         <p class="text-base {{ $bloqueada ? 'text-gray-400' : 'text-gray-900' }}">
             {{ $fila->nombre }}
         </p>
