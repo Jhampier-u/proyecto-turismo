@@ -327,6 +327,35 @@ class InvolucradosTest extends TestCase
             ->assertDontSee('avísale a');
     }
 
+    /**
+     * El equipo ve el aviso de «avísale a tu jefe» cuando la lista está
+     * completa, pero no recibe el botón de validar que solo tiene el jefe.
+     * Cubre el caso de uso del componente resumen-lista cuando la vista de
+     * la lista cambió: el aviso no debe desaparecer al mover el botón.
+     */
+    public function test_el_equipo_ve_el_aviso_de_validar_cuando_la_lista_esta_completa(): void
+    {
+        Involucrado::create($this->todosEn(2) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor completo',
+        ]);
+
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+
+        // El equipo debe estar asignado a la zona para tener acceso a su
+        // listado de actores; sin esta línea, la respuesta sería 403.
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($equipo)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('1 actor')
+            ->assertSee('avísale a')
+            ->assertDontSee('Validar y Cerrar la Lista');
+    }
+
     public function test_se_puede_crear_editar_y_borrar_un_actor(): void
     {
         $this->actingAs($this->jefe)
