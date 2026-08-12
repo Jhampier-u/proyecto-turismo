@@ -58,9 +58,22 @@ seis, que es justo donde hoy falla.
 
 ### El dato concreto
 
-Los diez formularios de matriz usan `max-w-5xl` (1024 px) mientras
-`resources/views/layouts/app.blade.php` ya permite `max-w-7xl` (1280 px). **Se están
-dejando 256 px sin usar** antes de reorganizar nada.
+> **Corregido al planificar.** Este diseño afirmaba que «los diez formularios usan
+> `max-w-5xl`». **Era falso**, y salió de mirar dos ficheros y generalizar. El
+> recuento real: `max-w-5xl` solo en **FIT, FET, Paisaje y Valoración Territorial**;
+> Irritación y Concentración ya van a `max-w-6xl`; **Percepción ya está a
+> `max-w-7xl`**; y **Potencialidad no declara ancho: tiene ya su propia barra lateral
+> fija de 252 px**, escrita a mano, que resuelve justo lo que este diseño quería
+> resolver. Involucrados y Frecuentación son CRUD de filas, no formularios de
+> criterios.
+>
+> Sirve de aviso para el resto del documento: aquí se generalizó desde una muestra
+> de dos, y en un proyecto que trata los comentarios como fuente de verdad eso hace
+> daño.
+
+`resources/views/layouts/app.blade.php` permite `max-w-7xl` (1280 px). Donde el
+formulario se queda en `max-w-5xl` **se dejan 256 px sin usar** antes de reorganizar
+nada.
 
 ### La decisión
 
