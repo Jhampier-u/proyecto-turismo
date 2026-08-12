@@ -70,7 +70,7 @@ class Fit
             'nombre' => 'Producto Turístico',
             'peso'   => 0.05,
             'criterios' => [
-                'productos_territoriales' => ['nombre' => 'Productos Territoriales', 'niveles' => self::NIVELES],
+                'productos_territoriales' => ['nombre' => 'Productos Turísticos Territoriales', 'niveles' => self::NIVELES],
             ],
         ],
         'i' => [

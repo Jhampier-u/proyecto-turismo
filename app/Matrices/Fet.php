@@ -54,7 +54,7 @@ class Fet
             'nombre' => 'Imagen del Sitio',
             'peso'   => 0.40,
             'criterios' => [
-                'imagen_apertura'   => ['nombre' => 'Grado de Apertura de la Comunidad', 'niveles' => self::NIVELES],
+                'imagen_apertura'   => ['nombre' => 'Grado de Apertura de la Comunidad Local', 'niveles' => self::NIVELES],
                 'imagen_seguridad'  => ['nombre' => 'Seguridad del Destino', 'niveles' => self::NIVELES],
                 'imagen_percibida'  => ['nombre' => 'Imagen Percibida del Visitante', 'niveles' => self::NIVELES],
                 'imagen_marketing'  => ['nombre' => 'Marketing Turístico', 'niveles' => self::NIVELES],
