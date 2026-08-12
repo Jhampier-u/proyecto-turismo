@@ -1296,10 +1296,26 @@ niveles de anidamiento— y ninguno se movió con el cambio.
     `@foreach`. `tests/Unit/ResultadosMuestranTodosLosCriteriosTest.php` lo
     vigila ahora para las cinco matrices con instrumento consultable.
 
-    Quedan fuera de ese test, y merecerían entrar: **Potencialidad** —sus campos
-    activos son configurables, así que «todos sus criterios» significa otra cosa
-    y necesita su propia comprobación—, **Irritación** y **Concentración**, cuyos
-    instrumentos no exponen `todos()`.
+    **Las ocho matrices con instrumento fijo están cubiertas.** Se añadieron
+    Irritación, Potencialidad y Concentración; la razón que esta sección daba
+    para dejarlas fuera —«su instrumento no expone `todos()`»— **era falsa** para
+    las dos primeras, que sí lo tienen. Solo Concentración usa otra puerta,
+    `campos()`, así que ahora cada matriz declara cómo se consulta la suya.
+
+    Potencialidad entra aunque hoy no afirme nada: **su página de resultados no
+    muestra ningún criterio suelto**, solo los 23 agregados por subgrupo. Es
+    coherente —una tabla de 156 filas no se lee, y el formulario ya los enseña—,
+    así que queda como hilo de alarma para el día en que alguien le añada un
+    desglose por criterio y se deje la mitad.
+
+    Fuera quedan **Involucrados y Frecuentación**, y con razón: son CRUD de filas
+    de longitud variable, no formularios de criterios.
+
+    **El límite del test, para que nadie lo dé por cubierto:** una vista que
+    itera queda fuera de la comprobación, así que si su bucle recorriera un
+    subconjunto del instrumento pasaría en verde igual. Se verificó que hoy no
+    ocurre —los controladores pasan las constantes completas—, pero si algún día
+    una vista recibe un recorte a propósito, eso necesita otro mecanismo.
 13. **La verificación contra PostgreSQL de Frecuentación quedó sin hacer**:
     Docker no levantaba en la máquina donde se implementó (backend de WSL2
     parado, sin permiso para arrancar el servicio). Es la única matriz cuya
