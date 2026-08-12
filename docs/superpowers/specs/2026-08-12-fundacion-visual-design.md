@@ -149,9 +149,19 @@ azulado de `slate` a la vez. **Descarta por construcción el único riesgo real*
 que era que convivieran los dos grises: `gray` es neutro y `slate` tira a azul,
 y mezclados se nota; migrados juntos, no.
 
-El fondo pasa de `bg-gray-100` a `bg-slate-50` (`#F8FAFC`), escrito así de
-forma literal en `layouts/app.blade.php` para que se lea como decisión y no como
-efecto colateral del alias.
+El fondo pasa de `bg-gray-100` a **`bg-gray-50`**, que con el alias vale
+exactamente `#F8FAFC` —`slate-50`—, el color pedido.
+
+### Se sigue escribiendo `gray`, también en el código nuevo
+
+Tentaba escribir `slate-*` en los componentes nuevos, ya que es lo que de verdad
+se pinta. **Sería un segundo nombre para lo mismo**: dos formas de decir el
+mismo color, indistinguibles en pantalla y distintas en el fuente, que es el
+tipo de duplicación que este documento existe para evitar.
+
+La regla es una sola: **todo el código escribe `gray-*`, y `tailwind.config.js`
+es el único sitio que decide qué significa gris.** Cambiar de paleta vuelve a
+ser una línea.
 
 ## Tipografía
 
@@ -172,7 +182,7 @@ la base de datos ni mira modelos.
 @props(['padding' => true])
 ```
 
-`bg-white border border-slate-200/80 rounded-xl shadow-sm`, con `p-6` salvo que
+`bg-white border border-gray-200/80 rounded-xl shadow-sm`, con `p-6` salvo que
 `:padding="false"` —que lo necesitan las tarjetas que envuelven una tabla a
 sangre—.
 
@@ -184,6 +194,12 @@ sangre—.
 
 Los cinco valores **no son inventados**: son exactamente los que ya produce
 `App\Servicios\EstadoZona` y consume `<x-fila-matriz>`.
+
+El texto sale del estado —«Borrador», «Validada»— salvo que se pase una ranura,
+que lo sustituye conservando el color. Es lo que resuelve «Listo para validar»,
+que **no es un estado** sino un `borrador` que además está completo: si fuera un
+valor más del mapa, el sistema tendría seis estados en la interfaz y cinco en el
+servicio.
 
 ### `<x-boton>`
 
@@ -206,10 +222,16 @@ escribe el suyo, **son dos tablas del mismo conocimiento**, y el día que se
 añada un estado o se cambie un color, una de las dos se queda atrás sin que
 nada falle.
 
-El mapa se mueve a **un solo sitio** —una constante en `App\Servicios\EstadoZona`,
-junto a los estados que ya declara— y los dos componentes lo consumen. La
-apariencia de `<x-fila-matriz>` no cambia: se le cambia de dónde lee, no lo que
-pinta.
+El mapa se mueve a **un solo sitio** —una constante `ESTILOS_ESTADO` en
+`App\Servicios\EstadoZona`, junto a los estados que ya declara— y los dos
+componentes lo consumen. Cada estado lleva tres claves: `icono` y `detalle`, que
+son las que `<x-fila-matriz>` ya usa, e `insignia`, que es la que necesita el
+badge. Así ninguno de los dos tiene que cambiar lo que pinta para compartir de
+dónde lo lee.
+
+La apariencia de `<x-fila-matriz>` **no cambia ni un píxel**: se le cambia la
+fuente, no el resultado. Los tests que ya lo cubren tienen que seguir en verde
+sin tocarlos, y eso es precisamente la prueba de que el movimiento fue neutro.
 
 ## La adopción
 
