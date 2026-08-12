@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Matrices\Potencialidad;
+use App\Models\EvaluacionPotencialidad;
 use App\Models\PotencialidadCamposActivos;
 use App\Models\Role;
 use App\Models\User;
@@ -10,6 +11,7 @@ use App\Models\Zona;
 use Database\Seeders\SystemSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -242,5 +244,121 @@ class PotencialidadTest extends TestCase
                 'sin :activo-expr no debe aparecer ningún binding reactivo de disabled (bloqueado=' . ($bloqueado ? 'true' : 'false') . ')'
             );
         }
+    }
+
+    /**
+     * Tarea 11 bis: Potencialidad migra su `.pt-sidebar` a
+     * <x-barra-lateral-formulario>. Este bloque cubre solo lo que cambia de
+     * presentación -la barra nueva-; el cálculo, la validación y el orden de
+     * persistencia de campos_activos (M6) siguen en PotencialidadCalculoTest
+     * y en el resto de este fichero, sin tocar.
+     */
+
+    /** El índice de la barra lateral tiene una entrada por cada una de las 6 áreas. */
+    public function test_la_barra_lateral_indexa_las_seis_areas(): void
+    {
+        $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+
+        $fragmento = Str::between($html, '<aside', '</aside>');
+        $this->assertNotEmpty($fragmento, 'No se encontró <aside>: la barra lateral no se está pintando.');
+
+        foreach ([
+            'Recursos Naturales', 'Recursos Culturales', 'Planta Turística',
+            'Tipologías de Turismo', 'Infraestructura', 'Factores Exógenos',
+        ] as $area) {
+            $this->assertStringContainsString(
+                'href="#area-' . Str::slug($area) . '"',
+                $fragmento,
+                "Falta el enlace al área '{$area}'."
+            );
+        }
+    }
+
+    /**
+     * El hallazgo que abrió la disyuntiva de esta tarea: un campo
+     * desactivado conserva su valor a propósito -prepararDatos() lo guarda
+     * "por si vuelve a activarse"-, así que un recuento ingenuo sobre las
+     * 156 columnas de la tabla lo seguiría contando como respondido aunque
+     * ya no cuente para nada. La cabecera tiene que ver solo los campos
+     * activos, no el histórico completo de la fila.
+     */
+    public function test_la_cabecera_no_cuenta_respuestas_de_campos_ya_desactivados(): void
+    {
+        $activos = array_keys(Potencialidad::SECCIONES['Afluencia Turística']); // 5 campos
+
+        PotencialidadCamposActivos::create([
+            'zona_id'        => $this->zona->id,
+            'campos_activos' => $activos,
+        ]);
+
+        $evaluacion = EvaluacionPotencialidad::create(
+            ['zona_id' => $this->zona->id, 'estado' => 'borrador']
+            + array_fill_keys($activos, 2)
+        );
+
+        // Campo de OTRA sección, ya desactivado -no está en $activos-, con
+        // una respuesta antigua que prepararDatos() habría conservado tal
+        // cual en vez de vaciarla.
+        $evaluacion->update(['rn_litoral_playas' => 1]);
+
+        $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+        $fragmento = Str::between($html, '<aside', '</aside>');
+
+        // Honesto: 5 de 5 activos. Un recuento ingenuo sobre toda la fila
+        // habría dicho "6 de 156" -contando el campo inactivo y el
+        // denominador fijo del registro, ninguno de los dos correcto aquí-.
+        $this->assertStringContainsString('5 de 5 respondidos', $fragmento);
+    }
+
+    /** Caso explícito del plan: con la mitad de los 156 desactivados, el denominador es la mitad, no 156. */
+    public function test_el_denominador_de_la_barra_lateral_es_el_de_los_campos_activos_no_156(): void
+    {
+        $todos = array_keys(Potencialidad::todos());
+        $mitad = array_slice($todos, 0, intdiv(count($todos), 2));
+
+        PotencialidadCamposActivos::create([
+            'zona_id'        => $this->zona->id,
+            'campos_activos' => $mitad,
+        ]);
+
+        $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+        $fragmento = Str::between($html, '<aside', '</aside>');
+
+        $this->assertStringContainsString('de ' . count($mitad) . ' respondidos', $fragmento);
+        $this->assertStringNotContainsString('de 156 respondidos', $fragmento);
+    }
+
+    /**
+     * Mismo motivo por el que las siete matrices hermanas atan el botón de
+     * la barra a $bloqueado: una matriz confirmada, vista por quien no es
+     * Jefe, no debe ofrecer un "Guardar Borrador" en la barra que no exista
+     * también abajo.
+     */
+    public function test_la_barra_lateral_no_ofrece_guardar_si_la_evaluacion_esta_confirmada_y_no_es_el_jefe(): void
+    {
+        $todos = array_keys(Potencialidad::todos());
+
+        EvaluacionPotencialidad::create(
+            ['zona_id' => $this->zona->id, 'estado' => 'confirmado']
+            + array_fill_keys($todos, 2)
+        );
+
+        $equipo = User::factory()->create(['role_id' => Role::where('nombre', 'equipo')->value('id')]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $html = $this->actingAs($equipo)->get($this->url())->assertOk()->getContent();
+        $fragmento = Str::between($html, '<aside', '</aside>');
+
+        $this->assertStringNotContainsString('Guardar Borrador', $fragmento);
+    }
+
+    /** El Jefe siempre puede seguir guardando, aunque la evaluación ya esté confirmada. */
+    public function test_la_barra_lateral_ofrece_guardar_al_jefe_ligado_al_formulario_real(): void
+    {
+        $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+        $fragmento = Str::between($html, '<aside', '</aside>');
+
+        $this->assertStringContainsString('Guardar Borrador', $fragmento);
+        $this->assertStringContainsString('form="pt-form"', $fragmento);
     }
 }

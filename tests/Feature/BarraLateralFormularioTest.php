@@ -96,4 +96,76 @@ class BarraLateralFormularioTest extends TestCase
         $this->assertStringContainsString('Guardar Borrador', $html);
         $this->assertStringContainsString('form="form-fit"', $html);
     }
+
+    /**
+     * Sin :total ni :respondidos, la cabecera sigue derivándose igual que
+     * antes de la Tarea 11 bis -de Registro y EstadoZona::criteriosRespondidos()-.
+     * Fija el comportamiento de las siete matrices que no pasan estos props,
+     * para que ensancharlos no les mueva un número que nunca se probó.
+     */
+    public function test_sin_total_ni_respondidos_la_cabecera_se_deriva_como_siempre(): void
+    {
+        $evaluacion = \App\Models\EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
+        $evaluacion->update(['recursos_culturales' => 2, 'recursos_naturales' => 3]);
+
+        $html = $this->renderizar([['ancla' => 'rtt', 'etiqueta' => 'R', 'respondidos' => 1, 'total' => 1]]);
+
+        // FIT declara 18 criterios en Registro; solo 2 están respondidos.
+        $this->assertStringContainsString('2 de 18 respondidos', $html);
+    }
+
+    /**
+     * Potencialidad es la matriz cuyo denominador se mueve -el Jefe de Zona
+     * decide qué criterios aplican-, así que 156 (fijo en Registro) deja de
+     * significar nada y EstadoZona::criteriosRespondidos() tampoco sirve: no
+     * distingue un campo activo de uno desactivado que conserva una
+     * respuesta antigua. :total y :respondidos son la válvula de escape
+     * para ESE caso -no un prop genérico "por si acaso"-: si se pasan,
+     * sustituyen el cálculo de cabecera entero.
+     */
+    public function test_con_total_y_respondidos_la_cabecera_usa_esos_valores_en_vez_de_derivarlos(): void
+    {
+        // clave="fit" sin ninguna EvaluacionFit: el cálculo interno daría
+        // "0 de 18". Si la cabecera muestra "60 de 78" en su lugar, es que
+        // el override manda, no el cálculo por defecto.
+        $html = (string) $this->blade(
+            '<x-barra-lateral-formulario clave="fit" :zona="$zona" :secciones="$secciones" :bloqueado="false" formulario="form-fit" :total="$total" :respondidos="$respondidos" />',
+            ['zona' => $this->zona, 'secciones' => [], 'total' => 78, 'respondidos' => 60]
+        );
+
+        $this->assertStringContainsString('60 de 78 respondidos', $html);
+        $this->assertStringNotContainsString('0 de 18', $html);
+    }
+
+    /**
+     * Numerador y denominador tienen que venir de la MISMA decisión, juntos
+     * o ninguno: pasar solo uno mezclaría un valor calculado con uno
+     * ajeno -exactamente el "número que no significa nada" que este ensanche
+     * existe para evitar-. Falla ruidoso en vez de adivinar cuál falta.
+     */
+    public function test_pasar_solo_total_sin_respondidos_truena(): void
+    {
+        // Blade envuelve cualquier excepción lanzada al renderizar un
+        // componente en ViewException -no deja pasar la original tal
+        // cual-, así que se comprueba el mensaje en vez del tipo original.
+        $this->expectException(\Illuminate\View\ViewException::class);
+        $this->expectExceptionMessage(':total y :respondidos se pasan juntos o ninguno');
+
+        $this->blade(
+            '<x-barra-lateral-formulario clave="fit" :zona="$zona" :secciones="$secciones" :bloqueado="false" formulario="form-fit" :total="78" />',
+            ['zona' => $this->zona, 'secciones' => []]
+        );
+    }
+
+    /** Misma garantía que el test anterior, con el prop que falta al revés. */
+    public function test_pasar_solo_respondidos_sin_total_truena(): void
+    {
+        $this->expectException(\Illuminate\View\ViewException::class);
+        $this->expectExceptionMessage(':total y :respondidos se pasan juntos o ninguno');
+
+        $this->blade(
+            '<x-barra-lateral-formulario clave="fit" :zona="$zona" :secciones="$secciones" :bloqueado="false" formulario="form-fit" :respondidos="60" />',
+            ['zona' => $this->zona, 'secciones' => []]
+        );
+    }
 }

@@ -1,4 +1,4 @@
-@props(['clave', 'zona', 'secciones', 'bloqueado', 'formulario'])
+@props(['clave', 'zona', 'secciones', 'bloqueado', 'formulario', 'total' => null, 'respondidos' => null])
 
 {{--
     Barra lateral fija de un formulario de matriz: cuántos criterios lleva
@@ -15,8 +15,21 @@
     este componente solo lo pinta, igual que <x-criterio-pildoras> no sabe
     de dónde viene su criterio.
 
-    El total SÍ se deriva de Registro/EstadoZona -como <x-pestanas-matriz>-
-    porque ese número es común a las diez matrices.
+    El total de cabecera SÍ se deriva de Registro/EstadoZona por defecto
+    -como <x-pestanas-matriz>- partiendo de que ese número es común a las
+    diez matrices. Esa suposición es FALSA para Potencialidad: el Jefe de
+    Zona elige qué criterios aplican (PotencialidadCamposActivos), así que
+    su denominador se mueve -156 deja de significar nada- y
+    EstadoZona::criteriosRespondidos() tampoco sirve, porque cuenta
+    cualquier columna no nula sin distinguir un campo activo de uno
+    desactivado que conserva a propósito una respuesta antigua
+    ("por si vuelve a activarse", ver EvaluacionPotencialidadController::
+    prepararDatos()). :total y :respondidos son la válvula de escape para
+    ESE caso -no un prop genérico "por si acaso"-: si se pasan, sustituyen
+    el cálculo de aquí abajo entero. Se exige que vengan juntos o ninguno
+    -nunca uno solo- porque un numerador calculado con un denominador
+    ajeno es la manera más fácil de fabricar un «X de Y» que no significa
+    nada; si alguien pasa solo uno, esto revienta en vez de adivinar.
 
     Oculto por debajo de 1024px (lg): el formulario vuelve a su única
     columna de siempre, con el botón de guardar de siempre al final. La
@@ -24,14 +37,22 @@
 --}}
 
 @php
-    $entrada = \App\Matrices\Registro::ENTRADAS[$clave];
-    $modelo  = $entrada['modelo'];
+    if (($total === null) !== ($respondidos === null)) {
+        throw new \InvalidArgumentException(
+            '<x-barra-lateral-formulario>: :total y :respondidos se pasan juntos o ninguno de los dos.'
+        );
+    }
 
-    $evaluacion  = $modelo::where('zona_id', $zona->id)->first();
-    $total       = $entrada['criterios'];
-    $respondidos = $evaluacion
-        ? \App\Servicios\EstadoZona::criteriosRespondidos($evaluacion)
-        : 0;
+    if ($total === null) {
+        $entrada = \App\Matrices\Registro::ENTRADAS[$clave];
+        $modelo  = $entrada['modelo'];
+
+        $evaluacion  = $modelo::where('zona_id', $zona->id)->first();
+        $total       = $entrada['criterios'];
+        $respondidos = $evaluacion
+            ? \App\Servicios\EstadoZona::criteriosRespondidos($evaluacion)
+            : 0;
+    }
 
     $porcentaje = $total > 0 ? round($respondidos / $total * 100) : 0;
 @endphp
