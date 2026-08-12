@@ -74,9 +74,77 @@ class BadgeTest extends TestCase
             $this->assertStringContainsString('ESTILOS_ESTADO', $fuente);
         }
 
-        // Ningún color escrito a mano en ninguno de los dos: los colores
-        // vienen del mapa, no del componente.
-        $this->assertDoesNotMatchRegularExpression('/text-(amber|green)-[0-9]{3}/', $fuenteBadge);
-        $this->assertDoesNotMatchRegularExpression('/text-(amber|green)-[0-9]{3}/', $fuenteFila);
+        // Los dos valores del mapa que NO son grises neutros -el ámbar de
+        // borrador y el verde de validada- no pueden estar escritos a mano en
+        // ninguno de los dos componentes.
+        //
+        // Se miran solo esos dos colores a propósito. Prohibir toda la paleta
+        // daría falsos positivos: <x-fila-matriz> tiene grises propios que no
+        // son del mapa -el `border-gray-200` de su separador, el
+        // `text-gray-900` de su título- y son legítimos.
+        //
+        // Esta comprobación sola no basta, y por eso existe el test de abajo:
+        // mira el fuente, y el fuente se puede sortear. Lo que de verdad ata
+        // los colores al mapa es renderizar y comparar.
+        $colorDeEstado = '/\b(bg|text|border)-(amber|green)-[0-9]{2,3}\b/';
+
+        $this->assertDoesNotMatchRegularExpression($colorDeEstado, $fuenteBadge);
+        $this->assertDoesNotMatchRegularExpression($colorDeEstado, $fuenteFila);
+    }
+
+    /**
+     * <x-fila-matriz> pinta el icono con el color que dice el mapa, en los
+     * cinco estados.
+     *
+     * Es la mitad que faltaba: el test de arriba mira el fuente y el de abajo
+     * mira el badge. Sin este, alguien podía copiar el mapa dentro de
+     * fila-matriz con los mismos valores de hoy y nada se pondría rojo hasta
+     * que los dos se separaran de verdad, que es justo cuando ya es tarde.
+     */
+    public function test_la_fila_pinta_el_icono_con_el_color_de_su_mapa(): void
+    {
+        foreach (EstadoZona::ESTILOS_ESTADO as $estado => $estilos) {
+            $fila = new \App\Servicios\FilaMatriz(
+                clave:   'fit',
+                nombre:  'Vocación turística',
+                icono:   'documento',
+                estado:  $estado,
+                detalle: 'Un detalle cualquiera',
+                url:     '/algun/sitio',
+                accion:  'Continuar',
+            );
+
+            $html = (string) $this->blade('<x-fila-matriz :fila="$fila" />', ['fila' => $fila]);
+
+            $this->assertStringContainsString(
+                $estilos['icono'],
+                $html,
+                "La fila en estado {$estado} no pintó el icono con el color de su mapa."
+            );
+        }
+    }
+
+    /**
+     * Cada estado sale con las clases que dice su mapa, los cinco.
+     *
+     * El test de arriba garantiza que los componentes no escriben colores a
+     * mano; este garantiza que el mapa llega de verdad a la pantalla. Sin él,
+     * una errata en la clave `insignia` de cualquier estado que no sea
+     * «borrador» no la veía nadie.
+     */
+    public function test_cada_estado_pinta_las_clases_de_su_mapa(): void
+    {
+        foreach (EstadoZona::ESTILOS_ESTADO as $estado => $estilos) {
+            $html = (string) $this->blade(
+                '<x-badge :estado="$estado" />',
+                ['estado' => $estado]
+            );
+
+            $this->assertStringContainsString(
+                $estilos['insignia'],
+                $html,
+                "El estado {$estado} no pintó las clases de su mapa."
+            );
+        }
     }
 }

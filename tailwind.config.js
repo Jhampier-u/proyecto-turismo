@@ -8,6 +8,14 @@ export default {
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
+
+        // Desde que EstadoZona::ESTILOS_ESTADO guarda el mapa de estado a
+        // color, hay clases de Tailwind viviendo en app/. Sin esta línea no
+        // se escanean, y sobrevivían solo porque esas mismas cadenas
+        // aparecían por casualidad en vistas sin relación: refactorizar una
+        // de esas vistas habría dejado las insignias sin color, con el HTML
+        // correcto y la suite en verde.
+        './app/**/*.php',
     ],
 
     theme: {
