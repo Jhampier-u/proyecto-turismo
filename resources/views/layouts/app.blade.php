@@ -21,15 +21,22 @@
             <!-- Page Heading -->
             @isset($header)
                 <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                    <x-contenedor class="py-6">
                         {{ $header }}
-                    </div>
+                    </x-contenedor>
                 </header>
             @endisset
 
-            <!-- Page Content -->
+            {{--
+                El contenedor vive aquí y no en cada vista: si la cabecera y el
+                cuerpo llevaran anchos distintos, el título de la página no
+                alinearía con su contenido, y se nota en todas las páginas a la
+                vez.
+            --}}
             <main>
-                {{ $slot }}
+                <x-contenedor>
+                    {{ $slot }}
+                </x-contenedor>
             </main>
         </div>
     </body>
