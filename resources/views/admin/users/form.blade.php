@@ -73,9 +73,9 @@
 
                     <div class="flex items-center justify-end">
                         <a href="{{ route('admin.users.index') }}" class="text-base text-gray-600 hover:text-gray-900 mr-4">Cancelar</a>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-base py-2 px-4 rounded shadow">
+                        <x-boton>
                             {{ $user->exists ? 'Actualizar Usuario' : 'Guardar Usuario' }}
-                        </button>
+                        </x-boton>
                     </div>
                 </form>
 

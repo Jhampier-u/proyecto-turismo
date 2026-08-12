@@ -195,6 +195,13 @@
                         <x-aviso-reapertura class="mb-3" />
                     @endif
                     <div class="flex justify-end gap-3">
+                        {{-- Sigue escrito a mano, no con <x-boton>: sus clases
+                             `disabled:opacity-50 disabled:cursor-not-allowed`
+                             meten la palabra "disabled" en la página aunque
+                             ningún control esté deshabilitado, y
+                             ValoracionTerritorialTest::test_el_admin_recibe_el_formulario_editable_estando_en_borrador()
+                             hace assertDontSee('disabled') en este estado.
+                             Ver task-10-report.md. --}}
                         <button type="submit"
                                 class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">
                             Guardar Borrador

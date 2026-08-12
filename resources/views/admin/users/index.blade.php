@@ -4,9 +4,9 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Gestión de Usuarios') }}
             </h2>
-            <a href="{{ route('admin.users.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow transition">
+            <x-boton :href="route('admin.users.create')">
                 + Nuevo Usuario
-            </a>
+            </x-boton>
         </div>
     </x-slot>
 
@@ -47,16 +47,14 @@
                             @endforeach
                         </select>
 
-                        <button type="submit"
-                                class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-base font-medium hover:bg-indigo-700">
+                        <x-boton>
                             Buscar
-                        </button>
+                        </x-boton>
 
                         @if($buscar !== '' || $rol)
-                            <a href="{{ route('admin.users.index') }}"
-                               class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-base text-gray-700 hover:bg-gray-50">
+                            <x-boton :href="route('admin.users.index')" variante="secundario">
                                 Limpiar
-                            </a>
+                            </x-boton>
                         @endif
                     </form>
 

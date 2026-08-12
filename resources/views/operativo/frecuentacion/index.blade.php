@@ -8,10 +8,9 @@
                 <p class="text-sm text-gray-500">Cuánto concentra cada sitio la frecuentación del territorio</p>
             </div>
             @if($puedeEditar)
-            <a href="{{ route('operativo.frecuentacion.create', $zona->id) }}"
-               class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow">
+            <x-boton :href="route('operativo.frecuentacion.create', $zona->id)">
                 + Nuevo sitio
-            </a>
+            </x-boton>
             @endif
         </div>
     </x-slot>
@@ -20,10 +19,9 @@
 
             <x-pestanas-matriz clave="frecuentacion" :zona="$zona" activa="formulario" />
 
-            <a href="{{ route('operativo.zona.panel', $zona->id) }}"
-               class="inline-block px-5 py-2 mb-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">
+            <x-boton :href="route('operativo.zona.panel', $zona->id)" variante="secundario" class="mb-4">
                 ← Volver a la zona
-            </a>
+            </x-boton>
 
             <x-flash-exito />
 
@@ -117,10 +115,9 @@
                         @enderror
                     </div>
                     @if($puedeEditar)
-                        <button type="submit"
-                                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow">
+                        <x-boton>
                             Guardar
-                        </button>
+                        </x-boton>
                     @endif
                 </form>
             </x-tarjeta>

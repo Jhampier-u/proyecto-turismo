@@ -26,10 +26,9 @@
 
                 <x-tarjeta :padding="false" class="overflow-hidden p-8">
 
-                    <a href="{{ route('operativo.frecuentacion.index', $zona->id) }}"
-                       class="inline-block px-5 py-2 mb-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">
+                    <x-boton :href="route('operativo.frecuentacion.index', $zona->id)" variante="secundario" class="mb-4">
                         ← Volver al listado
-                    </a>
+                    </x-boton>
 
                     <x-flash-exito />
 

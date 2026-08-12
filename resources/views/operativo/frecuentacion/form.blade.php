@@ -8,10 +8,9 @@
     <div class="py-12">
         <x-contenedor ancho="estrecho">
 
-            <a href="{{ route('operativo.frecuentacion.index', $zona->id) }}"
-               class="inline-block px-5 py-2 mb-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">
+            <x-boton :href="route('operativo.frecuentacion.index', $zona->id)" variante="secundario" class="mb-4">
                 ← Volver al listado
-            </a>
+            </x-boton>
 
             <x-flash-exito />
 
@@ -71,10 +70,9 @@
                 </x-tarjeta>
 
                 <div class="flex justify-end">
-                    <button type="submit"
-                            class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded shadow">
+                    <x-boton>
                         Guardar
-                    </button>
+                    </x-boton>
                 </div>
             </form>
 

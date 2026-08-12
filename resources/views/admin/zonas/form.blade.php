@@ -109,9 +109,9 @@
 
                     <div class="flex items-center justify-end mt-6">
                         <a href="{{ route('admin.zonas.index') }}" class="text-base text-gray-600 hover:text-gray-900 mr-4">Cancelar</a>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-base py-2 px-6 rounded shadow">
+                        <x-boton>
                             {{ $zona->exists ? 'Actualizar Zona' : 'Guardar Zona' }}
-                        </button>
+                        </x-boton>
                     </div>
                 </form>
             </x-tarjeta>

@@ -78,14 +78,12 @@
                         </div>
 
                         <div class="flex gap-2 shrink-0">
-                            <a href="{{ route('operativo.zona.panel', $zona->id) }}"
-                               class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">
+                            <x-boton :href="route('operativo.zona.panel', $zona->id)">
                                 Abrir zona
-                            </a>
-                            <a href="{{ route('operativo.inventarios.index', $zona->id) }}"
-                               class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            </x-boton>
+                            <x-boton :href="route('operativo.inventarios.index', $zona->id)" variante="secundario">
                                 Inventario
-                            </a>
+                            </x-boton>
                         </div>
                     </div>
                 @endforeach
@@ -133,16 +131,12 @@
                         {{-- Dos botones, no siete. El resto vive dentro de la zona.
                              Inventario se queda por ser lo que más se usa a diario. --}}
                         <div class="flex gap-2 mt-5">
-                            <a href="{{ route('operativo.zona.panel', $zona->id) }}"
-                               class="flex-1 text-center px-4 py-2 rounded-lg bg-indigo-600 text-white
-                                      text-sm font-medium hover:bg-indigo-700 shadow-sm">
+                            <x-boton :href="route('operativo.zona.panel', $zona->id)" class="flex-1 text-center">
                                 Abrir zona
-                            </a>
-                            <a href="{{ route('operativo.inventarios.index', $zona->id) }}"
-                               class="px-4 py-2 rounded-lg border border-gray-300 bg-white
-                                      text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">
+                            </x-boton>
+                            <x-boton :href="route('operativo.inventarios.index', $zona->id)" variante="secundario">
                                 Inventario
-                            </a>
+                            </x-boton>
                         </div>
                     </div>
                 </x-tarjeta>

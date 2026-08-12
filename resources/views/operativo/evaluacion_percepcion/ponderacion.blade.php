@@ -168,10 +168,9 @@
                 @endif
 
                 <div class="mt-8 text-center space-x-3">
-                    <a href="{{ route('operativo.evaluacion_percepcion.edit', $zona->id) }}"
-                       class="inline-block px-5 py-2 bg-blue-600 text-white font-bold text-lg rounded-lg hover:bg-blue-700 hover:scale-105 transition-transform duration-200 shadow-md">
+                    <x-boton :href="route('operativo.evaluacion_percepcion.edit', $zona->id)">
                         Ver el Formulario
-                    </a>
+                    </x-boton>
                     <x-boton-volver :zona="$zona" />
                 </div>
             </x-tarjeta>

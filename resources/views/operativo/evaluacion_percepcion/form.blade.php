@@ -166,25 +166,22 @@
                             @if($estaConfirmado && $esJefe)
                                 <x-aviso-reapertura class="w-full mb-1" />
                             @endif
-                            <button type="submit" name="accion_estado" value="borrador"
-                                    class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded shadow-lg">
+                            <x-boton variante="secundario" tamano="grande" name="accion_estado" value="borrador">
                                 Guardar Borrador
-                            </button>
+                            </x-boton>
 
                             @if($esJefe)
-                                <button type="submit" name="accion_estado" value="confirmado"
-                                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded shadow-lg transform hover:scale-105 transition"
+                                <x-boton tamano="grande" name="accion_estado" value="confirmado"
                                         onclick="return confirm('¿Está seguro? Al confirmar, el equipo ya no podrá editar esta matriz.')">
                                     Validar y Finalizar
-                                </button>
+                                </x-boton>
                             @endif
                         @else
                             <span class="text-gray-500 italic self-center"><x-aviso-bloqueo-matriz /></span>
                             @if($esJefe)
-                                <button type="submit" name="accion_estado" value="confirmado"
-                                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded shadow-lg">
+                                <x-boton tamano="grande" name="accion_estado" value="confirmado">
                                     Actualizar Datos
-                                </button>
+                                </x-boton>
                             @endif
                         @endif
                     </div>

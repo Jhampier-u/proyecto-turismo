@@ -5,10 +5,9 @@
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Inventario: {{ $zona->nombre }}</h2>
                 <p class="text-sm text-gray-500">Recursos turísticos registrados</p>
             </div>
-            <a href="{{ route('operativo.inventarios.create', $zona->id) }}"
-               class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow">
+            <x-boton :href="route('operativo.inventarios.create', $zona->id)">
                 + Agregar Recurso
-            </a>
+            </x-boton>
         </div>
     </x-slot>
 

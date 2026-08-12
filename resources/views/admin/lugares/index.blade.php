@@ -4,9 +4,9 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Catálogo de Lugares Geográficos') }}
             </h2>
-            <a href="{{ route('admin.lugares.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">
+            <x-boton :href="route('admin.lugares.create')">
                 + Nuevo Lugar
-            </a>
+            </x-boton>
         </div>
     </x-slot>
 
@@ -31,15 +31,13 @@
                            placeholder="Buscar por nombre"
                            class="flex-1 min-w-64 text-base border-gray-300 rounded-lg shadow-sm
                                   focus:ring-indigo-500 focus:border-indigo-500">
-                    <button type="submit"
-                            class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-base font-medium hover:bg-indigo-700">
+                    <x-boton>
                         Buscar
-                    </button>
+                    </x-boton>
                     @if($buscar !== '')
-                        <a href="{{ route('admin.lugares.index') }}"
-                           class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-base text-gray-700 hover:bg-gray-50">
+                        <x-boton :href="route('admin.lugares.index')" variante="secundario">
                             Limpiar
-                        </a>
+                        </x-boton>
                     @endif
                 </form>
 

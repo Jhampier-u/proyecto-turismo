@@ -155,10 +155,9 @@
 
                 {{-- Botones --}}
                 <div class="mt-8 flex gap-4 justify-center flex-wrap">
-                    <a href="{{ route('operativo.evaluacion_valoracion_territorial.edit', $zona->id) }}"
-                        class="inline-block px-5 py-2 bg-indigo-600 text-white font-bold text-lg rounded-lg hover:bg-indigo-700 hover:scale-105 transition-transform duration-200 shadow-md">
+                    <x-boton :href="route('operativo.evaluacion_valoracion_territorial.edit', $zona->id)">
                         ← Volver al Formulario
-                    </a>
+                    </x-boton>
                     <x-boton-volver :zona="$zona" />
                 </div>
 
