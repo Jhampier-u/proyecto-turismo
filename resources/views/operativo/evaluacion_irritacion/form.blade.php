@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <x-pestanas-matriz clave="irritacion" :zona="$zona" activa="formulario" />
 
@@ -19,7 +19,20 @@
                 // Un solo motivo de bloqueo desde que el admin edita: la
                 // matriz está validada y tú no eres quien la valida.
                 $bloqueado      = $estaConfirmado && ! $esJefe;
+
+                // El índice de la barra lateral: un bloque de Irritación es
+                // 'clave' => ['titulo','subtitulo','campos' => [nombre, ...]]
+                // -'campos' ya es la lista plana, sin array_keys()-.
+                $indiceBloques = collect($bloques)->map(fn($bloque, $clave) => [
+                    'ancla'       => $clave,
+                    'etiqueta'    => $bloque['titulo'],
+                    'respondidos' => \App\Servicios\EstadoZona::criteriosRespondidosDe($evaluacion, $bloque['campos']),
+                    'total'       => count($bloque['campos']),
+                ])->values()->all();
             @endphp
+
+            <div class="lg:grid lg:grid-cols-[1fr_256px] lg:gap-6 lg:items-start">
+            <div class="lg:min-w-0">
 
             @if($evaluacion?->exists && $evaluacion->user)
                 <p class="text-sm text-gray-500 mb-4">
@@ -81,7 +94,7 @@
                 ];
             @endphp
 
-            <form method="POST" action="{{ route('operativo.evaluacion_irritacion.update', $zona->id) }}">
+            <form method="POST" action="{{ route('operativo.evaluacion_irritacion.update', $zona->id) }}" id="form-irritacion">
                 @csrf
 
                 {{-- Un solo bucle sobre $bloques (Irritacion::BLOQUES, que pasa
@@ -90,7 +103,7 @@
                      corregido— había que tocarlo dos veces sin que nada
                      avisara si se olvidaba una. --}}
                 @foreach($bloques as $clave => $bloque)
-                    <section class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $bordesPorBloque[$clave] }}">
+                    <section id="{{ $clave }}" class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 border-l-4 {{ $bordesPorBloque[$clave] }}">
                         <h3 class="text-xl font-bold text-gray-900 mb-1">{{ $bloque['titulo'] }}</h3>
                         <p class="text-sm text-gray-500 mb-5">{{ $bloque['subtitulo'] }}</p>
 
@@ -134,6 +147,12 @@
                     </p>
                 @endunless
             </form>
+
+            </div>{{-- /lg:min-w-0 --}}
+
+            <x-barra-lateral-formulario clave="irritacion" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-irritacion" />
+
+            </div>{{-- /lg:grid --}}
         </div>
     </div>
 </x-app-layout>
