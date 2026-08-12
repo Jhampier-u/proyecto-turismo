@@ -13,6 +13,9 @@
             <x-boton-volver :zona="$zona" texto="Regresar"
                 class="!inline-flex !items-center !px-4 !py-2 !mb-4 !bg-blue-300 hover:!bg-blue-500 !text-black !font-bold !rounded-lg !shadow-sm" />
 
+            <div class="lg:grid lg:grid-cols-[1fr_256px] lg:gap-6 lg:items-start">
+            <div class="lg:min-w-0">
+
             @if(session('error'))
                 <div class="mb-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded">
                     {{ session('error') }}
@@ -22,7 +25,7 @@
             <x-flash-exito />
 
 
-            <form method="POST" action="{{ route('operativo.evaluacion_percepcion.update', $zona->id) }}">
+            <form method="POST" action="{{ route('operativo.evaluacion_percepcion.update', $zona->id) }}" id="form-percepcion">
                 @csrf
 
                 @php
@@ -31,6 +34,16 @@
                     // Un solo motivo de bloqueo desde que el admin edita: la
                     // matriz está validada y tú no eres quien la valida.
                     $bloqueado      = $estaConfirmado && ! $esJefe;
+
+                    // El índice de la barra lateral: una categoría de
+                    // Percepción es 'clave' => ['nombre','peso','items' =>
+                    // [campo => etiqueta]] -'items', no 'criterios'-.
+                    $indiceBloques = collect($categorias)->map(fn($cat, $codigo) => [
+                        'ancla'       => $codigo,
+                        'etiqueta'    => $cat['nombre'],
+                        'respondidos' => \App\Servicios\EstadoZona::criteriosRespondidosDe($evaluacion, array_keys($cat['items'])),
+                        'total'       => count($cat['items']),
+                    ])->values()->all();
 
                     $colores = [
                         'DS' => ['bg' => 'bg-blue-50',    'border' => 'border-blue-400',    'title' => 'text-blue-800'],
@@ -86,7 +99,7 @@
                     {{-- Categorías --}}
                     @foreach($categorias as $codigo => $cat)
                         @php $c = $colores[$codigo]; @endphp
-                        <div class="{{ $c['bg'] }} border-l-4 {{ $c['border'] }} p-5 rounded mb-6"
+                        <div id="{{ $codigo }}" class="{{ $c['bg'] }} border-l-4 {{ $c['border'] }} p-5 rounded mb-6"
                              x-data="{
                                 valores: @js($inicial($cat['items'])),
                                 // Con la categoría a medias no hay media que
@@ -178,6 +191,12 @@
                     </div>
                 </div>
             </form>
+
+            </div>{{-- /lg:min-w-0 --}}
+
+            <x-barra-lateral-formulario clave="percepcion" :zona="$zona" :secciones="$indiceBloques" :bloqueado="$bloqueado" formulario="form-percepcion" />
+
+            </div>{{-- /lg:grid --}}
         </div>
     </div>
 </x-app-layout>
