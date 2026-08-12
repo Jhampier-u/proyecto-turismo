@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+            <x-tarjeta class="overflow-hidden">
 
                 <form method="POST"
                       action="{{ $zona->exists ? route('admin.zonas.update', $zona->id) : route('admin.zonas.store') }}"
@@ -114,6 +114,6 @@
                         </button>
                     </div>
                 </form>
-            </div>
+            </x-tarjeta>
     </div>
 </x-app-layout>

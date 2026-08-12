@@ -24,7 +24,7 @@
             @endif
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                <x-tarjeta>
                     <p class="text-3xl font-semibold text-gray-900">{{ $resumen['usuarios'] }}</p>
                     <h3 class="text-lg font-medium text-gray-800 mt-1">Usuarios</h3>
                     <p class="text-sm text-gray-600 mt-2">
@@ -34,9 +34,9 @@
                        class="inline-block mt-4 text-base font-medium text-indigo-700 hover:underline">
                         Gestionar →
                     </a>
-                </div>
+                </x-tarjeta>
 
-                <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                <x-tarjeta>
                     <p class="text-3xl font-semibold text-gray-900">{{ $resumen['lugares'] }}</p>
                     <h3 class="text-lg font-medium text-gray-800 mt-1">Lugares</h3>
                     <p class="text-sm text-gray-600 mt-2">{{ $resumen['lugares'] }} lugares en el catálogo</p>
@@ -44,9 +44,9 @@
                        class="inline-block mt-4 text-base font-medium text-indigo-700 hover:underline">
                         Gestionar →
                     </a>
-                </div>
+                </x-tarjeta>
 
-                <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                <x-tarjeta>
                     <p class="text-3xl font-semibold text-gray-900">{{ $resumen['zonas'] }}</p>
                     <h3 class="text-lg font-medium text-gray-800 mt-1">Zonas</h3>
                     <p class="text-sm text-gray-600 mt-2">
@@ -60,7 +60,7 @@
                        class="inline-block mt-4 text-base font-medium text-indigo-700 hover:underline">
                         Gestionar →
                     </a>
-                </div>
+                </x-tarjeta>
             </div>
 
     </div>

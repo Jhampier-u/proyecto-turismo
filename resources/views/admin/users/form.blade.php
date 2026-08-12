@@ -6,8 +6,8 @@
     </x-slot>
 
     <div class="py-12">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                
+            <x-tarjeta class="overflow-hidden">
+
                 <form method="POST" action="{{ $user->exists ? route('admin.users.update', $user) : route('admin.users.store') }}">
                     @csrf
                     
@@ -79,6 +79,6 @@
                     </div>
                 </form>
 
-            </div>
+            </x-tarjeta>
     </div>
 </x-app-layout>

@@ -7,8 +7,8 @@
 
     <div class="py-12">
         <x-contenedor ancho="estrecho">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                
+            <x-tarjeta class="overflow-hidden">
+
                 <form method="POST" action="{{ $lugar->exists ? route('admin.lugares.update', $lugar) : route('admin.lugares.store') }}">
                     @csrf
                     @if($lugar->exists) @method('PUT') @endif
@@ -46,7 +46,7 @@
                     </div>
                 </form>
 
-            </div>
+            </x-tarjeta>
         </x-contenedor>
     </div>
 </x-app-layout>

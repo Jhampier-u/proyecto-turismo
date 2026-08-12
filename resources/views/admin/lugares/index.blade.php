@@ -23,7 +23,7 @@
             </div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+            <x-tarjeta class="overflow-hidden">
 
                 <form method="GET" action="{{ route('admin.lugares.index') }}"
                       class="flex flex-wrap gap-3 mb-6">
@@ -104,6 +104,6 @@
                 @endif
 
                 <div class="mt-4">{{ $lugares->links() }}</div>
-            </div>
+            </x-tarjeta>
     </div>
 </x-app-layout>

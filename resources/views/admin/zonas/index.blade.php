@@ -24,8 +24,7 @@
             </div>
 
             {{-- ═══ VISTA LISTA ══════════════════════════════════════════════════ --}}
-            <div x-show="vista === 'lista'" x-transition
-                 class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+            <x-tarjeta x-show="vista === 'lista'" x-transition class="overflow-hidden">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
@@ -88,13 +87,13 @@
                         @endforeach
                     </tbody>
                 </table>
-            </div>
+            </x-tarjeta>
 
             {{-- ═══ VISTA TARJETAS ═══════════════════════════════════════════════ --}}
             <div x-show="vista === 'tarjetas'" x-transition
                  class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach ($zonas as $zona)
-                <div class="bg-white shadow-sm sm:rounded-lg hover:shadow-md transition duration-300 border border-gray-100">
+                <x-tarjeta :padding="false" class="hover:shadow-md transition duration-300">
 
                     @if($zona->imagen_path)
                         <div class="h-40 overflow-hidden rounded-t-lg">
@@ -148,7 +147,7 @@
                             </form>
                         </div>
                     </div>
-                </div>
+                </x-tarjeta>
                 @endforeach
             </div>
 

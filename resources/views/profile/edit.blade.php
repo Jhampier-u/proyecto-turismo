@@ -8,22 +8,22 @@
     {{-- space-y-6 se queda en este div: separaba las tres tarjetas, no fijaba
          el ancho de página, así que no es el contenedor que se borra aquí. --}}
     <div class="py-12 space-y-6">
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+            <x-tarjeta :padding="false" class="p-4 sm:p-8">
                 <div class="max-w-xl">
                     @include('profile.partials.update-profile-information-form')
                 </div>
-            </div>
+            </x-tarjeta>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+            <x-tarjeta :padding="false" class="p-4 sm:p-8">
                 <div class="max-w-xl">
                     @include('profile.partials.update-password-form')
                 </div>
-            </div>
+            </x-tarjeta>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+            <x-tarjeta :padding="false" class="p-4 sm:p-8">
                 <div class="max-w-xl">
                     @include('profile.partials.delete-user-form')
                 </div>
-            </div>
+            </x-tarjeta>
     </div>
 </x-app-layout>

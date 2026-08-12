@@ -26,7 +26,7 @@
                 </div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <x-tarjeta :padding="false" class="overflow-hidden">
                 <div class="p-6 text-gray-900">
 
                     <form method="GET" action="{{ route('admin.users.index') }}"
@@ -146,7 +146,7 @@
                     </div>
 
                 </div>
-            </div>
+            </x-tarjeta>
     </div>
 
     {{-- El nombre viaja en un data-* y se lee vía dataset, nunca interpolado
