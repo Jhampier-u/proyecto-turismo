@@ -287,7 +287,7 @@ class InvolucradosTest extends TestCase
             ->assertSee('1 sin completar');
     }
 
-    public function test_el_boton_de_validar_esta_arriba_y_no_al_final(): void
+    public function test_no_queda_un_segundo_boton_de_validar_al_final(): void
     {
         Involucrado::create($this->todosEn(2) + [
             'zona_id' => $this->zona->id,
@@ -302,6 +302,33 @@ class InvolucradosTest extends TestCase
         // Con la lista completa el botón existe una sola vez. Dos botones que
         // hacen lo mismo es la duplicación que se está quitando.
         $this->assertSame(1, substr_count($html, 'Validar y Cerrar la Lista'));
+    }
+
+    /**
+     * Hallazgo 6b: con la lista ya validada y completa, el jefe no debe ver
+     * el botón -aunque $listaCompleta sea cierto-, porque no tiene sentido
+     * volver a validar lo que ya está confirmado. El término "! $confirmada"
+     * de puedeValidar es justo lo que sostiene esto, y hasta ahora ningún
+     * test lo comprobaba: se verificó a mano que quitándolo del controlador
+     * la suite entera seguía en verde.
+     */
+    public function test_el_jefe_no_ve_el_boton_con_la_lista_validada_y_completa(): void
+    {
+        Involucrado::create($this->todosEn(2) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor completo',
+        ]);
+
+        InvolucradosConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'confirmado',
+        ]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertDontSee('Validar y Cerrar la Lista');
     }
 
     /**

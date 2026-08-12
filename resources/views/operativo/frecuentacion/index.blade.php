@@ -72,7 +72,21 @@
                              :ruta-validar="route('operativo.frecuentacion.validar', $zona->id)"
                              :aviso-validacion="$avisoValidacion"
                              :jefe="$zona->jefe?->name">
-                {{ $stDefinida ? 'ST: ' . $config->st : 'ST sin responder' }}
+                {{--
+                    Sin ST ningún sitio tiene ÍETP y la lista no se puede
+                    validar aunque todos los sitios tengan su DET: es la
+                    segunda condición de Frecuentación, la que EstadoZona ya
+                    distingue de "faltan sitios". En gris se leía como un
+                    apunte al margen justo cuando es lo único que bloquea, así
+                    que va en ámbar -mismo color que "N sin DET"-, y con la
+                    misma frase que usa el panel de la zona (EstadoZona) para
+                    no tener dos redacciones del mismo hecho.
+                --}}
+                @if($stDefinida)
+                    <span class="text-gray-600">ST: {{ $config->st }}</span>
+                @else
+                    <span class="text-amber-700">falta la Superficie Territorial</span>
+                @endif
             </x-resumen-lista>
 
             {{--

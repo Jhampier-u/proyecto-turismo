@@ -43,12 +43,16 @@
     } elseif ($entrada['tipo'] === 'sitios') {
         // Misma idea que la rama de actores, con una segunda condición: la
         // ST vive en $evaluacion (el modelo de la entrada es
-        // FrecuentacionConfig, ya cargado arriba), no en cada sitio.
-        $sitios   = $zona->frecuentacionSitios();
-        $completa = $sitios->count() > 0
-            && ! $sitios->incompletos()->exists()
-            && ($evaluacion?->st ?? null) !== null
-            && $evaluacion->st > 0;
+        // FrecuentacionConfig, ya cargado arriba), no en cada sitio. Las dos
+        // se guardan en variables con nombre -y no fundidas en un solo
+        // "&&"- porque el candado de abajo necesita saber CUÁL de las dos
+        // falla: con los sitios completos pero sin ST, "sin sitios
+        // completos" es sencillamente falso, y la franja de resumen de la
+        // misma página ya dice lo contrario tres líneas más abajo.
+        $sitios          = $zona->frecuentacionSitios();
+        $sitiosCompletos = $sitios->count() > 0 && ! $sitios->incompletos()->exists();
+        $stDefinida      = ($evaluacion?->st ?? null) !== null && $evaluacion->st > 0;
+        $completa        = $sitiosCompletos && $stDefinida;
     } else {
         $completa = $total !== null && $respondidos >= $total;
     }
@@ -79,7 +83,13 @@
         <span class="pb-3 border-b-2 border-transparent text-base text-gray-400 flex items-center gap-2">
             <x-icono nombre="candado" class="w-4 h-4" />
             Resultados
-            <span class="text-sm">— sin sitios completos</span>
+            {{--
+                Con los sitios completos y solo la ST pendiente, "sin sitios
+                completos" sería falso: los sitios SÍ están completos. El
+                motivo real es el mismo que bloquea la validación, así que se
+                nombra en vez de repetir una frase que ya no aplica.
+            --}}
+            <span class="text-sm">— {{ $sitiosCompletos && ! $stDefinida ? 'falta la Superficie Territorial' : 'sin sitios completos' }}</span>
         </span>
     @else
         <span class="pb-3 border-b-2 border-transparent text-base text-gray-400 flex items-center gap-2">

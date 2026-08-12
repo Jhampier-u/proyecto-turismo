@@ -106,6 +106,24 @@ class ResumenListaTest extends TestCase
         $this->assertStringContainsString('/validar', $html);
     }
 
+    /**
+     * Hallazgo 4: con puedeValidar cierto y sin rutaValidar, el formulario
+     * saldría con action="" -la URL del propio índice, que solo tiene GET-,
+     * y el POST moriría en un 405 silencioso. Mismo patrón de guardia que
+     * <x-barra-lateral-formulario>: revienta aquí en vez de adivinar.
+     */
+    public function test_puede_validar_sin_ruta_revienta(): void
+    {
+        // Blade envuelve cualquier excepción lanzada al renderizar un
+        // componente en ViewException -no deja pasar la original tal
+        // cual-, así que se comprueba el mensaje en vez del tipo original.
+        // Mismo patrón que BarraLateralFormularioTest.
+        $this->expectException(\Illuminate\View\ViewException::class);
+        $this->expectExceptionMessage(':ruta-validar es obligatoria cuando :puede-validar es cierto');
+
+        $this->renderizar(['puedeValidar' => true, 'incompletos' => 0, 'rutaValidar' => null]);
+    }
+
     public function test_sin_permiso_no_hay_boton(): void
     {
         $html = $this->renderizar(['puedeValidar' => false]);

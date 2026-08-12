@@ -32,12 +32,26 @@
 
 @php
     $plural ??= $sustantivo . 's';
+
+    // rutaValidar vale null por defecto: con puedeValidar cierto y sin ruta,
+    // el formulario de abajo saldría con action="" -la URL del propio
+    // índice, que solo tiene GET- y el POST moriría en un 405 silencioso.
+    // Mismo patrón que <x-barra-lateral-formulario>: revienta aquí, en vez
+    // de dejar que la vista adivine.
+    if ($puedeValidar && $rutaValidar === null) {
+        throw new \InvalidArgumentException(
+            '<x-resumen-lista>: :ruta-validar es obligatoria cuando :puede-validar es cierto.'
+        );
+    }
 @endphp
 
 <div class="bg-white shadow-sm sm:rounded-lg p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
 
     <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-base text-gray-700">
-        <span class="font-medium">{{ $total }} {{ $total === 1 ? $sustantivo : $plural }}</span>
+        {{-- (int) porque un total="1" en cadena -viajando por un atributo
+             Blade sin ":"- no es === 1, y el singular se perdería en «1
+             actores». --}}
+        <span class="font-medium">{{ $total }} {{ (int) $total === 1 ? $sustantivo : $plural }}</span>
 
         @if($incompletos > 0)
             <span class="text-amber-700">{{ $incompletos }} {{ $faltante }}</span>
@@ -47,8 +61,16 @@
             <span class="text-green-700">todos completos</span>
         @endif
 
+        {{--
+            Sin color fijo: la ranura la usa hoy Frecuentación para la ST, que
+            a veces es un dato neutro («ST: 1200») y a veces la única cosa que
+            falta para poder validar («falta la Superficie Territorial»). El
+            color es de quien conoce ese significado -la vista que llena la
+            ranura-, no de este componente, que no deriva nada y no sabe
+            distinguir un dato de un motivo de bloqueo.
+        --}}
         @if(trim($slot) !== '')
-            <span class="text-gray-600">{{ $slot }}</span>
+            <span>{{ $slot }}</span>
         @endif
     </div>
 

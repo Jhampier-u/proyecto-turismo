@@ -144,7 +144,7 @@ class FrecuentacionTest extends TestCase
         $this->actingAs($this->jefe)
             ->get($this->urlIndex($this->zona))
             ->assertOk()
-            ->assertSee('ST sin responder');
+            ->assertSee('falta la Superficie Territorial');
     }
 
     public function test_con_superficie_definida_la_franja_la_muestra(): void
@@ -160,7 +160,7 @@ class FrecuentacionTest extends TestCase
             ->get($this->urlIndex($this->zona))
             ->assertOk()
             ->assertSee('ST: 1200')
-            ->assertDontSee('ST sin responder');
+            ->assertDontSee('falta la Superficie Territorial');
     }
 
     public function test_el_campo_de_superficie_sigue_siendo_editable(): void
@@ -172,13 +172,66 @@ class FrecuentacionTest extends TestCase
             ->assertSee($this->urlSuperficie(), false);
     }
 
-    public function test_el_boton_de_validar_esta_arriba_y_no_al_final(): void
+    /**
+     * El estado del Hallazgo 1: con todos los sitios completos pero sin ST,
+     * la lista sigue bloqueada -Frecuentación exige las dos condiciones, no
+     * solo el DET de cada sitio-, así que el jefe tiene que ver el motivo
+     * real (la ST) en ámbar, y no el botón de validar. Antes nadie cubría
+     * este estado: test_la_franja_avisa_si_falta_la_superficie_territorial
+     * prueba la falta de ST con la lista VACÍA, donde esta rama de
+     * $stDefinida ni siquiera llega a ejecutarse junto a sitios completos.
+     */
+    public function test_con_sitios_completos_y_sin_st_el_jefe_ve_el_aviso_ambar_y_no_el_boton(): void
+    {
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Malecón 2000',
+            'det'     => 1500,
+        ]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('falta la Superficie Territorial')
+            ->assertDontSee('Validar y Cerrar la Lista');
+    }
+
+    /**
+     * Hallazgo 6b: con la lista ya validada y completa, el jefe no debe ver
+     * el botón -aunque $listaCompleta sea cierto-, porque no tiene sentido
+     * volver a validar lo que ya está confirmado. El término "! $confirmada"
+     * de puedeValidar es justo lo que sostiene esto, y hasta ahora ningún
+     * test lo comprobaba: se verificó a mano que quitándolo del controlador
+     * la suite entera seguía en verde.
+     */
+    public function test_el_jefe_no_ve_el_boton_con_la_lista_validada_y_completa(): void
+    {
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Malecón 2000',
+            'det'     => 1500,
+        ]);
+
+        FrecuentacionConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'confirmado',
+            'st'      => 1200,
+        ]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertDontSee('Validar y Cerrar la Lista');
+    }
+
+    public function test_no_queda_un_segundo_boton_de_validar_al_final(): void
     {
         // El brief de esta tarea trae este test sin datos: con la zona
         // recién creada -sin sitios ni ST- $listaCompleta es siempre falso y
         // el botón nunca se pinta, así que el "1" no se podría cumplir con
         // ninguna implementación. Mismo arreglo que
-        // InvolucradosTest::test_el_boton_de_validar_esta_arriba_y_no_al_final():
+        // InvolucradosTest::test_no_queda_un_segundo_boton_de_validar_al_final():
         // una lista completa primero, para que puedaValidar sea cierto.
         SitioFrecuentacion::create([
             'zona_id' => $this->zona->id,
