@@ -228,4 +228,21 @@ class PaginaZonaTest extends TestCase
             'La pista suelta del jefe no debe pintarse además del aviso propio del equipo.'
         );
     }
+
+    /**
+     * zona.panel.blade.php nunca pasa :zona a <x-fila-matriz> -no lo
+     * necesita, la página entera ya es de una sola zona-. Este test fija
+     * que seguir sin pasarla no pinta ningún nombre de zona de más: es la
+     * garantía de que la Tarea 2 no le cambia el aspecto a esta página.
+     */
+    public function test_la_pagina_de_zona_no_repite_el_nombre_de_la_zona_en_cada_fila(): void
+    {
+        $html = $this->actingAs($this->jefe)
+            ->get(route('operativo.zona.panel', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        // El nombre aparece una vez, en el encabezado -no una vez por fila-.
+        $this->assertSame(1, substr_count($html, $this->zona->nombre));
+    }
 }

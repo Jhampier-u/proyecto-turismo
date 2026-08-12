@@ -32,6 +32,10 @@ class DashboardController extends Controller
         // lista de zonas del jefe.
         $progreso = EstadoZona::progresoDe($zonas);
 
-        return view('operativo.dashboard', compact('zonas', 'progreso'));
+        // proximoPaso() recibe $progreso ya calculado: pedirlo dos veces
+        // duplicaría las consultas de progresoDe() sin ganar nada.
+        $proximoPaso = EstadoZona::proximoPaso($user, $zonas, $progreso);
+
+        return view('operativo.dashboard', compact('zonas', 'progreso', 'proximoPaso'));
     }
 }

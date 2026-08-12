@@ -22,6 +22,34 @@
             </div>
             @endif
 
+            {{-- ═══ SIGUIENTE PASO ═══════════════════════════════════════════════
+                 El dashboard como punto de partida, no como índice: arriba, lo
+                 siguiente que toca hacer. Con cero actividad todavía, solo se
+                 pinta "siguiente sin terminar" -no hay nada que "seguir"-; con
+                 todo validado, no se pinta ninguna de las dos. Nunca un panel
+                 vacío: si no hay nada que decir, no se dice nada. --}}
+            @if($proximoPaso['ultima'] || $proximoPaso['siguiente'])
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                @if($proximoPaso['ultima'])
+                <div class="bg-white shadow-sm rounded-xl border border-gray-200 px-6 pt-5 pb-2">
+                    <h3 class="text-base font-semibold text-gray-800 mb-1">
+                        {{ $proximoPaso['fusionado'] ? 'Sigue por aquí — es donde lo dejaste' : 'Sigue por aquí' }}
+                    </h3>
+                    <x-fila-matriz :fila="$proximoPaso['ultima']['fila']" :zona="$proximoPaso['ultima']['zona']" />
+                </div>
+                @endif
+
+                @if($proximoPaso['siguiente'])
+                <div class="bg-white shadow-sm rounded-xl border border-gray-200 px-6 pt-5 pb-2">
+                    <h3 class="text-base font-semibold text-gray-800 mb-1">
+                        {{ $proximoPaso['ultima'] ? 'Todavía sin empezar' : 'Empieza por aquí' }}
+                    </h3>
+                    <x-fila-matriz :fila="$proximoPaso['siguiente']['fila']" :zona="$proximoPaso['siguiente']['zona']" />
+                </div>
+                @endif
+            </div>
+            @endif
+
             <div class="flex justify-end mb-4">
                 <x-conmutador-vista modelo="vista" />
             </div>

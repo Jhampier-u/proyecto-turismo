@@ -80,4 +80,97 @@ class DashboardTest extends TestCase
             'El número de consultas no debería crecer con el número de zonas.'
         );
     }
+
+    /**
+     * Cero zonas: el aviso de siempre, y NADA de panel nuevo -ver el punto 2
+     * del plan: un panel de "continuar" vacío sería peor que no tenerlo-.
+     */
+    public function test_sin_zonas_no_se_pinta_el_panel_de_siguiente_paso(): void
+    {
+        $sinZona = User::factory()->create([
+            'role_id' => Role::where('nombre', 'jefe_zona')->value('id'),
+        ]);
+
+        $this->actingAs($sinZona)
+            ->get('/mis-zonas')
+            ->assertOk()
+            ->assertDontSee('Sigue por aquí')
+            ->assertDontSee('Empieza por aquí');
+    }
+
+    /**
+     * Zona nueva, sin ninguna evaluación: el panel ofrece "Empieza por
+     * aquí" señalando a FIT -la primera matriz declarada-, y NO ofrece
+     * "Sigue por aquí" -no hay nada que continuar todavía-.
+     */
+    public function test_una_zona_recien_creada_ofrece_empezar_por_fit(): void
+    {
+        $this->crearZona('Zona nueva');
+
+        $html = $this->actingAs($this->jefe)->get('/mis-zonas')->assertOk()->getContent();
+
+        $this->assertStringContainsString('Empieza por aquí', $html);
+        $this->assertStringNotContainsString('Sigue por aquí', $html);
+        $this->assertStringContainsString(
+            route('operativo.evaluacion_fit.edit', \App\Models\Zona::where('nombre', 'Zona nueva')->value('id')),
+            $html
+        );
+    }
+
+    /**
+     * Con un borrador de FET guardado por el jefe, "Sigue por aquí" señala
+     * a FET y "Todavía sin empezar" señala a FIT: dos tarjetas, no una.
+     */
+    public function test_una_matriz_tocada_que_no_es_la_primera_ofrece_las_dos_tarjetas(): void
+    {
+        $zona = $this->crearZona('Zona con FET a medias');
+
+        \App\Models\EvaluacionFet::create([
+            'zona_id' => $zona->id, 'user_id' => $this->jefe->id, 'estado' => 'borrador',
+        ]);
+
+        $html = $this->actingAs($this->jefe)->get('/mis-zonas')->assertOk()->getContent();
+
+        $this->assertStringContainsString('Sigue por aquí', $html);
+        $this->assertStringContainsString('Todavía sin empezar', $html);
+    }
+
+    /**
+     * Tocar FIT y no tener nada más pendiente por delante: se fusiona en
+     * una sola tarjeta -"Sigue por aquí"-, sin repetir FIT como "Todavía
+     * sin empezar" justo debajo. Es la trampa concreta de las tarjetas
+     * duplicadas, fijada por test.
+     */
+    public function test_la_matriz_tocada_y_la_siguiente_sin_terminar_no_se_repiten(): void
+    {
+        $zona = $this->crearZona('Zona con FIT a medias');
+
+        \App\Models\EvaluacionFit::create([
+            'zona_id' => $zona->id, 'user_id' => $this->jefe->id, 'estado' => 'borrador',
+        ]);
+
+        $html = $this->actingAs($this->jefe)->get('/mis-zonas')->assertOk()->getContent();
+
+        $this->assertStringContainsString('Sigue por aquí', $html);
+        $this->assertStringNotContainsString('Todavía sin empezar', $html);
+        $this->assertSame(1, substr_count($html, route('operativo.evaluacion_fit.edit', $zona->id)));
+    }
+
+    /**
+     * El panel muestra en qué zona está cada tarjeta -imprescindible con
+     * más de una zona-, reutilizando la prop nueva de <x-fila-matriz>.
+     */
+    public function test_el_panel_dice_a_que_zona_pertenece_cada_tarjeta(): void
+    {
+        $zona = $this->crearZona('Zona identificable');
+
+        \App\Models\EvaluacionFit::create([
+            'zona_id' => $zona->id, 'user_id' => $this->jefe->id, 'estado' => 'borrador',
+        ]);
+
+        $this->actingAs($this->jefe)
+            ->get('/mis-zonas')
+            ->assertOk()
+            ->assertSee('Zona identificable');
+    }
 }

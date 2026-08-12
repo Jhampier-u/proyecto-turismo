@@ -58,9 +58,22 @@ seis, que es justo donde hoy falla.
 
 ### El dato concreto
 
-Los diez formularios de matriz usan `max-w-5xl` (1024 px) mientras
-`resources/views/layouts/app.blade.php` ya permite `max-w-7xl` (1280 px). **Se están
-dejando 256 px sin usar** antes de reorganizar nada.
+> **Corregido al planificar.** Este diseño afirmaba que «los diez formularios usan
+> `max-w-5xl`». **Era falso**, y salió de mirar dos ficheros y generalizar. El
+> recuento real: `max-w-5xl` solo en **FIT, FET, Paisaje y Valoración Territorial**;
+> Irritación y Concentración ya van a `max-w-6xl`; **Percepción ya está a
+> `max-w-7xl`**; y **Potencialidad no declara ancho: tiene ya su propia barra lateral
+> fija de 252 px**, escrita a mano, que resuelve justo lo que este diseño quería
+> resolver. Involucrados y Frecuentación son CRUD de filas, no formularios de
+> criterios.
+>
+> Sirve de aviso para el resto del documento: aquí se generalizó desde una muestra
+> de dos, y en un proyecto que trata los comentarios como fuente de verdad eso hace
+> daño.
+
+`resources/views/layouts/app.blade.php` permite `max-w-7xl` (1280 px). Donde el
+formulario se queda en `max-w-5xl` **se dejan 256 px sin usar** antes de reorganizar
+nada.
 
 ### La decisión
 
@@ -101,6 +114,28 @@ multiplica lo que hay que probar en diez formularios.
   no reinventar — y ojo con que **un 0 respondido es un dato, no un hueco**.
 
 ---
+
+### Alcance: nueve de diez, y por qué no diez
+
+Decisión del responsable del proyecto, entre **coherencia visual completa** —las diez
+con el mismo componente— y **coherencia de significado**. Eligió la segunda.
+
+**Potencialidad entra** (tarea 11 bis del plan): ya tiene barra propia, y dejarla
+fuera significaría convivir con dos barras laterales distintas que hacen lo mismo.
+
+**Involucrados y Frecuentación quedan fuera, y no por pereza.** Son CRUD de filas: no
+tienen bloques que indexar, así que la mitad del componente compartido no tendría qué
+mostrar. Meterlo igual sería crear **un componente que significa dos cosas distintas
+según quién lo use**, que es el error que este proyecto ya pagó dos veces: el tipo
+`actores` que parecía servir para Frecuentación y llevaba cableado
+`zona->involucrados()`, y el `x-boton-volver` que decidía dos cosas bajo un nombre.
+
+**Sí les vendría bien una barra lateral, con otro contenido**: «5 sitios, 2 sin DET»,
+el botón de validar, y en Frecuentación la Superficie Territorial, que hoy es un dato
+de zona perdido entre las filas y encajaría natural en una columna fija. Eso merece
+**su propio diseño, corto**, cuando el componente compartido exista y se sepa qué le
+sobra y qué le falta. Queda como decisión pendiente escrita, no como implementación
+forzada.
 
 ## Restricciones que aplican a las dos
 

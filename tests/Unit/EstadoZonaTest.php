@@ -525,4 +525,96 @@ class EstadoZonaTest extends TestCase
 
         $this->assertSame(7, \App\Servicios\EstadoZona::criteriosRespondidos($evaluacion->fresh()));
     }
+
+    /**
+     * Sin ninguna actividad del usuario y sin nada validado: "última" sale
+     * null, y "siguiente" señala a la primera matriz declarada -FIT- de la
+     * primera zona. Es el caso del jefe recién creado.
+     */
+    public function test_sin_actividad_siguiente_senala_a_la_primera_matriz_declarada(): void
+    {
+        $progreso = EstadoZona::progresoDe(collect([$this->zona]));
+
+        $resultado = EstadoZona::proximoPaso($this->jefe, collect([$this->zona]), $progreso);
+
+        $this->assertNull($resultado['ultima']);
+        $this->assertNotNull($resultado['siguiente']);
+        $this->assertSame($this->zona->id, $resultado['siguiente']['zona']->id);
+        $this->assertSame('fit', $resultado['siguiente']['fila']->clave);
+        $this->assertFalse($resultado['fusionado']);
+    }
+
+    /**
+     * Un borrador de FIT guardado por el propio jefe: "última tocada" lo
+     * encuentra por su user_id/updated_at. Como FIT sigue sin validar y es
+     * la primera matriz declarada, "siguiente" apunta a la misma entrada:
+     * se fusionan en una sola tarjeta.
+     */
+    public function test_una_matriz_tocada_que_tambien_es_la_siguiente_sin_terminar_se_fusiona(): void
+    {
+        EvaluacionFit::create(['zona_id' => $this->zona->id, 'user_id' => $this->jefe->id, 'estado' => 'borrador']);
+
+        $progreso = EstadoZona::progresoDe(collect([$this->zona]));
+        $resultado = EstadoZona::proximoPaso($this->jefe, collect([$this->zona]), $progreso);
+
+        $this->assertNotNull($resultado['ultima']);
+        $this->assertSame('fit', $resultado['ultima']['fila']->clave);
+        $this->assertNull($resultado['siguiente']);
+        $this->assertTrue($resultado['fusionado']);
+    }
+
+    /**
+     * Tocar FET (una matriz que no es la primera declarada) deja "siguiente"
+     * señalando a FIT, todavía sin empezar: las dos tarjetas son distintas
+     * y las dos se muestran.
+     */
+    public function test_tocar_una_matriz_que_no_es_la_primera_no_fusiona(): void
+    {
+        EvaluacionFet::create(['zona_id' => $this->zona->id, 'user_id' => $this->jefe->id, 'estado' => 'borrador']);
+
+        $progreso = EstadoZona::progresoDe(collect([$this->zona]));
+        $resultado = EstadoZona::proximoPaso($this->jefe, collect([$this->zona]), $progreso);
+
+        $this->assertSame('fet', $resultado['ultima']['fila']->clave);
+        $this->assertSame('fit', $resultado['siguiente']['fila']->clave);
+        $this->assertFalse($resultado['fusionado']);
+    }
+
+    /**
+     * Con todas las matrices validables validadas, no queda nada "sin
+     * terminar": siguiente sale null. Se apoya en fitCompleta() -ya
+     * existente en este fichero- y confirma las ocho matrices restantes a
+     * mano por brevedad: lo que importa es el caso límite (total = hechas),
+     * no repetir el alta de las diez.
+     */
+    public function test_con_todo_validado_no_hay_siguiente(): void
+    {
+        foreach (\App\Matrices\Registro::matrices() as $clave => $entrada) {
+            $modelo = $entrada['modelo'];
+            $columnas = array_filter(
+                \Illuminate\Support\Facades\Schema::getColumnListing((new $modelo())->getTable()),
+                fn(string $c) => EstadoZona::esColumnaDeCriterio($c)
+            );
+
+            $modelo::create(
+                ['zona_id' => $this->zona->id, 'user_id' => $this->jefe->id, 'estado' => 'confirmado']
+                + array_fill_keys($columnas, 3)
+            );
+        }
+
+        $progreso = EstadoZona::progresoDe(collect([$this->zona]));
+        $resultado = EstadoZona::proximoPaso($this->jefe, collect([$this->zona]), $progreso);
+
+        $this->assertNull($resultado['siguiente']);
+    }
+
+    /** Sin zonas, las tres claves salen vacías sin disparar ninguna consulta de más. */
+    public function test_sin_zonas_proximo_paso_sale_vacio(): void
+    {
+        $resultado = EstadoZona::proximoPaso($this->jefe, collect(), []);
+
+        $this->assertNull($resultado['ultima']);
+        $this->assertNull($resultado['siguiente']);
+        $this->assertFalse($resultado['fusionado']);
+    }
 }

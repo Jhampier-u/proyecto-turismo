@@ -114,6 +114,151 @@ final class EstadoZona
         return $grupos;
     }
 
+    /**
+     * Una sola fila, por clave. grupos() ya resuelve todas para pintar la
+     * página de zona entera; esto es la misma resolución cuando solo hace
+     * falta una -el caso de proximoPaso(), que no necesita el resto-.
+     */
+    public function filaDeClave(string $clave): FilaMatriz
+    {
+        return $this->fila($clave);
+    }
+
+    /**
+     * «Lo siguiente que toca hacer»: la matriz que el usuario tocó por
+     * última vez y la primera que todavía no ha terminado, cada una en su
+     * zona. Alimenta el panel de arriba del dashboard operativo.
+     *
+     * Dos preguntas distintas -"¿por dónde sigo?" y "¿qué no he ni
+     * empezado?"- que casi siempre señalan a matrices distintas. Cuando
+     * coinciden -lo normal si se trabaja en el orden del registro- se
+     * fusionan en una sola entrada para no repetir la misma tarjeta dos
+     * veces.
+     *
+     * $progreso se recibe ya calculado -progresoDe($zonas)- en vez de
+     * volver a pedirlo aquí: el dashboard ya lo necesita para las tarjetas
+     * de zona de más abajo, y pedirlo dos veces duplicaría sus consultas
+     * sin ganar nada.
+     *
+     * Coste fijo, no por zona: como mucho una consulta por cada uno de los
+     * diez modelos validables para "última tocada", y como mucho dos
+     * instancias de EstadoZona -coste fijo cada una, ver su constructor-
+     * para resolver la fila completa de "última" y de "siguiente". El
+     * número de zonas no multiplica el número de consultas, mismo
+     * principio que progresoDe().
+     *
+     * @param  Collection<int, Zona>  $zonas
+     * @param  array<int, array{hechas: int, total: int}>  $progreso  de progresoDe($zonas)
+     * @return array{ultima: ?array{zona: Zona, fila: FilaMatriz}, siguiente: ?array{zona: Zona, fila: FilaMatriz}, fusionado: bool}
+     */
+    public static function proximoPaso(User $usuario, Collection $zonas, array $progreso): array
+    {
+        if ($zonas->isEmpty()) {
+            return ['ultima' => null, 'siguiente' => null, 'fusionado' => false];
+        }
+
+        $ultima    = self::ultimaTocadaPor($usuario, $zonas);
+        $siguiente = self::siguientePendiente($usuario, $zonas, $progreso);
+
+        $fusionado = $ultima !== null
+            && $siguiente !== null
+            && $ultima['zona']->id === $siguiente['zona']->id
+            && $ultima['fila']->clave === $siguiente['fila']->clave;
+
+        return [
+            'ultima'    => $ultima,
+            'siguiente' => $fusionado ? null : $siguiente,
+            'fusionado' => $fusionado,
+        ];
+    }
+
+    /**
+     * La matriz validable con el updated_at más reciente entre las que este
+     * usuario guardó él mismo (user_id), dentro de sus zonas.
+     *
+     * Fiable para las ocho matrices de tipo 'matriz': EvaluacionZonaController
+     * ::update() fija user_id y toca updated_at en cada guardado, borrador o
+     * confirmado, sin excepción -ver su Step 96-. NO es igual de fiable para
+     * 'actores' e 'sitios': sus tablas de configuración solo fijan user_id
+     * al validar, reabrir, o -en Frecuentación- guardar la Superficie
+     * Territorial, nunca por el simple alta/edición/borrado de una fila
+     * mientras la lista sigue en borrador sin validar nunca; y las filas de
+     * detalle (Involucrado, SitioFrecuentacion) no tienen columna user_id en
+     * absoluto. Es una limitación conocida -documentada en el plan, no un
+     * bug- y no la ensancha ninguna consulta de más: si no hay user_id que
+     * mirar, esa matriz simplemente no compite por "última tocada".
+     */
+    private static function ultimaTocadaPor(User $usuario, Collection $zonas): ?array
+    {
+        $idsZonas   = $zonas->pluck('id');
+        $zonasPorId = $zonas->keyBy('id');
+
+        $mejorClave = null;
+        $mejorZona  = null;
+        $mejorFecha = null;
+
+        foreach (Registro::matrices() as $clave => $entrada) {
+            $modelo = $entrada['modelo'];
+
+            $fila = $modelo::where('user_id', $usuario->id)
+                ->whereIn('zona_id', $idsZonas)
+                ->whereNotNull('updated_at')
+                ->orderByDesc('updated_at')
+                ->first(['zona_id', 'updated_at']);
+
+            if ($fila === null) {
+                continue;
+            }
+
+            if ($mejorFecha === null || $fila->updated_at->gt($mejorFecha)) {
+                $mejorClave = $clave;
+                $mejorZona  = $zonasPorId[$fila->zona_id];
+                $mejorFecha = $fila->updated_at;
+            }
+        }
+
+        if ($mejorClave === null) {
+            return null;
+        }
+
+        $estado = new self($mejorZona, $usuario);
+
+        return ['zona' => $mejorZona, 'fila' => $estado->filaDeClave($mejorClave)];
+    }
+
+    /**
+     * La primera matriz validable, en el orden de declaración del registro,
+     * que no está validada -explorando las zonas en el orden recibido y
+     * deteniéndose en la primera que tenga algo pendiente-.
+     *
+     * $progreso -de coste fijo, ya calculado por el dashboard- decide SOLO
+     * por qué zona empezar; resolver la fila en sí -con su nombre, su
+     * detalle y su enlace- solo cuesta una instancia de EstadoZona, y como
+     * mucho una, no una por zona.
+     */
+    private static function siguientePendiente(User $usuario, Collection $zonas, array $progreso): ?array
+    {
+        foreach ($zonas as $zona) {
+            $p = $progreso[$zona->id] ?? null;
+
+            if ($p === null || $p['hechas'] >= $p['total']) {
+                continue;
+            }
+
+            $estado = new self($zona, $usuario);
+
+            foreach (Registro::matrices() as $clave => $entrada) {
+                $fila = $estado->filaDeClave($clave);
+
+                if ($fila->estado !== 'validada') {
+                    return ['zona' => $zona, 'fila' => $fila];
+                }
+            }
+        }
+
+        return null;
+    }
+
     private function fila(string $clave): FilaMatriz
     {
         $entrada = Registro::ENTRADAS[$clave];
