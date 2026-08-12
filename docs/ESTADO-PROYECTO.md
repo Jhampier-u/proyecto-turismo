@@ -1248,9 +1248,31 @@ niveles de anidamiento— y ninguno se movió con el cambio.
 7. **Cinco menores aplazados de esa rama.** Detallados en §3; el que más merece
    cerrarse es el `url()->previous()` de seis formularios, que sin cabecera
    `Referer` deja el botón «Regresar» sin destino.
-8. **Verificación visual pendiente** de la última rama: el conmutador
-   lista/tarjetas es Alpine puro y ningún test comprueba que el botón conmute ni
-   que la preferencia sobreviva a una recarga.
+8. **Verificación visual pendiente** de la rama `permisos-y-navegacion`: el
+   conmutador lista/tarjetas es Alpine puro y ningún test comprueba que el botón
+   conmute ni que la preferencia sobreviva a una recarga.
+9. ~~**Dashboard vacío y ancho de los formularios**~~ — hecho en
+   `dashboard-y-formularios` (Parte A) y `barra-lateral` (Parte B), las dos
+   fusionadas. Ver §3.
+10. **Barra lateral para Involucrados y Frecuentación**, que quedaron fuera **a
+    propósito** y con la decisión escrita en el diseño
+    `docs/superpowers/specs/2026-08-12-dashboard-y-formularios-design.md`. Son
+    CRUD de filas: no tienen bloques que indexar, así que la mitad del
+    componente compartido no tendría qué mostrar, y meterlo igual crearía **un
+    componente que significa dos cosas según quién lo use** —el error del tipo
+    `actores` y del `boton-volver`—. Sí les vendría bien una barra con **otro**
+    contenido: «5 sitios, 2 sin DET», el botón de validar, y en Frecuentación la
+    Superficie Territorial, que hoy es un dato de zona perdido entre las filas.
+    **Merece su propio diseño, corto.** No se empieza copiando el componente.
+11. **Tres etiquetas desalineadas** entre el formulario y la tabla de resultados
+    de FIT y FET: «Seguridad del Destino» frente a «…o Sitio de Visita»,
+    «Productos Territoriales» frente a «Producto Turístico Territorial», y la de
+    apertura de la comunidad. **Es decisión de contenido, no de código**: hay que
+    mirar el instrumento y decidir cuál es la buena.
+12. **La verificación contra PostgreSQL de Frecuentación quedó sin hacer**:
+    Docker no levantaba en la máquina donde se implementó (backend de WSL2
+    parado, sin permiso para arrancar el servicio). Es la única matriz cuya
+    migración no se ha probado contra la base de producción.
 
 ### Fuera de código, en Render
 
@@ -1288,31 +1310,22 @@ La base es SQLite y el fichero **no viaja en el repositorio**: hay que crear
 `database/database.sqlite` vacío antes del `migrate`, o Laravel no encuentra la
 conexión.
 
-**Hay una rama que retomar, por primera vez en un tiempo: `barra-lateral`
-(Parte B del dashboard-y-formularios, ver §3), todavía sin fusionar.** El resto
-—incluida la Parte A de esa misma iniciativa— sí está en `main`.
+**No hay ninguna rama que retomar: todo está fusionado en `main`**, incluidas las
+dos partes de dashboard-y-formularios.
 
-En `main`, comprobar que la suite da **494 tests** antes de tocar nada -no 483:
-ese número quedó desfasado en cuanto se fusionó la Parte A del dashboard y
-nadie tocó esta sección, la misma deriva que describe el párrafo siguiente,
-otra vez-. Si da menos, algo no llegó; si fallan unos 57 de golpe, faltó el
-`npm run build` (ver §2).
+En `main`, comprobar que la suite da **524 tests** antes de tocar nada. Si da
+menos, algo no llegó; si fallan unos 57 de golpe, faltó el `npm run build`
+(ver §2).
 
 ```bash
 php artisan test
 ```
 
-En la rama `barra-lateral` -`git checkout barra-lateral`-, la misma suite da
-**524 tests**: los 494 de `main` más los 30 que añade la Parte B, todavía sin
-fusionar. Cuando se fusione, esta sección vuelve a decir «no hay ninguna rama
-que retomar» y el número de `main` sube a 524.
-
-*(Historial de esta cifra, para que quede rastro: 480 en `frecuentacion`; subió
-a 483 con `volver-a-la-zona`; se quedó ahí, sin actualizar, mientras `main`
-llegaba a 494 con la Parte A del dashboard -commit de merge `4116787`-, que
-esta revisión de la Parte B es la primera en documentar. Antes de eso, decía
-394 cuando la propia sección de `permisos-y-navegacion`, arriba, ya declaraba
-444.)*
+*(Historial de esta cifra, para que quede rastro de cuántas veces ha mentido:
+decía 394 cuando `permisos-y-navegacion` ya declaraba 444. Luego 480 en
+`frecuentacion`, 483 con `volver-a-la-zona`, y ahí se quedó mientras `main`
+llegaba a 494 con la Parte A del dashboard. Ahora 524, con la Parte B
+fusionada -merge `d65604b`-.)*
 
 **Este número hay que actualizarlo cada vez que se fusione algo**, o vuelve a
 mentir como acaba de hacerlo. Es el mismo tipo de deriva que esta sesión
