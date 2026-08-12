@@ -115,6 +115,28 @@ multiplica lo que hay que probar en diez formularios.
 
 ---
 
+### Alcance: nueve de diez, y por qué no diez
+
+Decisión del responsable del proyecto, entre **coherencia visual completa** —las diez
+con el mismo componente— y **coherencia de significado**. Eligió la segunda.
+
+**Potencialidad entra** (tarea 11 bis del plan): ya tiene barra propia, y dejarla
+fuera significaría convivir con dos barras laterales distintas que hacen lo mismo.
+
+**Involucrados y Frecuentación quedan fuera, y no por pereza.** Son CRUD de filas: no
+tienen bloques que indexar, así que la mitad del componente compartido no tendría qué
+mostrar. Meterlo igual sería crear **un componente que significa dos cosas distintas
+según quién lo use**, que es el error que este proyecto ya pagó dos veces: el tipo
+`actores` que parecía servir para Frecuentación y llevaba cableado
+`zona->involucrados()`, y el `x-boton-volver` que decidía dos cosas bajo un nombre.
+
+**Sí les vendría bien una barra lateral, con otro contenido**: «5 sitios, 2 sin DET»,
+el botón de validar, y en Frecuentación la Superficie Territorial, que hoy es un dato
+de zona perdido entre las filas y encajaría natural en una columna fija. Eso merece
+**su propio diseño, corto**, cuando el componente compartido exista y se sepa qué le
+sobra y qué le falta. Queda como decisión pendiente escrita, no como implementación
+forzada.
+
 ## Restricciones que aplican a las dos
 
 - Nada por debajo de 14 px salvo insignias. Sin `uppercase`. Clases de Tailwind

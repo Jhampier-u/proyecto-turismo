@@ -1748,6 +1748,56 @@ git commit -m "feat(valoracion-territorial): ensancha a max-w-7xl y anade la bar
 
 ---
 
+### Tarea 11 bis: Potencialidad migra su barra propia a la compartida
+
+**Añadida después de escribir el plan, por decisión del responsable del proyecto.**
+
+Potencialidad quedaba fuera de la Parte B porque **ya tiene barra lateral**: una
+`.pt-sidebar` de 252 px, escrita a mano con CSS en línea y su propia media query.
+Excluirla no deja el sistema como estaba: lo deja **con dos barras laterales
+distintas que hacen lo mismo**, que es peor que tener una o ninguna. Y el CSS en
+línea es una anomalía en un proyecto que por lo demás usa Tailwind.
+
+**Va la última a propósito.** Es el formulario más complejo del sistema —156
+criterios y configuración de campos activos, con un hallazgo de auditoría propio
+(M6)— así que el componente compartido tiene que haber sobrevivido antes a las siete
+matrices simples. Migrar aquí primero sería depurar dos cosas a la vez.
+
+**Es una migración, no una función nueva:** sustituye código que funciona. El listón
+es más alto que en las tareas 5-11, no más bajo.
+
+**Files:**
+- Modify: `resources/views/operativo/evaluacion_potencialidad/form.blade.php`
+- Test: `tests/Feature/PotencialidadTest.php`
+
+- [ ] **Step 1: Inventariar qué hace hoy su barra que la compartida no haga**
+
+Antes de sustituir nada, listar lo que la `.pt-sidebar` ofrece. Si algo suyo no
+cabe en la compartida, **esa es la tarea real**: o se ensancha el componente para
+todos, o Potencialidad se queda como está y se dice por qué. **No se pierden
+funciones para ganar simetría.**
+
+Ojo con la configuración de campos activos: el Jefe de Zona elige qué criterios
+aplican, así que **el denominador se mueve**. La barra tiene que contar sobre los
+activos, no sobre 156.
+
+- [ ] **Step 2: Migrar y borrar el CSS en línea**
+
+Sustituir por el componente compartido y **borrar** la `.pt-sidebar` y su media
+query. Si el `<style>` queda vacío, quitarlo entero. Esta tarea tiene que restar
+líneas.
+
+- [ ] **Step 3: Tests**
+
+Los de `PotencialidadTest` siguen pasando **sin tocarlos**; si alguno falla, es que
+cambió el comportamiento y hay que parar. Añadir que el recuento de la barra
+**respeta los campos activos**: con la mitad desactivados, el denominador es la
+mitad, no 156.
+
+- [ ] **Step 4: Commit**
+
+---
+
 ## Tarea 12: Revisión final (ambas partes)
 
 - [ ] **Step 1: Suite completa y build**
