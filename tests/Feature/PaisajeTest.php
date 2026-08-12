@@ -429,4 +429,47 @@ class PaisajeTest extends TestCase
             ->assertSee('Paisaje')
             ->assertSee(route('operativo.evaluacion_paisaje.edit', $this->zona->id), false);
     }
+
+    /**
+     * Igual que en FIT/FET: la barra lateral aparece con el ancho nuevo, con
+     * un enlace por categoría -5 en Paisaje-. Se cuentan los enlaces de
+     * ancla, no el texto suelto de la fracción.
+     */
+    public function test_el_formulario_ensancha_y_muestra_la_barra_lateral_con_sus_categorias(): void
+    {
+        $html = $this->actingAs($this->jefe)
+            ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('max-w-7xl', $html);
+
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+        $this->assertNotEmpty($fragmento, 'No se encontró <aside>: la barra lateral no se está pintando.');
+
+        foreach (array_keys(Paisaje::CATEGORIAS) as $clave) {
+            $this->assertStringContainsString("href=\"#{$clave}\"", $fragmento, "Falta el enlace a la categoría '{$clave}'.");
+        }
+    }
+
+    /**
+     * Con 'ep_cambios_tiempo' respondido de los 6 criterios de 'ep', la
+     * barra muestra 1/6 para esa categoría, sin marcador de completa.
+     */
+    public function test_la_barra_lateral_desglosa_los_respondidos_por_categoria(): void
+    {
+        $evaluacion = EvaluacionPaisaje::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
+        $evaluacion->update(['ep_cambios_tiempo' => 3]);
+
+        $html = $this->actingAs($this->jefe)
+            ->get(route('operativo.evaluacion_paisaje.edit', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+        $ep = \Illuminate\Support\Str::between($fragmento, 'href="#ep"', '</a>');
+
+        $this->assertStringContainsString('1/6', $ep);
+        $this->assertStringNotContainsString('✓', $ep);
+    }
 }
