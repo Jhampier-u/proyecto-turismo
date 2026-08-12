@@ -924,7 +924,13 @@ un DET a medias, ST en 0 rechazada, ST válida, validar, resultados con ÍETP e
 ÍEFT correctos, y la reapertura al editar un sitio ya validado— y se comportó
 exactamente como describe el diseño.
 
-### Rama `barra-lateral` — dashboard con panel de "siguiente paso" (Parte A, ya en `main`) y barra lateral fija en ocho formularios de matriz (Parte B, en esta rama, sin fusionar)
+### Rama `barra-lateral` — dashboard con panel de "siguiente paso" (Parte A) y barra lateral fija en ocho formularios de matriz (Parte B) — las dos fusionadas
+
+> **Al día 12 de agosto de 2026:** esta sección se escribió con la Parte B aún
+> sin fusionar y decía «en esta rama, sin fusionar» en el título. Ya no es
+> cierto: las dos partes están en `main` (merge `d65604b`), y §8 lo daba por
+> hecho mientras este título decía lo contrario. Corregido aquí. El resto de la
+> sección describe el trabajo, que no ha cambiado.
 
 Dos mejoras de interfaz independientes, ver el diseño
 (`docs/superpowers/specs/2026-08-12-dashboard-y-formularios-design.md`) y su
@@ -1064,6 +1070,70 @@ controlador, modelo ni migración cambia en toda la Parte B —el único fichero
 de `app/` tocado es `EstadoZona::criteriosRespondidosDe()`, un contador de
 solo lectura sobre un subconjunto de columnas ya conocido—: lo que se guarda,
 se valida y se calcula es exactamente lo mismo que antes de esta rama.
+
+### Rama `resumen-lista` — franja de resumen para Involucrados y Frecuentación, terminada y fusionada (merge `3516dde`, 12 de agosto)
+
+Cierra lo que la rama anterior había dejado fuera **a propósito**. Diseño en
+`docs/superpowers/specs/2026-08-12-resumen-lista-design.md`, plan en
+`docs/superpowers/plans/2026-08-12-resumen-lista.md`.
+
+Suite: **525 → 553**. La base eran 525, no las 524 de `barra-lateral`: entre
+medias entró `ResultadosMuestranTodosLosCriteriosTest` (`7201b72`), el test que
+vigila el hueco de la tabla de FIT. Desglose de las 28 nuevas: 11 del componente
+en aislado + 4 de Involucrados + 7 de Frecuentación + 6 de la revisión final.
+
+**Franja, no barra lateral, y la razón está escrita** por si alguien vuelve a
+proponer la barra: la de las matrices existe porque un formulario de 156
+criterios es kilométrico, y estas dos listas son de unas pocas filas. Una
+columna fija costaría mucha maquetación para ahorrar poco scroll, y tentaría a
+mover allí la Superficie Territorial, que sería **peor** que dejarla donde
+está. Lo que de verdad faltaba —«cuánto me queda»— es una línea, no una
+columna.
+
+**La tercera razón del diseño anterior había caducado.** Aquel documento decía
+que la ST era «un dato de zona perdido entre las filas»; se escribió **antes**
+de implementar Frecuentación y hoy es falso: la ST tiene su propia sección, con
+título, explicación, formulario y botón de guardar. La franja la **nombra** como
+dato; no la sustituye.
+
+**`<x-resumen-lista>` no deriva nada**, misma regla que `<x-barra-lateral-formulario>`:
+recibe `total`, `incompletos` y los permisos ya resueltos. Las dos listas cuentan
+cosas distintas —un actor incompleto puede serlo por varios campos, un sitio solo
+por su DET— y forzar una forma común entre ellas es lo que produjo el tipo
+`actores` con `zona->involucrados()` cableado dentro. La parte que de verdad
+varía —la ST— va por una **ranura**, no por un prop `extra` genérico.
+
+**El botón de validar se mueve, no se duplica**, y con él el aviso al equipo:
+son el mismo mensaje para roles distintos. Verificado por `grep`: «Validar y
+Cerrar la Lista» aparece **una sola vez** en todo `resources/`, dentro del
+componente.
+
+**Lo que encontró la revisión final, y que ninguna revisión por tarea podía
+ver.** Con **todos los sitios completos y sin ST**, la franja de Frecuentación
+decía «todos completos» en verde y ponía la ST en gris de dato neutro. Justo al
+revés de lo que importa: la ST es la que **bloquea** la validación y `N sin DET`
+la que no. Nadie lo cubría porque el test de «falta la ST» usaba la lista
+**vacía**, donde esa rama ni se ejecuta. Arreglado en `163d0f6`: el componente
+deja de fijar el color de su ranura y la vista pinta la ST en ámbar.
+
+En el mismo estado, `<x-pestanas-matriz>` decía «🔒 Resultados — sin sitios
+completos», que era **falso**. Defecto anterior a esta rama, arreglado aquí
+porque la franja lo puso a tres líneas de su contradicción, en la misma
+pantalla. Ahora las tres superficies —panel de zona, pestaña y franja— usan la
+misma frase literal para el mismo hecho.
+
+**Dos huecos de test cerrados.** El término `! $confirmada` de `puedeValidar`
+era **borrable de los dos controladores con los 547 tests en verde**; verificado
+por mutación antes de escribir los tests que ahora lo matan. Y dos de los tests
+del propio arreglo **pasaban con el arreglo revertido** —uno afirmaba sobre la
+página entera una frase que escriben dos sitios distintos de esa página, el otro
+pasaba el total como entero contra un `(int)` recién puesto—; los cazó la
+re-revisión y se apretaron con el rojo verificado.
+
+**Menores anotados y no arreglados, con su motivo:** dos tests solo negativos
+(cada uno tiene su positivo en la misma suite), uno redundante sobre la
+superficie editable (la garantía real ya existe en dos tests con regex sobre
+`disabled`), y un montaje de fixture repetido tres veces.
 
 ## 4. Lo que hay que saber para continuar
 
@@ -1210,6 +1280,10 @@ niveles de anidamiento— y ninguno se movió con el cambio.
 | `docs/superpowers/plans/2026-08-07-vistas-admin.md` | Plan ejecutado entero, en `main` |
 | `docs/superpowers/specs/2026-08-07-indice-irritacion-turistica-design.md` | Diseño de la séptima matriz |
 | `docs/superpowers/plans/2026-08-07-indice-irritacion-turistica.md` | Su plan, ejecutado en la rama `irritacion-turistica` |
+| `docs/superpowers/specs/2026-08-11-permisos-y-navegacion-design.md` | Diseño de los permisos del admin y la navegación formulario/resultados |
+| `docs/superpowers/specs/2026-08-12-dashboard-y-formularios-design.md` | Diseño del dashboard y la barra lateral de los ocho formularios de matriz |
+| `docs/superpowers/specs/2026-08-12-resumen-lista-design.md` | Diseño de la franja de resumen, y por qué **no** es una barra lateral |
+| `docs/superpowers/plans/2026-08-12-resumen-lista.md` | Su plan, ejecutado en la rama `resumen-lista` |
 | `AUDITORIA.md` | Auditoría de seguridad y calidad, con lo ya corregido marcado |
 
 ## 6. Lo que queda, por orden
@@ -1254,16 +1328,18 @@ niveles de anidamiento— y ninguno se movió con el cambio.
 9. ~~**Dashboard vacío y ancho de los formularios**~~ — hecho en
    `dashboard-y-formularios` (Parte A) y `barra-lateral` (Parte B), las dos
    fusionadas. Ver §3.
-10. **Barra lateral para Involucrados y Frecuentación**, que quedaron fuera **a
-    propósito** y con la decisión escrita en el diseño
-    `docs/superpowers/specs/2026-08-12-dashboard-y-formularios-design.md`. Son
-    CRUD de filas: no tienen bloques que indexar, así que la mitad del
-    componente compartido no tendría qué mostrar, y meterlo igual crearía **un
-    componente que significa dos cosas según quién lo use** —el error del tipo
-    `actores` y del `boton-volver`—. Sí les vendría bien una barra con **otro**
-    contenido: «5 sitios, 2 sin DET», el botón de validar, y en Frecuentación la
-    Superficie Territorial, que hoy es un dato de zona perdido entre las filas.
-    **Merece su propio diseño, corto.** No se empieza copiando el componente.
+10. ~~**Barra lateral para Involucrados y Frecuentación**~~ — hecho en
+    `resumen-lista` (§3), y **acabó no siendo una barra lateral**. Al darle su
+    propio diseño, dos de las tres razones que esta entrada daba se cayeron: la
+    ST ya tiene su sección propia desde que se implementó Frecuentación —esta
+    entrada la describía como «un dato de zona perdido entre las filas», que era
+    una predicción escrita antes de implementarla—, y para unas pocas filas una
+    columna fija cuesta mucha maquetación y ahorra poco scroll. Quedó en una
+    **franja** sobre la tabla: «5 sitios · 2 sin DET», la ST como dato, y el
+    botón de validar, que **se movió** desde el final de la página en vez de
+    duplicarse. Lo que esta entrada sí acertó de lleno: no se empezó copiando el
+    componente, y `<x-resumen-lista>` no comparte una línea con
+    `<x-barra-lateral-formulario>`.
 11. **Etiquetas de FIT y FET** — dos de las tres resueltas, y una tercera cosa
     peor que salió al mirarlo.
 
@@ -1320,6 +1396,17 @@ niveles de anidamiento— y ninguno se movió con el cambio.
     Docker no levantaba en la máquina donde se implementó (backend de WSL2
     parado, sin permiso para arrancar el servicio). Es la única matriz cuya
     migración no se ha probado contra la base de producción.
+14. **Tres menores aplazados de `resumen-lista`**, cada uno con el motivo de no
+    haberlo arreglado, para que nadie los tome por olvidos: dos tests del
+    componente son solo negativos —pero cada uno tiene su contraparte positiva
+    ejercitando la misma rama, y un negativo suelto es el que no asegura nada—;
+    `test_el_campo_de_superficie_sigue_siendo_editable` comprueba que el campo
+    está y no que no esté deshabilitado —la garantía real ya existe en dos tests
+    que sí distinguen el atributo `disabled` de la clase `disabled:bg-gray-100`—;
+    y tres tests de Frecuentación repiten el montaje de «sitio con DET + ST» en
+    vez de extraerlo a un ayudante, con el fichero ya teniendo
+    `dosSitiosUnoSinDet()`, así que el patrón está aceptado y el pliegue es
+    mecánico en cuanto alguien toque ese bloque.
 
 ### Fuera de código, en Render
 
@@ -1334,11 +1421,12 @@ Ninguna depende de programar, y las tres están vivas:
 
 ## 7. Detalle suelto
 
-`package-lock.json` **ya no aparece modificado**: en su día se regeneraba al
-instalar en Windows y esta sección recomendaba revertirlo, porque el `npm ci` de
-la imagen de producción usa el generado en Linux. Hoy el árbol está limpio. Si
-vuelve a salir modificado tras un `npm install` en Windows, revertirlo sigue
-siendo lo correcto:
+`package-lock.json` **vuelve a aparecer modificado** en el árbol, a 12 de agosto
+de 2026: se regenera al instalar en Windows, y el `npm ci` de la imagen de
+producción usa el generado en Linux. Esta sección llegó a decir que el árbol
+estaba limpio; duró lo que tardó el siguiente `npm install`. **No entra en
+ningún commit** —se dejó fuera a propósito de los seis de `resumen-lista`—.
+Revertirlo sigue siendo lo correcto:
 
 ```bash
 git checkout -- package-lock.json
@@ -1360,7 +1448,7 @@ conexión.
 **No hay ninguna rama que retomar: todo está fusionado en `main`**, incluidas las
 dos partes de dashboard-y-formularios.
 
-En `main`, comprobar que la suite da **524 tests** antes de tocar nada. Si da
+En `main`, comprobar que la suite da **553 tests** antes de tocar nada. Si da
 menos, algo no llegó; si fallan unos 57 de golpe, faltó el `npm run build`
 (ver §2).
 
@@ -1371,8 +1459,9 @@ php artisan test
 *(Historial de esta cifra, para que quede rastro de cuántas veces ha mentido:
 decía 394 cuando `permisos-y-navegacion` ya declaraba 444. Luego 480 en
 `frecuentacion`, 483 con `volver-a-la-zona`, y ahí se quedó mientras `main`
-llegaba a 494 con la Parte A del dashboard. Ahora 524, con la Parte B
-fusionada -merge `d65604b`-.)*
+llegaba a 494 con la Parte A del dashboard. Luego 524, con la Parte B fusionada
+-merge `d65604b`-, y otra vez se quedó atrás mientras `main` pasaba por 525.
+Ahora **553**, con `resumen-lista` fusionada -merge `3516dde`-.)*
 
 **Este número hay que actualizarlo cada vez que se fusione algo**, o vuelve a
 mentir como acaba de hacerlo. Es el mismo tipo de deriva que esta sesión
