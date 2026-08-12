@@ -21,16 +21,22 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans text-gray-900 antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
+        {{--
+            Mismo fondo y misma tarjeta que el resto de la aplicación. Este
+            layout se había quedado fuera: con bg-gray-100 y una caja propia
+            de shadow-md sin borde, la primera pantalla que ve cualquiera era
+            la única que no seguía el sistema.
+        --}}
+        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-50">
             <div>
                 <a href="/">
                     <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
                 </a>
             </div>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
+            <x-tarjeta class="w-full sm:max-w-md mt-6 overflow-hidden">
                 {{ $slot }}
-            </div>
+            </x-tarjeta>
         </div>
     </body>
 </html>

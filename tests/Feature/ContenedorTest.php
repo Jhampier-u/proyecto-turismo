@@ -2,6 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
+use App\Models\User;
+use Database\Seeders\SystemSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -11,6 +15,8 @@ use Tests\TestCase;
  */
 class ContenedorTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_el_ancho_normal_llega_a_1440(): void
     {
         $html = (string) $this->blade('<x-contenedor>contenido</x-contenedor>');
@@ -56,5 +62,39 @@ class ContenedorTest extends TestCase
 
         $this->assertStringContainsString('py-12', $html);
         $this->assertStringContainsString('max-w-[1440px]', $html);
+    }
+
+    /**
+     * El contenedor está montado en el layout, no solo escrito.
+     *
+     * Los tests de arriba prueban el componente en aislado, y con eso bastaba
+     * mientras seis tests de matriz comprobaban `max-w-7xl` en la página. Al
+     * quitarles esa aserción —afirmaban una clase, no un comportamiento— se
+     * quedó un hueco: se podía borrar <x-contenedor> de layouts/app.blade.php
+     * y **toda la suite seguía verde**, con la aplicación entera sin ancho ni
+     * márgenes laterales, que es lo primero que ve cualquiera al abrirla.
+     *
+     * Una página cualquiera basta: el contenedor vive en el layout, así que si
+     * sale en una, sale en todas.
+     */
+    public function test_el_layout_monta_el_contenedor_en_una_pagina_de_verdad(): void
+    {
+        $this->seed(SystemSeeder::class);
+
+        $usuario = User::factory()->create([
+            'role_id' => Role::where('nombre', 'jefe_zona')->value('id'),
+        ]);
+
+        $html = $this->actingAs($usuario)->get('/mis-zonas')->assertOk()->getContent();
+
+        // Se afirma sobre el <main> y no sobre la página entera a propósito:
+        // la barra de navegación y la cabecera llevan su propio contenedor,
+        // así que buscar la cadena suelta pasaba en verde aunque el del
+        // cuerpo no estuviera. Comprobado quitándolo: pasaba igual.
+        $this->assertMatchesRegularExpression(
+            '/<main[^>]*>\s*<div class="[^"]*max-w-\[1440px\]/',
+            $html,
+            'El <main> no abre con el contenedor: el cuerpo de la página se quedó sin ancho.'
+        );
     }
 }

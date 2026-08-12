@@ -34,7 +34,13 @@
         : ($esAdmin ? 'Volver a Zonas' : 'Mis Zonas');
 @endphp
 
-<a href="{{ $destino }}"
-   {{ $attributes->merge(['class' => 'inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 bg-white text-base text-gray-700 hover:bg-gray-50 shadow-sm']) }}>
+{{--
+    Las clases que había aquí escritas eran <x-boton variante="secundario">
+    letra por letra. Delegar en él es lo que hace que «Regresar» deje de ser
+    un cuarto sistema de botón: seis matrices lo repintaban de azul con
+    !important y dos lo dejaban tal cual, así que el mismo botón tenía dos
+    aspectos según en qué matriz estuvieras.
+--}}
+<x-boton :href="$destino" variante="secundario" {{ $attributes }}>
     {{ $texto ?? $textoPorDefecto }}
-</a>
+</x-boton>
