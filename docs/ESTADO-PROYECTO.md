@@ -1350,10 +1350,44 @@ niveles de anidamiento— y ninguno se movió con el cambio.
     Territoriales» siempre; nuestros formularios habían perdido una palabra en
     cada uno. Corregido en `app/Matrices/{Fit,Fet}.php`.
 
-    **Pendiente, y esta sí es tuya:** «Seguridad del Destino». **El propio
-    instrumento usa dos formas** — la corta en la lista de criterios
-    (`Factores Extrínsecos Territorio!C12`) y la larga, «…o Sitio de Visita», en
-    la escala valorativa y en la ponderación. Hay que decidir cuál manda.
+    ~~**Pendiente, y esta sí es tuya:** «Seguridad del Destino»~~ — **resuelto
+    el 12 de agosto de 2026**, y al ir al fichero salió que **no era una
+    discrepancia, eran tres**. Las tres hojas de FET no se ponen de acuerdo:
+
+    | Criterio | Lista de criterios | Escala Valorativa | Ponderación |
+    |---|---|---|---|
+    | Flujos | Flujos Turísticos **Reales** `C6` | Flujos Turísticos `B6` | Flujos Turísticos `B6` |
+    | Seguridad | Seguridad del Destino `C12` | …**o Sitio de Visita** `B30` | …**o Sitio de Visita** `B12` |
+    | Imagen percibida | Imagen Percibida del Visitante `C13` | Imagen Percibida del Visitante `B34` | Imagen percibida de los **Visitantes** `B13` |
+
+    **Nuestro código ya elegía, sin decirlo.** En Flujos y en Imagen se había
+    quedado con la forma que dicen dos de las tres hojas. En Seguridad era donde
+    se había copiado la contradicción: forma corta en el formulario, larga en la
+    tabla de ponderación. **Mismo criterio, dos nombres según la pantalla.**
+
+    Así que la pregunta no era «corta o larga» sino **qué hoja manda cuando el
+    instrumento se contradice**, porque la respuesta arrastraba las tres.
+
+    **Decidido: manda la mayoría, 2 de 3.** Hace explícita la regla que el
+    código ya seguía, y deja la aclaración donde hace falta: la forma larga vive
+    en la Escala Valorativa, la hoja que consulta quien está puntuando, y «o
+    Sitio de Visita» le dice que el criterio cubre también el sitio concreto que
+    se visita, no solo el destino entero. Un solo cambio, en
+    `app/Matrices/Fet.php`, con el razonamiento en un comentario junto al
+    criterio. Ningún número cambia: son etiquetas.
+
+    La alternativa descartada era «manda la lista de criterios, que es la hoja
+    que los nombra»; habría exigido dos cambios en direcciones opuestas —
+    Seguridad a la corta en la tabla, y Flujos a «Flujos Turísticos **Reales**»,
+    que hoy no decimos en ninguna parte.
+
+    **Por qué no hay un test que vigile esto.** Sería el guardián natural —que
+    el formulario y la tabla de ponderación digan lo mismo de cada criterio—,
+    pero **FIT acorta sus etiquetas en la tabla a propósito**: «Básica» bajo el
+    bloque «Infraestructura», frente al «Infraestructura Básica» del formulario.
+    Un test de igualdad literal cubriría FET y fallaría en FIT, y medio guardián
+    con nombre de guardián entero es peor que ninguno: invita a confiar en él.
+    Queda anotado por si algún día se unifican esas dos tablas escritas a mano.
 
     **Lo que no era desalineación:** en Productos, el formulario nombra el
     *criterio* (plural) y la tabla el *bloque ponderado* «Producto Turístico

@@ -55,7 +55,15 @@ class Fet
             'peso'   => 0.40,
             'criterios' => [
                 'imagen_apertura'   => ['nombre' => 'Grado de Apertura de la Comunidad Local', 'niveles' => self::NIVELES],
-                'imagen_seguridad'  => ['nombre' => 'Seguridad del Destino', 'niveles' => self::NIVELES],
+                // El instrumento se contradice a sí mismo en este criterio: la
+                // hoja de criterios (Factores Extrínsecos Territorio!C12) dice
+                // la forma corta, y la Escala Valorativa (B30) y la Ponderación
+                // (B12) dicen «...o Sitio de Visita». Manda la mayoría, que es
+                // además donde la aclaración hace falta: la Escala Valorativa
+                // es la hoja que consulta quien puntúa, y «o Sitio de Visita»
+                // le dice que el criterio cubre también el sitio concreto que
+                // se visita, no solo el destino entero.
+                'imagen_seguridad'  => ['nombre' => 'Seguridad del Destino o Sitio de Visita', 'niveles' => self::NIVELES],
                 'imagen_percibida'  => ['nombre' => 'Imagen Percibida del Visitante', 'niveles' => self::NIVELES],
                 'imagen_marketing'  => ['nombre' => 'Marketing Turístico', 'niveles' => self::NIVELES],
             ],
