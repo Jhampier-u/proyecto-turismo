@@ -110,4 +110,50 @@ class FitTest extends TestCase
 
         $this->actingAs($ajeno)->get($this->url())->assertForbidden();
     }
+
+    /**
+     * La barra lateral aparece con el ancho nuevo, con el total correcto y
+     * con un enlace por bloque -6 bloques en FIT-. No se usa assertSee con
+     * el texto suelto "6/18" porque podría coincidir por casualidad con
+     * otro número de la página: se cuentan los enlaces de ancla, que solo
+     * los pinta la barra lateral.
+     */
+    public function test_el_formulario_ensancha_y_muestra_la_barra_lateral_con_sus_seis_bloques(): void
+    {
+        $html = $this->actingAs($this->jefe)
+            ->get(route('operativo.evaluacion_fit.edit', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('max-w-7xl', $html);
+
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+        $this->assertNotEmpty($fragmento, 'No se encontró <aside>: la barra lateral no se está pintando.');
+
+        foreach (array_keys(\App\Matrices\Fit::BLOQUES) as $clave) {
+            $this->assertStringContainsString("href=\"#{$clave}\"", $fragmento, "Falta el enlace al bloque '{$clave}'.");
+        }
+    }
+
+    /**
+     * Con 5 de los 18 criterios respondidos, el bloque RTT -2 criterios,
+     * ambos respondidos- aparece completo y con marcador; el resto de la
+     * barra sigue mostrando su fracción real, no un hueco.
+     */
+    public function test_la_barra_lateral_desglosa_los_respondidos_por_bloque(): void
+    {
+        $evaluacion = \App\Models\EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
+        $evaluacion->update(['recursos_culturales' => 2, 'recursos_naturales' => 3]);
+
+        $html = $this->actingAs($this->jefe)
+            ->get(route('operativo.evaluacion_fit.edit', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        $fragmento = \Illuminate\Support\Str::between($html, '<aside', '</aside>');
+        $rtt = \Illuminate\Support\Str::between($fragmento, 'href="#rtt"', '</a>');
+
+        $this->assertStringContainsString('✓', $rtt);
+        $this->assertStringContainsString('2/2', $rtt);
+    }
 }
