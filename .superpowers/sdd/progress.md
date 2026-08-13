@@ -215,6 +215,36 @@ estaba en el diseño y cambia el aspecto de cuatro pantallas. Suite sigue en
     `class`.** Es el segundo caso de esta rama en que la lista heredada de lo
     pendiente falla por cómo se buscó, no por lo que había.
 
+T6: completa. Revisión de rama y traspaso. Suite sigue en **584** sobre el
+resultado de la rama entera, no solo sobre la última tarea.
+
+  - **Los barridos se rehicieron desde cero en vez de creerse esta bitácora**,
+    que es la lección de la propia rama. Cero referencias vivas a los tres
+    componentes de Breeze borrados —solo quedan nombrados en comentarios y en
+    el docblock del test que explica por qué—, cero repintados con el
+    modificador `!` sobre `<x-boton>` o `<x-boton-volver>`, y los `style=` en
+    línea que quedan son los de Potencialidad, que son la excepción acordada.
+  - **Un defecto encontrado, y es de documentación:** el comentario grande de
+    `potencialidad/form` abría con «LOS HEXADECIMALES QUE QUEDAN son copias de
+    tokens, y por eso van anotados» y listaba siete. En el bloque hay **treinta**.
+    Los otros veintitrés son los verdes, rojos, ámbar y los seis degradados de
+    área: no son descuido —cotejarlos es la migración que la rama decidió no
+    hacer—, pero la frase se leía como enumeración completa. Es el patrón de
+    «la tabla que enseñaba doce de dieciocho criterios» en forma de comentario:
+    quien lo lea y haga `grep` encuentra veintitrés sin anotar y deja de fiarse
+    del resto de la nota. Acotado a los grises, con el porqué del resto escrito.
+  - Corregido también el docblock de `TipografiaUnicaTest`, que decía «las 80
+    vistas» cuando son 84. Contadas, no supuestas.
+  - **Falsa alarma que conviene no repetir:** un `grep` de `#374151` y `#d1d5db`
+    sobre el fichero los sigue encontrando en tres líneas. Son las tres que
+    explican que se corrigieron —dos son comentarios de CSS dentro del propio
+    `<style>`—. El barrido de hexadecimales de ese bloque no distingue código
+    de comentario.
+  - El traspaso queda con su sección de rama en §3 y el punto 15 de §6 tachado,
+    con las dos cosas que siguen abiertas a propósito nombradas ahí para que no
+    se lean como olvidos: `<x-badge>` sin estrenar y los seis botones pequeños
+    de `admin/zonas/index`.
+
 ### Lo que no se pudo verificar, y no se da por hecho
 
 **La comprobación en navegador de T5 no se hizo:** Playwright no está

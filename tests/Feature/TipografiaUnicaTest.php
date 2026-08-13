@@ -30,7 +30,7 @@ use Tests\TestCase;
  * sí se puede mirar es si una vista declara una fuente, que es la causa.
  *
  * Se afirma sobre el fuente y no sobre una página servida a propósito: así
- * cubre las 80 vistas, incluidas las que ninguna prueba renderiza hoy.
+ * cubre las 84 vistas, incluidas las que ninguna prueba renderiza hoy.
  */
 class TipografiaUnicaTest extends TestCase
 {

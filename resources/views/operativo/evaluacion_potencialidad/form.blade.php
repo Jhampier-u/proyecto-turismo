@@ -74,13 +74,22 @@
           bg-gray-50 del layout —#f8fafc con el alias de tailwind.config.js—,
           así que esta vista pintaba el suyo encima.
 
-        LOS HEXADECIMALES QUE QUEDAN son copias de tokens, y por eso van
-        anotados: #f8fafc slate-50, #f1f5f9 slate-100, #e2e8f0 slate-200,
-        #cbd5e1 slate-300, #64748b slate-500, #334155 slate-700, #1e293b
-        slate-800. Son copias de verdad, no referencias, y una copia se queda
-        atrás sola: dos de ellas ya lo habían hecho —#d1d5db y #374151 eran
-        gray-300 y gray-700 de la paleta ANTERIOR a FV4, que nadie actualizó
-        cuando `gray` pasó a ser alias de `slate`—. Corregidas aquí.
+        LOS GRISES QUE QUEDAN son copias de la escala del sistema, y por eso
+        van anotados uno a uno: #f8fafc slate-50, #f1f5f9 slate-100, #e2e8f0
+        slate-200, #cbd5e1 slate-300, #64748b slate-500, #334155 slate-700,
+        #1e293b slate-800. Son copias de verdad, no referencias, y una copia se
+        queda atrás sola: dos de ellas ya lo habían hecho —#d1d5db y #374151
+        eran gray-300 y gray-700 de la paleta ANTERIOR a FV4, que nadie
+        actualizó cuando `gray` pasó a ser alias de `slate`—. Corregidas aquí.
+
+        Los otros ~23 hexadecimales del bloque NO están anotados, y conviene
+        saberlo antes de dar la lista de arriba por completa: son los verdes de
+        confirmado, los rojos de error, los ámbar de aviso y los seis
+        degradados de cabecera de área. Se quedan sin cotejar porque cotejarlos
+        es la migración que esta rama decidió no hacer —no un descuido—: son el
+        aspecto propio de la pantalla, no la escala de grises que el sistema
+        centraliza. El riesgo de que se queden atrás es el mismo; lo que cambia
+        es que ahí no hay un token del que sean copia evidente.
 
         BOMBA CONOCIDA, no desactivada: `class="pt-area area-{{ $color }}"`
         se construye por concatenación, que es justo lo que Tailwind purga.

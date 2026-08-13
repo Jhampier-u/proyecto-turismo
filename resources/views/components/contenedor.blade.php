@@ -15,7 +15,7 @@
     «estrecho» existe porque no todas las vistas mienten al ser estrechas: un
     formulario de cuatro campos a 1440px es peor, no mejor.
 
-    Sin padding para los que se anidan dentro del del layout. Son dos —los dos
+    Sin padding para los que se anidan dentro del layout. Son dos —los dos
     formularios estrechos— y no se arreglan borrándolos, que es lo primero que
     parece: son estrechos a propósito, así que quitarlos los mandaría a 1440.
     Lo único que sobra al anidar es el padding, que se aplicaba dos veces (311
