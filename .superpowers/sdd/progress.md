@@ -38,6 +38,12 @@ T6 cero zonas · T7 revisión y traspaso.
 
 ## Estado al 13 de agosto — fusionada con la revisión de rama pendiente
 
+**Cerrada.** Fusionada en `main` con el merge `d6f3516`, y `main` (`d0e03a2`)
+está subida a `origin` con 632 tests verdes comprobados sobre ese commit. Esta
+bitácora ya no describe una rama en curso: lo que sobrevive de ella está en
+`docs/ESTADO-PROYECTO.md` §3 y en el punto 17 de §6. **La siguiente rama
+sobrescribe este fichero**, y no se pierde nada al hacerlo.
+
 **Seis tareas de siete. La sesión se cortó tras la T6 y se fusionó igualmente,
 por decisión explícita, para no dejar la rama a medias entre dos máquinas.** La
 T7 —mirar la página funcionando y revisar la rama entera— quedó como deuda con

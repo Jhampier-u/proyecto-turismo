@@ -1,7 +1,16 @@
 # Estado del proyecto — traspaso entre máquinas
 
-**Fecha:** 10 de agosto de 2026 (actualizado al terminar `cabos-sueltos`)
+**Fecha:** 13 de agosto de 2026 (actualizado al cerrar la Fase 2 del rediseño)
 **Para:** continuar en otro ordenador sin perder contexto.
+
+**Estado en una línea:** `main` = `d0e03a2`, subida a `origin`, árbol limpio,
+**632 tests verdes comprobados sobre ese commit** el 13 de agosto. No hay
+ninguna rama que retomar; sí hay una deuda de revisión, el punto 17 de §6.
+
+*(La cabecera decía «10 de agosto, al terminar `cabos-sueltos`» cuando el
+documento ya contaba `permisos-y-navegacion`, `frecuentacion` y tres fases del
+rediseño. La misma deriva que §8 lleva anotada para el recuento de tests: se
+actualiza el cuerpo y se olvida la fecha.)*
 
 Este documento reemplaza a `ESTADO-MATRICES.md`, que quedó desfasado.
 
@@ -2132,6 +2141,17 @@ conexión.
 Fase 2 del rediseño. Lo que sí queda vivo es una **deuda de revisión** —la Fase 2
 se fusionó sin la suya—, y es el punto 17 de §6.
 
+**En el clon nuevo faltarán ramas locales, y no falta nada con ellas.** La
+máquina donde se cerró la Fase 2 conserva ocho ramas viejas
+—`restos-fase-0`, `navbar-y-migas`, `dashboard-mis-zonas`, `guardado-parcial`,
+`aviso-reapertura`, `auditoria-pendientes`, `auditoria/correcciones-tecnicas` y
+`feat/matriz-valoracion-territorial`—; cinco de ellas ni siquiera se subieron.
+Comprobado una por una con `git merge-base --is-ancestor <rama> main`: **las
+ocho son antepasadas de `main` y ninguna tiene un solo commit que `main` no
+tenga**. Son punteros a trabajo ya fusionado, no trabajo perdido. Si alguna vez
+hace falta el detalle de una, está en el historial de `main` y en su entrada de
+§3.
+
 En `main`, comprobar que la suite da **632 tests** antes de tocar nada. Si da
 menos, algo no llegó; si fallan unos 57 de golpe, faltó el `npm run build`
 (ver §2).
@@ -2146,9 +2166,14 @@ php artisan test tests/Unit      # 85
 php artisan test tests/Feature   # 547
 ```
 
-```bash
-php artisan test
-```
+**Los 632 se comprobaron así sobre `main` en `d0e03a2`, el 13 de agosto**: 85
+en `Unit` (628 aserciones, 2,6 s) y 547 en `Feature` (3345 aserciones, 61,5 s).
+No es una cifra copiada del último merge, es una ejecución sobre lo que hay
+subido en `origin/main`.
+
+*(Aquí había un segundo bloque con un `php artisan test` a secas, colgando bajo
+el párrafo que explica cómo partir la suite **porque el comando entero muere**.
+Contradecía a la línea anterior; se quita.)*
 
 *(Historial de esta cifra, para que quede rastro de cuántas veces ha mentido:
 decía 394 cuando `permisos-y-navegacion` ya declaraba 444. Luego 480 en
