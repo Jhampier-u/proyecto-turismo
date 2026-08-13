@@ -34,5 +34,7 @@ __pycache__/
 # cada maquina, no el proyecto.
 /.claude/launch.json
 
-# Maquetas del brainstorming visual: son material de trabajo, no del proyecto.
-.superpowers/
+# .superpowers/ ya NO se ignora entero: la bitácora y los informes de cada
+# tarea son el rastro de por qué el código quedó como quedó, y tienen que
+# viajar con el repositorio para poder retomar el trabajo en otra máquina.
+# Lo que se sigue ignorando está en .superpowers/sdd/.gitignore.

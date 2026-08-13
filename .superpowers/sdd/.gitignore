@@ -1,0 +1,16 @@
+# Qué de esta carpeta viaja con el repositorio y qué no.
+#
+# VIAJA: progress.md -la bitácora- y los *-report.md de cada tarea. Son el
+# rastro de POR QUÉ el código quedó como quedó: los hallazgos de cada
+# revisión, los conflictos que hubo que resolver y los errores de plan que se
+# detectaron. Eso no está en ningún otro sitio y sin ello el historial de git
+# cuenta el qué pero no el porqué.
+#
+# NO VIAJA: los *.diff y los *-brief.md. Los dos son derivados de algo que ya
+# está versionado -los diff salen de `git diff` entre dos commits, y los brief
+# son recortes de los planes de docs/superpowers/plans/-. Son además el 90 %
+# del peso: 47 ficheros de diff pesan 2 MB frente a los 250 KB de todo lo
+# demás junto.
+
+*.diff
+*-brief.md
