@@ -11,17 +11,22 @@
                       action="{{ route('operativo.evaluacion_potencialidad.reconfigurar', $zona->id) }}"
                       onsubmit="return confirm('¿Activar todos los campos? Se restaurará la selección completa.');">
                     @csrf
-                    <button type="submit"
-                            style="font-size:.75rem;font-weight:600;color:#92400e;background:#fffbeb;border:1.5px solid #fde68a;padding:6px 14px;border-radius:8px;cursor:pointer;">
+                    {{-- Iba con `style=` en línea, que es por lo que ningún
+                         barrido de botones escritos a mano lo encontraba: los
+                         buscaban por `class`. --}}
+                    <x-boton variante="secundario">
                         ↺ Activar todos los campos
-                    </button>
+                    </x-boton>
                 </form>
                 @endif
                 {{-- Este formulario vive dentro de una zona: "volver" baja a
                      su panel, no salta a Mis Zonas -mismo criterio que el
                      resto de matrices. --}}
-                <x-boton-volver :zona="$zona" texto="← Volver a la Zona"
-                    class="!inline !p-0 !border-0 !rounded-none !shadow-none !bg-transparent !text-sm !text-blue-600 hover:!bg-transparent hover:!underline" />
+                {{-- Sin el repintado a enlace de texto que tenía: eran nueve
+                     modificadores "!" de Tailwind que ganaban a las clases del
+                     componente, y dejaban este «Volver a la Zona» sin
+                     parecerse al de ninguna otra pantalla. --}}
+                <x-boton-volver :zona="$zona" texto="← Volver a la Zona" />
             </div>
         </div>
     </x-slot>

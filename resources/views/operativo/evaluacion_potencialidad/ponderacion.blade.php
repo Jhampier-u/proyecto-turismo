@@ -379,8 +379,7 @@
                     {{-- Igual que el resto de matrices: esta página vive dentro
                          de una zona, así que "volver" baja a su panel, no salta
                          a Mis Zonas. --}}
-                    <x-boton-volver :zona="$zona"
-                        class="!inline-block !border-0 !px-5 !bg-gray-200 !text-black !font-bold !text-lg hover:!bg-gray-400 hover:!scale-105 !transition-transform !shadow-md" />
+                    <x-boton-volver :zona="$zona" />
                 </div>
 
             </x-tarjeta>

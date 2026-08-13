@@ -201,11 +201,16 @@
                          zona para los tres roles, igual que en cualquier matriz.
                          Ya no hay ternario de rol -ni en el destino ni en el
                          texto-, así que tampoco hace falta el color de aviso que
-                         antes distinguía al admin. El color y el tamaño siguen
-                         siendo propios de esta página, sobreescritos con el
-                         modificador "!" de Tailwind. --}}
-                    <x-boton-volver :zona="$zona"
-                        class="!inline-block !border-0 !px-5 !bg-blue-600 !text-white !font-bold !text-lg hover:!bg-blue-700 !shadow-md" />
+                         antes distinguía al admin.
+
+                         El color y el tamaño tampoco: aquí había un repintado a
+                         azul con el modificador "!" de Tailwind, que gana a las
+                         clases del componente y lo deja fuera del sistema. Es
+                         medio arreglo de FV11, que convirtió <x-boton-volver>
+                         en <x-boton variante="secundario"> pero no quitó los
+                         repintados de las llamadas: el mismo botón tenía cuatro
+                         aspectos según la pantalla. --}}
+                    <x-boton-volver :zona="$zona" />
                 </div>
 
             </x-tarjeta>
