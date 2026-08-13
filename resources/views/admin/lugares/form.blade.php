@@ -6,7 +6,10 @@
     </x-slot>
 
     <div class="py-12">
-        <x-contenedor ancho="estrecho">
+        {{-- :padding="false" porque este contenedor va dentro del que el
+             layout ya pone: el ancho estrecho sí se quiere, el padding
+             repetido no. --}}
+        <x-contenedor ancho="estrecho" :padding="false">
             <x-tarjeta class="overflow-hidden">
 
                 <form method="POST" action="{{ $lugar->exists ? route('admin.lugares.update', $lugar) : route('admin.lugares.store') }}">

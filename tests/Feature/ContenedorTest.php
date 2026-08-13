@@ -55,6 +55,44 @@ class ContenedorTest extends TestCase
         $this->blade('<x-contenedor ancho="gigante">contenido</x-contenedor>');
     }
 
+    /**
+     * El padding por defecto: es lo que separa el contenido del borde de la
+     * ventana en móvil, así que quitarlo sin querer no se ve en escritorio.
+     */
+    public function test_por_defecto_trae_su_padding_lateral(): void
+    {
+        $html = (string) $this->blade('<x-contenedor>contenido</x-contenedor>');
+
+        $this->assertStringContainsString('px-4', $html);
+        $this->assertStringContainsString('sm:px-6', $html);
+        $this->assertStringContainsString('lg:px-8', $html);
+    }
+
+    /**
+     * Anidado dentro del contenedor del layout, el padding se aplicaría dos
+     * veces: 311px de ancho útil en vez de 343 en una pantalla de 375.
+     *
+     * Pasa en las dos vistas que son estrechas a propósito —un formulario de
+     * cuatro campos a 1440px es peor, no mejor—, así que no se arreglan
+     * borrando el contenedor interior, que las mandaría a 1440. Se arreglan
+     * quitándole el padding, que es lo único que sobra al anidar.
+     *
+     * Mismo prop y misma razón que <x-tarjeta :padding="false">, que existe
+     * desde FV6 para las tarjetas que envuelven una tabla a sangre.
+     */
+    public function test_sin_padding_no_lo_aplica_dos_veces_al_anidarse(): void
+    {
+        $html = (string) $this->blade('<x-contenedor :padding="false">contenido</x-contenedor>');
+
+        $this->assertStringNotContainsString('px-4', $html);
+        $this->assertStringNotContainsString('sm:px-6', $html);
+        $this->assertStringNotContainsString('lg:px-8', $html);
+
+        // El ancho sí se conserva: es lo único que se quería del anidamiento.
+        $this->assertStringContainsString('max-w-[1440px]', $html);
+        $this->assertStringContainsString('mx-auto', $html);
+    }
+
     /** Las clases propias se suman a las del contenedor, no lo sustituyen. */
     public function test_admite_clases_extra_sin_perder_las_suyas(): void
     {

@@ -144,6 +144,21 @@ test tocado.
   - El «← Volver al listado» de `inventarios/show` se queda como enlace de
     texto: no es un botón y convertirlo sería inventar uno.
 
+T3: completa. `<x-contenedor>` gana `:padding`, y los dos anidados dejan de
+aplicarlo dos veces. Suite 578 -> 580, ningún test tocado. Rojo verificado.
+  - El arreglo **no es borrar los contenedores interiores**, que es lo primero
+    que parece al leer «contenedor anidado»: `admin/lugares/form` y
+    `operativo/frecuentacion/form` son estrechos a propósito —un formulario de
+    cuatro campos a 1440px es peor, no mejor— y borrarlos los mandaría a 1440.
+    Lo único que sobra al anidar es el padding.
+  - Mismo prop, mismo nombre y misma razón que `<x-tarjeta :padding="false">`,
+    que existe desde FV6. No se inventa un mecanismo nuevo para un problema
+    que el sistema ya sabía resolver.
+  - Dos tests: uno fija el padding por defecto —que nadie afirmaba, y es lo
+    que separa el contenido del borde de la ventana en móvil, así que
+    perderlo no se ve en escritorio— y otro que sin él no sale, conservando
+    el ancho.
+
 **Anotado para la Fase 1, no arreglado aquí:** las cinco páginas de
 resultados que tienen «← Volver al Formulario» al pie llevan ya un
 `<x-pestanas-matriz>` arriba con esa misma navegación. El botón duplica la
