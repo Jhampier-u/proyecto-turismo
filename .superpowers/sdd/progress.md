@@ -81,3 +81,29 @@ resultado de VTT. Suite 596 -> 598.
     dice de verdad —si el defecto volviera serían catorce, no dos—. Es el mismo
     caso que el `max-w-7xl` de FV2: un test que afirma sobre la maquetación
     como sustituto del comportamiento.
+
+T3: completa. Migas en inventarios, involucrados y frecuentación, más el
+guardián. Suite 598 -> 599, que cubre 29 páginas.
+  - **El guardián se escribió antes de tocar las vistas y se usó para
+    encontrarlas**, en vez de adivinar cuáles faltaban. Nombró siete.
+  - **Una de las siete no debe llevarlas:** `operativo/dashboard` *es* «Mis
+    Zonas», la raíz del rastro, así que su miga sería un solo tramo
+    apuntándose a sí misma. Excluida con el motivo escrito, igual que las
+    páginas de `admin/`.
+
+T4: completa, y **la parte que no estaba en el plan fue la mitad del trabajo.**
+22 llamadas fuera en 20 ficheros, el componente y `BotonVolverTest` borrados.
+Suite 599 -> 597 (se van tres, entra uno).
+  - **La cobertura se movió, no se perdió.** `BotonVolverTest` afirmaba tres
+    cosas; dos ya las cubría `MigasTest` y la tercera —que los **tres** roles
+    suben al panel de la misma zona— no. Se escribió **antes** de borrar nada.
+    No se dio por hecha porque el equipo caiga en la misma rama que el jefe: el
+    fallo que motivó aquel test era justamente de rol.
+  - **Dos «← Volver a la zona» más**, en `involucrados/index` y
+    `frecuentacion/index`, escritos como `<x-boton>` y no como
+    `<x-boton-volver>`. Ningún barrido del componente los encontraba y
+    duplicaban la miga igual. **Es la tercera vez en este repositorio que un
+    barrido falla por cómo se buscó y no por lo que había.**
+  - Comentarios que narraban dónde vivía un botón que ya no existe —en cinco
+    vistas— y **dos contenedores que se quedaron vacíos** al irse su único
+    hijo. Quitar la llamada no era terminar.
