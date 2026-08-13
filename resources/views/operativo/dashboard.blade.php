@@ -54,7 +54,7 @@
             </div>
 
             {{-- ═══ VISTA LISTA ══════════════════════════════════════════════════ --}}
-            <x-tarjeta :padding="false" x-show="vista === 'lista'" x-transition
+            <x-tarjeta :padding="false" id="zonas-lista" x-show="vista === 'lista'" x-transition
                  class="divide-y divide-gray-200">
                 @foreach($zonas as $zona)
                     @php $p = $progreso[$zona->id]; @endphp
@@ -90,7 +90,7 @@
             </x-tarjeta>
 
             {{-- ═══ VISTA TARJETAS ═══════════════════════════════════════════════ --}}
-            <div x-show="vista === 'tarjetas'" x-transition
+            <div id="zonas-tarjetas" x-show="vista === 'tarjetas'" x-transition
                  class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($zonas as $zona)
                 <x-tarjeta :padding="false" class="hover:shadow-md transition duration-300">
