@@ -2,6 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
+use App\Models\User;
+use App\Models\Zona;
+use Database\Seeders\SystemSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -28,6 +34,8 @@ use Tests\TestCase;
  */
 class TipografiaUnicaTest extends TestCase
 {
+    use RefreshDatabase;
+
     /** Proveedores de fuentes que no son el del sistema. */
     private const PROVEEDORES_AJENOS = [
         'fonts.googleapis.com',
@@ -62,6 +70,51 @@ class TipografiaUnicaTest extends TestCase
                 . '`font-sans`: declararla en una vista la sustituye solo ahí.'
             );
         }
+    }
+
+    /**
+     * El formulario de Potencialidad, servido de verdad, no pide ninguna
+     * fuente.
+     *
+     * Los dos tests de arriba miran el fuente de las vistas; este mira los
+     * bytes que salen por HTTP, que es un paso más cerca de lo que recibe el
+     * navegador. Se elige esta página y no otra porque es la que tenía el
+     * defecto: un @import dentro de un <style> en el cuerpo del documento.
+     *
+     * Lo que este test NO puede afirmar, y conviene no darlo por cubierto: qué
+     * fuente acaba dibujando el navegador. Eso depende de que fonts.bunny.net
+     * responda y de las fuentes instaladas en la máquina, y solo se ve
+     * abriendo la página. Lo que sí queda atado es la causa: aquí no se pide
+     * ninguna familia, así que la única que gobierna es la del layout.
+     */
+    public function test_la_pagina_de_potencialidad_servida_no_pide_ninguna_fuente(): void
+    {
+        $this->seed(SystemSeeder::class);
+
+        $jefe = User::factory()->create([
+            'role_id' => Role::where('nombre', 'jefe_zona')->value('id'),
+        ]);
+
+        $zona = Zona::create([
+            'lugar_id'     => DB::table('lugares')->value('id'),
+            'jefe_user_id' => $jefe->id,
+            'nombre'       => 'Zona de prueba',
+        ]);
+
+        $html = $this->actingAs($jefe)
+            ->get("/operativo/zona/{$zona->id}/evaluacion-potencialidad")
+            ->assertOk()
+            ->getContent();
+
+        foreach (self::PROVEEDORES_AJENOS as $proveedor) {
+            $this->assertStringNotContainsString($proveedor, $html);
+        }
+
+        $this->assertStringNotContainsString('font-family', $html);
+        $this->assertStringNotContainsString('@import', $html);
+
+        // La única fuente que se pide en la página es la del layout.
+        $this->assertStringContainsString('fonts.bunny.net', $html);
     }
 
     /**

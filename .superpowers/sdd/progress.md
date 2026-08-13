@@ -179,6 +179,59 @@ ningún test tocado.
     borde. Es la unificación que persigue la fase, igual que las tarjetas de
     `admin/dashboard` en FV8.
 
+T5: completa, y creció con un hallazgo consultado. Suite 583 -> 584.
+  - Fuera el `@import` a otro proveedor de fuentes con DM Sans, el
+    `font-family` de `.pt-root`, el `background:#f0f4f8` y el
+    `min-height:100vh`. Era la única pantalla de la aplicación con otra letra
+    y otro fondo.
+  - `TipografiaUnicaTest`, tres tests: dos sobre el fuente de las 84 vistas
+    —quitando antes los comentarios de Blade, porque si no el guardián
+    fallaría contra la explicación de su propio hallazgo— y uno sobre el HTML
+    servido de la página que tenía el defecto. **Rojo verificado** volviendo a
+    meter el `@import`.
+  - Dos grises huérfanos corregidos: `#d1d5db` y `#374151` son `gray-300` y
+    `gray-700` de la paleta ANTERIOR a FV4. Nadie los actualizó cuando `gray`
+    pasó a ser alias de `slate`, que es exactamente lo que le pasa a una copia.
+    Los demás hexadecimales quedan anotados con el token del que son copia.
+  - La bomba de `area-{{ $color }}` **no se desactiva**, se documenta: hoy no
+    explota porque `area-*` es CSS propio y no de Tailwind.
+
+T5b: los repintados con `!important`, consultado antes de meterlo porque no
+estaba en el diseño y cambia el aspecto de cuatro pantallas. Suite sigue en
+584.
+  - **FV11 arregló el componente y dio por cerrado el defecto, pero no tocó
+    las llamadas.** `<x-boton-volver>` delega en `<x-boton
+    variante="secundario">` desde entonces, y cuatro vistas seguían
+    repintándolo con el modificador `!` de Tailwind, que gana a las clases del
+    componente: azul sólido en `vtt/resultado` e `inventarios/index`, gris
+    sólido en `potencialidad/ponderacion`, enlace de texto azul en
+    `potencialidad/form`. El mismo botón, cuatro aspectos.
+  - Ninguno era decisión de su pantalla: los comentarios que los justificaban
+    son de antes de que existiera el sistema de botones. Concentración e
+    Irritación ya ponen `<x-boton-volver :zona="$zona" />` a secas junto a su
+    primario, y a esa forma se igualan las cuatro.
+  - Un quinto botón a mano en la cabecera de `potencialidad/form`, con
+    `style=` en línea. **Por eso ningún barrido lo encontraba: buscaban por
+    `class`.** Es el segundo caso de esta rama en que la lista heredada de lo
+    pendiente falla por cómo se buscó, no por lo que había.
+
+### Lo que no se pudo verificar, y no se da por hecho
+
+**La comprobación en navegador de T5 no se hizo:** Playwright no está
+instalado en esta máquina, y ponerlo con su Chromium es un cambio de entorno
+que no estaba en el encargo. Lo que sí se verificó, y hasta dónde llega:
+
+- El CSS construido declara **solo** `Inter` para `font-sans`; ni rastro de
+  DM Sans, googleapis o gstatic en `public/build`.
+- El HTML servido del formulario de Potencialidad no contiene `@import`,
+  `font-family` ni ningún proveedor ajeno, y sí el `fonts.bunny.net` del
+  layout.
+
+Queda sin cubrir **qué fuente acaba dibujando el navegador**, que depende de
+que bunny.net responda y de las fuentes de la máquina. La causa sí está
+atada: en esa página ya no se pide ninguna familia, así que la única que
+gobierna es la del layout.
+
 **Anotado para la Fase 1, no arreglado aquí:** las cinco páginas de
 resultados que tienen «← Volver al Formulario» al pie llevan ya un
 `<x-pestanas-matriz>` arriba con esa misma navegación. El botón duplica la
