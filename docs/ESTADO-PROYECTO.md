@@ -1285,8 +1285,10 @@ El encargo era la lista de arriba: los seis restos que la revisión final de
 `fundacion-visual` encontró y dejó sin arreglar con su motivo. **Sin plan
 escrito**: seis cambios a código que ya existe y se puede leer, así que el
 diseño se acordó en la conversación y la bitácora de `.superpowers/sdd/progress.md`
-hizo de registro. Cinco tareas y una añadida a mitad. Suite: **576 → 584.**
-Ninguna vista cambió de estructura, y **ningún test existente se modificó**.
+hizo de registro. Cinco tareas, una añadida a mitad y la revisión de rama.
+Suite: **576 → 585.** Ninguna vista cambió de estructura, y **ningún test
+anterior a la rama se modificó** —el único retocado es uno que escribió la
+propia rama, y lo retocó su revisión: ver más abajo—.
 
 **La lección de la rama no es lo que se arregló, sino que la lista heredada
 estaba mal contada en las dos direcciones.** Es el motivo por el que la lista
@@ -1396,6 +1398,36 @@ toca.
 
 Y la bomba de `area-{{ $color }}` de Potencialidad **no se desactivó, se
 documentó**: hoy no explota porque `area-*` es CSS propio y no de Tailwind.
+
+#### Lo que encontró la revisión de la rama
+
+Se repitió sobre la rama entera porque la sesión se cortó a mitad de T6 y no
+quedaba registro de que hubiera corrido. **Ningún defecto bloqueante**, y dos
+guardianes que afirmaban menos de lo que decía su docblock — que es la forma
+que toma aquí el defecto que ningún test ve, porque el test *es* el defecto:
+
+- **`ResumenListaTest` buscaba `flex` como subcadena, y `flex` está contenida
+  en `flex-wrap`.** Pasaba por el motivo correcto, pero quitar `flex` dejando
+  `flex-wrap` lo habría dejado en verde afirmando que hay contenedor flex
+  donde no lo habría. Compara por token desde ahora.
+- **`TipografiaUnicaTest` barría `resources/views` y dejaba abierta la puerta
+  más ancha.** El sitio natural para añadir una fuente no es una vista: es
+  `resources/css/app.css`, donde un `@import` no afecta a una pantalla sino a
+  **toda** la aplicación. El guardián nacido para impedir una segunda
+  tipografía no miraba el único sitio desde el que se impone a todas. Cubierto.
+
+Los dos rojos verificados. **Y una premisa que se comprobó en vez de creerse:**
+el `:padding="false"` de los dos contenedores anidados solo es correcto porque
+`layouts/app` envuelve `$slot` en un `<x-contenedor>` que ya trae el padding
+(línea 40). Si no lo trajera, esos dos formularios habrían quedado pegados al
+borde de la pantalla en móvil y **ningún test lo vería**: afirman clases, no
+maquetación.
+
+**Mirado y no cambiado:** `potencialidad/form:29` conserva
+`texto="← Volver a la Zona"` mientras las siete matrices hermanas usan
+`texto="Regresar"`. Parece divergencia y no lo es del todo — ese botón vive en
+el `header` y los otros siete en el cuerpo bajo `<x-pestanas-matriz>`, así que
+igualar el texto sería inventar una regla— y además es anterior a esta rama.
 
 ## 4. Lo que hay que saber para continuar
 
@@ -1719,7 +1751,7 @@ niveles de anidamiento— y ninguno se movió con el cambio.
     badge de notificaciones. No hay sistema de notificaciones —solo el
     `Notifiable` de Breeze—, así que es un dominio nuevo, no maquetación.
 15. ~~**Los restos de la Fase 0**~~ — hecho en `restos-fase-0` (§3). Suite
-    **576 → 584**. Los botones de Breeze convertidos y sus tres componentes
+    **576 → 585**. Los botones de Breeze convertidos y sus tres componentes
     borrados; los «cuatro botones sueltos» resultaron ser otra cosa en las dos
     direcciones; `<x-contenedor>` ganó `:padding` y los dos anidados dejaron de
     doblarlo; `<x-resumen-lista>` pasó a `<x-tarjeta>`; y Potencialidad se
