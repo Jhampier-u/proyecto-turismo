@@ -37,6 +37,28 @@ class DashboardTest extends TestCase
     }
 
     /**
+     * Una zona con una matriz validada y otra en borrador.
+     *
+     * El desglose de progresoDe() tiene dos ramas -confirmado y todo lo
+     * demás- y sobre una zona vacía no se recorre ninguna. Las mediciones de
+     * coste que usan este helper lo hacen para contar consultas de verdad,
+     * no de un camino que no se pisa.
+     */
+    private function crearZonaConProgreso(string $nombre): Zona
+    {
+        $zona = $this->crearZona($nombre);
+
+        \App\Models\EvaluacionFit::create([
+            'zona_id' => $zona->id, 'user_id' => $this->jefe->id, 'estado' => 'confirmado',
+        ]);
+        \App\Models\EvaluacionFet::create([
+            'zona_id' => $zona->id, 'user_id' => $this->jefe->id, 'estado' => 'borrador',
+        ]);
+
+        return $zona;
+    }
+
+    /**
      * EstadoZona hace seis consultas en su constructor (una por matriz de
      * Registro::matrices()). El dashboard instanciaba un EstadoZona por cada
      * zona del jefe solo para leer validadas()/totalMatrices(), así que el
@@ -47,10 +69,16 @@ class DashboardTest extends TestCase
      * new EstadoZona(...) dentro de un bucle, las 5 zonas dispararán ~4
      * veces más consultas que 1 zona (24 de más, 6 por cada zona extra) y
      * este test lo detecta.
+     *
+     * Las cinco zonas llevan datos, y las dos mediciones la misma forma: una
+     * zona vacía y otra con evaluaciones no recorren los mismos caminos
+     * -proximoPaso() instancia un EstadoZona más cuando encuentra "última
+     * tocada"-, así que comparar una contra otras cuatro mediría esa
+     * diferencia y no el N+1 que este test vigila.
      */
     public function test_el_numero_de_consultas_no_crece_con_el_numero_de_zonas(): void
     {
-        $this->crearZona('Zona única');
+        $this->crearZonaConProgreso('Zona única');
 
         DB::enableQueryLog();
         $this->actingAs($this->jefe)->get('/mis-zonas')->assertOk();
@@ -58,7 +86,7 @@ class DashboardTest extends TestCase
         DB::flushQueryLog();
 
         for ($i = 1; $i <= 4; $i++) {
-            $this->crearZona("Zona extra {$i}");
+            $this->crearZonaConProgreso("Zona extra {$i}");
         }
         // Las inserciones de las zonas extra no son parte de la petición que
         // se mide: se descartan del log antes de la segunda medición.

@@ -642,4 +642,77 @@ class EstadoZonaTest extends TestCase
         );
         $this->assertSame(17, EstadoZona::criteriosRespondidos($evaluacion));
     }
+
+    /**
+     * El desglose de una zona: una validada, una en borrador y las ocho
+     * restantes sin fila ninguna.
+     *
+     * Las tres cifras suman siempre el total, que es la propiedad por la que
+     * se pueden leer como un reparto y no como tres números sueltos. El 10
+     * es el número de entradas validables del registro hoy —diez de doce,
+     * con `inventario` y `vtt` fuera—: si mañana entra una matriz nueva, este
+     * test tiene que enterarse.
+     */
+    public function test_el_progreso_desglosa_validadas_borradores_y_sin_empezar(): void
+    {
+        EvaluacionFit::create([
+            'zona_id' => $this->zona->id, 'user_id' => $this->jefe->id, 'estado' => 'confirmado',
+        ]);
+        EvaluacionFet::create([
+            'zona_id' => $this->zona->id, 'user_id' => $this->jefe->id, 'estado' => 'borrador',
+        ]);
+
+        $p = EstadoZona::progresoDe(collect([$this->zona]))[$this->zona->id];
+
+        $this->assertSame(1, $p['hechas']);
+        $this->assertSame(1, $p['borradores']);
+        $this->assertSame(8, $p['sin_empezar']);
+        $this->assertSame(10, $p['total']);
+        $this->assertSame(
+            $p['total'],
+            $p['hechas'] + $p['borradores'] + $p['sin_empezar'],
+            'El desglose tiene que repartir el total, no aproximarlo.'
+        );
+    }
+
+    /**
+     * Una zona sin ninguna evaluación sale entera en «sin empezar», y con
+     * las cuatro claves puestas: quien la consume las lee sin comprobar si
+     * existen.
+     */
+    public function test_una_zona_sin_evaluaciones_sale_entera_en_sin_empezar(): void
+    {
+        $p = EstadoZona::progresoDe(collect([$this->zona]))[$this->zona->id];
+
+        $this->assertSame(0, $p['hechas']);
+        $this->assertSame(0, $p['borradores']);
+        $this->assertSame(10, $p['sin_empezar']);
+        $this->assertSame(10, $p['total']);
+    }
+
+    /**
+     * El borrador de una zona no aparece en el desglose de la otra.
+     *
+     * Es lo que rompería una consulta que agrupara mal —y no lo notaría
+     * ningún test de los de arriba: las cifras seguirían sumando el total en
+     * las dos zonas, solo que en la que no toca.
+     */
+    public function test_el_desglose_no_mezcla_zonas(): void
+    {
+        $otra = Zona::create([
+            'lugar_id'     => DB::table('lugares')->value('id'),
+            'jefe_user_id' => $this->jefe->id,
+            'nombre'       => 'Zona sin tocar',
+        ]);
+
+        EvaluacionFit::create([
+            'zona_id' => $this->zona->id, 'user_id' => $this->jefe->id, 'estado' => 'borrador',
+        ]);
+
+        $progreso = EstadoZona::progresoDe(collect([$this->zona, $otra]));
+
+        $this->assertSame(1, $progreso[$this->zona->id]['borradores']);
+        $this->assertSame(0, $progreso[$otra->id]['borradores']);
+        $this->assertSame(10, $progreso[$otra->id]['sin_empezar']);
+    }
 }
