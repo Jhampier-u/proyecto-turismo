@@ -245,6 +245,45 @@ resultado de la rama entera, no solo sobre la última tarea.
     se lean como olvidos: `<x-badge>` sin estrenar y los seis botones pequeños
     de `admin/zonas/index`.
 
+T6b: la revisión de la rama entera, repetida sobre `4e5a709..59b3d90` porque
+la sesión se cortó a mitad de T6 y no quedaba registro de que hubiera corrido.
+Suite 584 -> 585.
+  - **Ningún defecto bloqueante.** Lo verificado de verdad y no por lectura:
+    no queda ninguna referencia viva a los tres componentes de Breeze
+    borrados; `<x-boton :href>` da `<a>` y no `<button>`, así que las cuatro
+    conversiones de enlace conservan comportamiento; `<x-tarjeta>` fusiona en
+    el mismo `<div>`, así que el `flex` de la franja sigue actuando sobre los
+    mismos hijos; y quitar `background` y `min-height:100vh` de `.pt-root` es
+    seguro porque el envoltorio del layout ya lleva `min-h-screen bg-gray-50`.
+  - **La premisa de T3 se comprobó, no se creyó:** `layouts/app` envuelve
+    `$slot` en `<x-contenedor>` con padding (línea 40), que es lo único que
+    hace correcto el `:padding="false"` de los dos anidados. Si el layout no
+    lo pusiera, esos dos formularios habrían quedado pegados al borde en
+    móvil y ningún test lo vería —afirman clases, no maquetación—. Y son
+    exactamente dos: los otros tres `<x-contenedor>` del layout son hermanos.
+  - **Un test afirmaba menos de lo que decía su docblock.**
+    `ResumenListaTest` buscaba `flex` como subcadena, y `flex` está contenida
+    en `flex-wrap`. Hoy pasaba por el motivo correcto, pero quitar `flex`
+    dejando `flex-wrap` lo habría dejado verde afirmando que hay contenedor
+    flex donde no lo habría. Pasa a comparar por token. Rojo verificado
+    quitando el `flex` de verdad.
+  - **El guardián de tipografía dejaba abierta la puerta más ancha.** Barría
+    `resources/views`, que es donde estaban los dos casos conocidos, pero el
+    sitio natural para añadir una fuente no es una vista: es
+    `resources/css/app.css`, y un `@import` ahí no afecta a una pantalla sino
+    a la aplicación **entera**. Test nuevo, rojo verificado metiendo el
+    `@import`. Hoy el fichero son tres directivas de Tailwind y nada más.
+  - **Mirado y no cambiado:** `potencialidad/form:29` conserva
+    `texto="← Volver a la Zona"` mientras las siete matrices hermanas usan
+    `texto="Regresar"`. Parece divergencia y no lo es del todo: ese botón vive
+    en el `header` y los otros siete en el cuerpo bajo `<x-pestanas-matriz>`,
+    así que son posiciones distintas e igualar el texto sería inventar una
+    regla. Además es previo a esta rama —T5b quitó repintados, no textos—.
+  - **La suite hubo que partirla en dos** (`tests/Unit` y `tests/Feature`) por
+    una condición de la máquina, no del código: el commit de Windows estaba a
+    19,34 GB de un límite de 19,79 y PHP no podía reservar. Sobraba RAM
+    física; lo que faltaba era archivo de paginación.
+
 ### Lo que no se pudo verificar, y no se da por hecho
 
 **La comprobación en navegador de T5 no se hizo:** Playwright no está

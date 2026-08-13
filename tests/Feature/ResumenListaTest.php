@@ -58,17 +58,21 @@ class ResumenListaTest extends TestCase
 
         $this->assertNotEmpty($primeraEtiqueta, 'La franja no abre con un <div> con clases.');
 
-        $clases = $primeraEtiqueta[1];
+        // Por token y no por subcadena: `flex` está contenida en `flex-wrap`,
+        // que no es lo mismo -no hace de contenedor flex-, así que buscarla
+        // como texto dejaría este test en verde con solo el segundo puesto,
+        // afirmando justo lo que no comprobaría.
+        $clases = preg_split('/\s+/', trim($primeraEtiqueta[1]));
 
         // De <x-tarjeta>: el borde a 80% y el radio del sistema.
-        $this->assertStringContainsString('border-gray-200/80', $clases);
-        $this->assertStringContainsString('rounded-xl', $clases);
+        $this->assertContains('border-gray-200/80', $clases);
+        $this->assertContains('rounded-xl', $clases);
 
         // Propias, y en la misma etiqueta: actúan sobre hijos directos, así
         // que un div intermedio las dejaría actuando sobre otra cosa.
-        $this->assertStringContainsString('flex', $clases);
-        $this->assertStringContainsString('justify-between', $clases);
-        $this->assertStringContainsString('p-4', $clases);
+        $this->assertContains('flex', $clases);
+        $this->assertContains('justify-between', $clases);
+        $this->assertContains('p-4', $clases);
     }
 
     public function test_cuenta_el_total_y_lo_que_falta(): void

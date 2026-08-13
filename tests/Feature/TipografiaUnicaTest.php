@@ -73,6 +73,42 @@ class TipografiaUnicaTest extends TestCase
     }
 
     /**
+     * La hoja de estilos de entrada tampoco trae fuente propia.
+     *
+     * Los dos tests de arriba barren `resources/views`, que es donde estaban
+     * los dos casos conocidos. Pero mirar solo ahí deja abierta la puerta más
+     * ancha: el sitio natural para añadir una fuente no es una vista, es el
+     * CSS de entrada, y un @import ahí no afecta a una pantalla sino a la
+     * aplicación ENTERA. Justo el defecto que este guardián existe para
+     * impedir, en su versión grande.
+     *
+     * Hoy el fichero son tres directivas de Tailwind y nada más.
+     */
+    public function test_la_hoja_de_estilos_de_entrada_no_pide_una_fuente_ajena(): void
+    {
+        $css = (string) file_get_contents(resource_path('css/app.css'));
+
+        foreach (self::PROVEEDORES_AJENOS as $proveedor) {
+            $this->assertStringNotContainsString(
+                $proveedor,
+                $css,
+                "resources/css/app.css pide una fuente a {$proveedor}. La "
+                . 'familia la decide tailwind.config.js y la sirve layouts/app '
+                . 'desde fonts.bunny.net; traerla aquí la cambia en todas las '
+                . 'pantallas a la vez.'
+            );
+        }
+
+        $this->assertStringNotContainsString(
+            'font-family',
+            $css,
+            'resources/css/app.css declara font-family. La familia se fija en '
+            . 'tailwind.config.js (fontFamily.sans), que es el sitio donde el '
+            . 'resto del sistema la va a buscar.'
+        );
+    }
+
+    /**
      * El formulario de Potencialidad, servido de verdad, no pide ninguna
      * fuente.
      *
