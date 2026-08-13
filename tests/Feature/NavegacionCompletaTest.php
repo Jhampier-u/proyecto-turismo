@@ -83,6 +83,41 @@ class NavegacionCompletaTest extends TestCase
     }
 
     /**
+     * Las zonas del selector se deciden en un solo sitio, por el mismo motivo
+     * que los destinos: desde que el menú móvil también las ofrece, hay dos
+     * bloques que las recorren, y dos listas escritas aparte es exactamente la
+     * forma que tomó el fallo que dejó al móvil con una sola sección.
+     */
+    public function test_las_zonas_del_selector_se_deciden_en_un_solo_sitio(): void
+    {
+        $sinComentarios = preg_replace(
+            '/\{\{--.*?--\}\}/s',
+            '',
+            (string) file_get_contents(resource_path('views/layouts/navigation.blade.php'))
+        );
+
+        $this->assertSame(
+            1,
+            preg_match_all('/\$zonasDelSelector\s*=/', $sinComentarios),
+            'Hay más de una lista de zonas en el navbar: escritorio y móvil pueden divergir.'
+        );
+
+        // Los dos consumidores, nombrados: el desplegable de escritorio la
+        // recibe y el menú móvil la recorre.
+        $this->assertStringContainsString(
+            ':zonas="$zonasDelSelector"',
+            $sinComentarios,
+            'El desplegable de escritorio no recibe la lista única de zonas.'
+        );
+
+        $this->assertSame(
+            1,
+            preg_match_all('/@foreach\(\$zonasDelSelector as /', $sinComentarios),
+            'El menú móvil no recorre la lista única de zonas.'
+        );
+    }
+
+    /**
      * Una página es una vista que monta el layout. Los componentes y parciales
      * no lo hacen, y no deben traer migas: las pinta la página que los incluye,
      * y repetirlas daría dos rastros en la misma pantalla.

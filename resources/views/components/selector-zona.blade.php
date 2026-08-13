@@ -1,3 +1,5 @@
+@props(['zonas'])
+
 {{--
     Saltar de zona sin subir a «Mis Zonas».
 
@@ -10,35 +12,23 @@
     -diez matrices por zona y tres niveles-; además esto funciona en móvil,
     donde un atajo de teclado no sirve de nada.
 
-    «Mis zonas» es la UNIÓN de las dos relaciones -las que uno dirige y las que
-    tiene asignadas como equipo-, no solo las primeras: mirando solo
-    zonasComoJefe, el equipo vería un selector vacío teniendo zonas.
-
     Reusa <x-dropdown>, el mismo que el menú de usuario. Un segundo desplegable
     escrito a mano sería un segundo sistema para lo mismo.
+
+    Este es el desplegable de ESCRITORIO. El menú móvil ofrece el mismo salto
+    con el marcado de sus enlaces, y los dos recorren la lista que decide
+    `navigation.blade.php` -quién lo ve y qué zonas ofrece se resuelve allí, una
+    sola vez, porque si no las dos versiones pueden divergir-.
+
+    Sin zonas no se pinta nada: un selector vacío es peor que ausente, porque
+    promete una navegación que no existe.
 --}}
 
-@php
-    $usuario = auth()->user();
-
-    $zonasDelSelector = $usuario->zonasComoJefe
-        ->merge($usuario->zonasComoEquipo)
-        ->unique('id')
-        ->sortBy('nombre');
-@endphp
-
-{{--
-    Dos motivos para no pintarse, y los dos son «aquí no sirve de nada»:
-
-    - Sin zonas. Un selector vacío es peor que ausente: promete una navegación
-      que no existe.
-    - En «Mis Zonas». Esa página ES la lista de zonas, así que el desplegable
-      ofrecería en pequeño lo que la pantalla ya enseña entero. El selector
-      existe para saltar cuando estás DENTRO de una zona, que es donde la lista
-      no está a la vista.
---}}
-@if($zonasDelSelector->isNotEmpty() && ! request()->routeIs('operativo.dashboard'))
-    <div id="selector-zona" class="hidden sm:flex sm:items-center sm:ms-6">
+@if($zonas->isNotEmpty())
+    {{-- Solo `ms-6`: el grupo que lo envuelve ya es `hidden sm:flex
+         sm:items-center`, y repetirlo aquí escondía que el reparto de la barra
+         se decide un nivel más arriba. --}}
+    <div id="selector-zona" class="ms-6">
         <x-dropdown align="left" width="48">
             <x-slot name="trigger">
                 <button class="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
@@ -48,7 +38,7 @@
             </x-slot>
 
             <x-slot name="content">
-                @foreach($zonasDelSelector as $zonaDelSelector)
+                @foreach($zonas as $zonaDelSelector)
                     <x-dropdown-link :href="route('operativo.zona.panel', $zonaDelSelector->id)">
                         {{ $zonaDelSelector->nombre }}
                     </x-dropdown-link>

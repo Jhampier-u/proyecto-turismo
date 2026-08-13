@@ -100,6 +100,12 @@ class SelectorZonaTest extends TestCase
     /**
      * Sin zonas no se pinta nada. Un selector vacío es peor que ausente:
      * promete una navegación que no existe.
+     *
+     * Se mide en «Perfil» y no en «Mis Zonas», que es donde lo medía antes: ahí
+     * el selector no se pinta NUNCA —esa página es la lista entera—, así que el
+     * test pasaba aunque se borrara la guarda que dice vigilar. Un test que no
+     * puede fallar por su motivo no cubre nada. La contraparte de abajo enseña
+     * que en esta misma página, con zonas, sí se pinta.
      */
     public function test_sin_zonas_asignadas_no_se_pinta_el_selector(): void
     {
@@ -108,11 +114,42 @@ class SelectorZonaTest extends TestCase
         ]);
 
         $html = $this->actingAs($huerfano)
-            ->get(route('operativo.dashboard'))
+            ->get(route('profile.edit'))
             ->assertOk()
             ->getContent();
 
         $this->assertStringNotContainsString('id="selector-zona"', $html);
+        $this->assertStringNotContainsString('id="selector-zona-movil"', $html);
+    }
+
+    public function test_con_zonas_el_selector_se_pinta_en_esa_misma_pagina(): void
+    {
+        $html = $this->actingAs($this->jefe)
+            ->get(route('profile.edit'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('id="selector-zona"', $html);
+    }
+
+    /**
+     * El móvil también lo lleva, y no es un detalle: «funciona en móvil, donde
+     * un atajo de teclado no sirve de nada» es medio argumento por el que este
+     * selector sustituyó al `Cmd+K`. Iba dentro del grupo `hidden sm:flex`, así
+     * que por debajo de ese punto de ruptura no existía.
+     *
+     * Ningún test podía verlo: el elemento SÍ está en el HTML servido —lo
+     * escondía el CSS—, y eso es justo lo que afirman los tests.
+     */
+    public function test_el_menu_movil_tambien_ofrece_el_salto_de_zona(): void
+    {
+        $html = $this->actingAs($this->jefe)
+            ->get(route('operativo.zona.panel', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('id="selector-zona-movil"', $html);
+        $this->assertStringContainsString('Zona de prueba', $html);
     }
 
     /**

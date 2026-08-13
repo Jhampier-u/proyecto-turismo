@@ -17,6 +17,31 @@
             ['texto' => 'Mis Zonas',   'destino' => route('operativo.dashboard'), 'activa' => request()->routeIs('operativo.dashboard')],
         ];
 
+    // Las zonas del selector, también en UN sitio y por el mismo motivo: desde
+    // que el menú móvil ofrece el salto de zona, hay dos bloques que recorren
+    // esta lista.
+    //
+    // Quién NO lo lleva se decide aquí y no en el componente, porque los dos
+    // bloques tienen que tomar la misma decisión:
+    //
+    // - El admin: ya tiene la sección «Zonas» con su buscador, y un desplegable
+    //   con todas las zonas del sistema crece sin techo.
+    // - En «Mis Zonas»: esa página ES la lista de zonas, así que el selector
+    //   ofrecería en pequeño lo que la pantalla ya enseña entera. Existe para
+    //   saltar cuando estás DENTRO de una zona.
+    //
+    // «Mis zonas» es la UNIÓN de las dos relaciones -las que uno dirige y las
+    // que tiene asignadas como equipo-: mirando solo zonasComoJefe, el equipo
+    // vería un selector vacío teniendo zonas.
+    $usuario = auth()->user();
+
+    $zonasDelSelector = $usuario->esAdmin() || request()->routeIs('operativo.dashboard')
+        ? collect()
+        : $usuario->zonasComoJefe
+            ->merge($usuario->zonasComoEquipo)
+            ->unique('id')
+            ->sortBy('nombre');
+
     // Clases literales y completas, nunca compuestas con el estado: Tailwind
     // purga las que no aparezcan tal cual en el fuente. Mismo patrón que
     // <x-pestanas-matriz>, que resuelve exactamente este problema.
@@ -68,12 +93,7 @@
                  exactamente dos hijos visibles, que es lo que hace que
                  `justify-between` reparta bien. --}}
             <div class="hidden sm:flex sm:items-center">
-                {{-- Solo para el perfil operativo: el admin ya tiene la sección
-                     «Zonas» con su buscador, y un desplegable con todas las
-                     zonas del sistema crece sin techo. --}}
-                @unless(auth()->user()->esAdmin())
-                    <x-selector-zona />
-                @endunless
+                <x-selector-zona :zonas="$zonasDelSelector" />
 
                 {{-- Settings Dropdown. Solo `ms-6`: el `hidden sm:flex
                      sm:items-center` que traía de Breeze ya lo pone el grupo
@@ -139,6 +159,31 @@
                 </a>
             @endforeach
         </div>
+
+        {{-- El salto de zona, también aquí. El desplegable de escritorio vive
+             dentro de un grupo `hidden sm:flex`, así que por debajo de ese
+             punto de ruptura no existe —y «funciona en móvil, donde un atajo de
+             teclado no sirve de nada» es medio argumento por el que este
+             selector sustituyó al Cmd+K—.
+
+             Recorre el MISMO $zonasDelSelector que el desplegable: quién lo ve
+             y qué zonas ofrece se decidió una sola vez, arriba. --}}
+        @if($zonasDelSelector->isNotEmpty())
+            <div id="selector-zona-movil" class="pt-4 pb-1 border-t border-gray-200">
+                <div class="px-4 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    Cambiar de zona
+                </div>
+
+                <div class="mt-3 space-y-1">
+                    @foreach($zonasDelSelector as $zonaDelSelector)
+                        <a href="{{ route('operativo.zona.panel', $zonaDelSelector->id) }}"
+                           class="block w-full ps-3 pe-4 py-2 border-s-4 text-start text-base font-medium transition focus:outline-none {{ $enlaceMovilInactivo }}">
+                            {{ $zonaDelSelector->nombre }}
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         <!-- Responsive Settings Options -->
         <div class="pt-4 pb-1 border-t border-gray-200">
