@@ -36,9 +36,12 @@ T1 el desglose en el servicio · T2 la ordenación en el servidor · T3 la franj
 de cifras · T4 el desglose en las dos maquetaciones · T5 la tabla ordenable ·
 T6 cero zonas · T7 revisión y traspaso.
 
-## Estado al 13 de agosto — la sesión se cortó en mitad de la rama
+## Estado al 13 de agosto — fusionada con la revisión de rama pendiente
 
-**Seis tareas de siete, hechas y comiteadas. La rama NO está fusionada.**
+**Seis tareas de siete. La sesión se cortó tras la T6 y se fusionó igualmente,
+por decisión explícita, para no dejar la rama a medias entre dos máquinas.** La
+T7 —mirar la página funcionando y revisar la rama entera— quedó como deuda con
+fecha: punto 17 de §6 del traspaso, que lleva el guion completo.
 
 | Tarea | Commit | Suite | Revisión |
 |---|---|---|---|
@@ -48,7 +51,7 @@ T6 cero zonas · T7 revisión y traspaso.
 | T4 el desglose en las maquetaciones | `c0910ed` | 626 | ✅ limpia |
 | T5 la tabla ordenable | `3fb0732` | 631 | ✅ limpia |
 | T6 cero zonas | `1bcffd1` | **632** | **pendiente** — el paquete quedó armado y la sesión murió antes de que volviera el revisor |
-| T7 revisión de rama y traspaso | — | — | **entera, sin empezar** |
+| T7 revisión de rama y traspaso | — | — | **no hecha**; el traspaso sí se escribió |
 
 El recuento cierra en **632 y no en 633**: la tabla del plan traía un error
 aritmético —contaba nueve tests en T2 donde el brief lista ocho— que se detectó
@@ -61,6 +64,6 @@ cinco pasos de la T7. Los `task-N-report.md` de esa carpeta son el porqué de
 cada commit.
 
 Lo que queda, en corto: **mirar la página de verdad** (en las cuatro últimas
-ramas ese paso encontró lo que ningún test veía), **revisar la rama entera**
-contra `0cd8ecf`, correr la suite, escribir el traspaso y preguntar por la
-fusión.
+ramas ese paso encontró lo que ningún test veía) y **revisar la rama entera**
+contra `0cd8ecf`. Las dos cosas se hacen ya sobre `main`, que es donde vive el
+código; el diff sigue siendo el mismo.
