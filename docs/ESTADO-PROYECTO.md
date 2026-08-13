@@ -1468,6 +1468,51 @@ sus 16 criterios como `unsignedTinyInteger` y la migración los redeclara como
 delega en `typeSmallInteger()` y no existe `modifyUnsigned`, así que ambos son
 `smallint`—. En MySQL sí habría quitado el `UNSIGNED`, pero aquí no se usa.
 
+### Frecuentación contra PostgreSQL — verificado (13 de agosto de 2026)
+
+Era la única matriz cuya migración nunca se había probado contra la base de
+producción: quedó pendiente porque en la máquina donde se implementó Docker no
+levantaba su backend. Aquí sí, así que se cerró — mismo método que arriba,
+`docker run --rm -d --name frecuentacion-pg`, PostgreSQL **16.14**, borrado por
+nombre al terminar y sin tocar ningún contenedor ajeno.
+
+- **La migración corre**, y el esquema queda como pedía el diseño:
+  `frecuentacion_config.st` y `frecuentacion_sitios.det` son `numeric(14,4)`,
+  **nullable y sin defecto**, comprobado en `information_schema`.
+- **Los 36 tests de Frecuentación pasan contra Postgres**, no solo contra
+  SQLite.
+
+**Y el `float` de los modelos resultó no ser decoración**, que es lo que valía
+la pena averiguar. Un viaje de ida y vuelta real por Postgres devuelve:
+
+```
+st  -> 1234.5678 (double)      <- por Eloquent, con el cast
+crudo sin cast -> '1234.5678' (string)   <- lo que da el driver
+```
+
+**En PostgreSQL `numeric` llega como cadena**, no como número. En SQLite llega
+como float, así que sin el cast `'st' => 'float'` la aritmética y las
+comparaciones de `st`/`det` se comportarían **distinto en producción que en
+desarrollo**, y ningún test de SQLite lo vería. El cast está puesto en los dos
+modelos y por eso no hay defecto; queda escrito porque el día que alguien añada
+otra columna `decimal` a estas tablas y se olvide del cast, esto explica por
+qué falla solo en Render.
+
+**Cómo se comprobó que los tests usaban Postgres de verdad** y no caían a
+SQLite en silencio —`phpunit.xml` fija `sqlite`/`:memory:`, y las variables de
+entorno solo ganan porque esas entradas no llevan `force="true"`—: se dejaron
+filas por tinker en la base del contenedor y tras la corrida **habían
+desaparecido**, porque `RefreshDatabase` remigró esa misma base. Con SQLite de
+por medio seguirían ahí.
+
+En esta máquina `pdo_pgsql` y `pgsql` están compiladas de forma nativa, así que
+no hace falta el `php -d extension=...` que documenta el apartado siguiente:
+
+```bash
+DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_PORT=5433 DB_DATABASE=turismo \
+  DB_USERNAME=postgres DB_PASSWORD=... php vendor/phpunit/phpunit/phpunit tests/Feature/FrecuentacionTest.php
+```
+
 ### La suite sobre PostgreSQL — RESUELTO (rama `aislamiento-postgres`)
 
 Lo que antes quedaba como asunto abierto ("ejecutar la suite contra Postgres da
@@ -1722,10 +1767,17 @@ niveles de anidamiento— y ninguno se movió con el cambio.
     subconjunto del instrumento pasaría en verde igual. Se verificó que hoy no
     ocurre —los controladores pasan las constantes completas—, pero si algún día
     una vista recibe un recorte a propósito, eso necesita otro mecanismo.
-13. **La verificación contra PostgreSQL de Frecuentación quedó sin hacer**:
-    Docker no levantaba en la máquina donde se implementó (backend de WSL2
-    parado, sin permiso para arrancar el servicio). Es la única matriz cuya
-    migración no se ha probado contra la base de producción.
+13. ~~**La verificación contra PostgreSQL de Frecuentación**~~ — hecha el 13 de
+    agosto de 2026, detallada en §4. Docker sí levanta en esta máquina, que era
+    todo lo que faltaba. La migración corre contra **PostgreSQL 16.14**, `st` y
+    `det` quedan `numeric(14,4)` nullable y sin defecto, y los 36 tests de
+    Frecuentación pasan contra Postgres. **Ya no queda ninguna matriz sin
+    probar contra la base de producción.**
+
+    De paso quedó demostrado que el cast `'st' => 'float'` **no es
+    decoración**: en Postgres `numeric` llega del driver como **cadena** y en
+    SQLite como float, así que sin él la aritmética se comportaría distinto en
+    producción que en desarrollo y ningún test de SQLite lo vería.
 14. **Las fases 1 a 4 del rediseño de interfaz.** La Fase 0 —la fundación—
     está fusionada (§3). Quedan cuatro, y **cada una necesita su propio
     diseño corto antes de tocar código**: el orden importa porque si una vista
