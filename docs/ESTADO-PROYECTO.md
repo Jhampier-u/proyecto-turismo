@@ -1135,6 +1135,146 @@ re-revisión y se apretaron con el rojo verificado.
 superficie editable (la garantía real ya existe en dos tests con regex sobre
 `disabled`), y un montaje de fixture repetido tres veces.
 
+### Rama `fundacion-visual` — Fase 0 del rediseño de interfaz, terminada y fusionada (merge `f743a60`, 12 de agosto)
+
+El encargo era un rediseño completo: «se siente vacía, rígida y desaprovecha
+casi el 60 % del ancho; las tarjetas se ven planas». Pedía cinco cosas y
+nombraba **React y shadcn/ui**.
+
+Diseño en `docs/superpowers/specs/2026-08-12-fundacion-visual-design.md`, plan
+en `docs/superpowers/plans/2026-08-12-fundacion-visual.md`. **Once tareas.**
+Suite: **553 → 576.**
+
+**Se midió antes de proponer nada**, y el resultado explica la rama entera:
+
+| Medida | Antes |
+|---|---|
+| Ficheros con contenedor de página propio | **39**, en **9 anchos distintos** |
+| Tarjetas escritas a mano | **52** copias de `bg-white shadow-sm sm:rounded-lg` |
+| Variantes del mismo botón primario | **12** (`py-2 px-5`, `py-2 px-4`, `py-3 px-6`; `rounded`, `rounded-lg`, `rounded-md`; en cuatro colores) |
+| Usos de `gray-*` / `slate-*` | **1056 / 0** |
+
+**No faltaba diseño: faltaba sistema.** Cada vista había reinventado el suyo con
+una variación mínima.
+
+**React se descartó, con el motivo escrito.** shadcn es React puro y esto es
+Blade + Alpine + Tailwind, sin una línea de React en `package.json`. Migrar
+significa reescribir ~40 vistas y rehacer 553 tests que comprueban HTML del
+servidor: un proyecto de semanas durante las cuales el sistema no se puede
+usar, no un rediseño. **Se adoptó el lenguaje visual de shadcn en componentes
+Blade.**
+
+**Se descartó también, y sigue descartado:** el badge de notificaciones —no
+existe sistema de notificaciones, solo el `Notifiable` de Breeze; es un dominio
+nuevo, no maquetación— y el buscador `Cmd+K`.
+
+**Lo que entró.** Un `<x-contenedor>` de 1440 fluido, en el layout, y fuera los
+39 de las vistas. `gray` redefinido como alias de `slate` en
+`tailwind.config.js` —los 1056 usos **no se tocan**, cambian todos a la vez, que
+descarta por construcción el único riesgo real: que convivieran los dos grises—.
+Tipografía Inter. Y cuatro primitivos: `<x-tarjeta>`, `<x-boton>`, `<x-badge>` y
+el propio contenedor, todos con tests en aislado. El mapa de estado→color, que
+estaba duplicado entre `<x-fila-matriz>` y el badge nuevo, vive ahora en
+`EstadoZona::ESTILOS_ESTADO`.
+
+**Ninguna vista cambió de estructura.** Breadcrumbs, KPIs, columnas y tablas
+ordenables son las fases 1 a 4.
+
+#### Tres trampas que esta rama descubrió y conviene no volver a pisar
+
+**1. `@js(...)` no se compila dentro del atributo de un `<x-componente>`.**
+Blade compila la etiqueta del componente **antes** que las directivas, así que
+`@js()` queda como texto literal y **rompe la hidratación de Alpine**. Salió
+como cuatro tests rojos al convertir las cajas de FET, FIT, Paisaje y Valoración
+Territorial. Se sustituye por `{{ Illuminate\Support\Js::from(...) }}`, que es
+literalmente lo que `@js()` usa por debajo —verificado byte a byte con comillas
+simples, dobles, `<script>` y `&`—.
+
+**2. Tailwind solo escanea lo que diga su `content`, y `app/` no estaba.** Desde
+que el mapa de colores vive en `EstadoZona`, hay clases fuera de
+`resources/views`. Sobrevivían **por casualidad**, porque esas mismas cadenas
+aparecían en vistas sin relación (`border-amber-200`, en una sola). Añadido
+`./app/**/*.php`. **Verificado por mutación**, no por argumento: sin esa línea se
+purga `text-amber-600`, que no está en ningún otro sitio.
+
+**3. Un `<x-contenedor>` dentro del que ya pone el layout duplica el padding.**
+64 px de aire a cada lado en vez de 32, y **ningún test lo ve**. El contenedor de
+una vista se **borra**, no se sustituye; solo se escribe uno cuando la vista debe
+declararse más estrecha.
+
+#### Lo que solo se vio mirando el conjunto
+
+- **El ancho no lo probaba ninguna página.** Al quitar de seis tests la aserción
+  de `max-w-7xl`, `ContenedorTest` quedó probando el componente en aislado y
+  nadie el montaje: se podía **borrar `<x-contenedor>` del layout con los 575
+  tests en verde** y toda la aplicación sin ancho ni márgenes. El test que lo
+  cubre afirma sobre el `<main>` y no sobre la página, porque la barra y la
+  cabecera llevan su propio contenedor y buscar la cadena suelta pasaba igual.
+- **La pantalla de login se había quedado fuera del sistema.** Se convirtió
+  `auth-card` —que **no lo usaba nadie**, cero referencias, ahora borrado—
+  mientras `layouts/guest` seguía con `bg-gray-100` y su propia caja de
+  `shadow-md` sin borde. Es la primera pantalla de la aplicación.
+- **Las tarjetas de zona perdían la esquina:** la caja pasó a `rounded-xl`
+  (12 px) y la cabecera de imagen seguía en `rounded-t-lg` (8 px), sin
+  `overflow-hidden`. La imagen asomaba por encima del borde, en la vista **por
+  defecto** del dashboard operativo.
+- **«Regresar» era un cuarto sistema de botón:** sus clases eran
+  `<x-boton variante="secundario">` letra por letra, y seis matrices lo
+  repintaban de azul con `!important` mientras dos lo dejaban tal cual.
+
+#### La regla que se rompió dos veces, y por qué estaba mal
+
+El plan decía «los tests existentes siguen en verde **sin modificar ninguno**».
+Chocó dos veces, y las dos porque el test afirmaba sobre la **implementación**:
+
+- Seis comprobaban `assertStringContainsString('max-w-7xl')` como sustituto de
+  «la página ensancha». Al mover el ancho al layout la página queda **más**
+  ancha (1440 frente a 1280) pero esa cadena desaparece. Se quitó la aserción y
+  se renombraron.
+- Cuatro contaban `substr_count($html, 'disabled')`, que cuenta **la palabra, no
+  el atributo**, y `<x-boton>` trae `disabled:opacity-50`. Se sustituyó por
+  `Tests\TestCase::contarDeshabilitados()`, que **no afloja nada**: siguen
+  exigiéndose 0, 72 y 36, y ahora significan lo que su nombre dice.
+
+Las dos veces el implementador **paró y lo reportó** en vez de reescribir en
+silencio, que es exactamente para lo que servía la regla.
+
+#### Lo que quedó fuera de la Fase 0, anotado a propósito
+
+- **Breeze sigue vivo:** `primary-button` y `danger-button` los usan las cinco
+  vistas de `auth/` y los tres parciales de `profile/`. Solapan con `primario` y
+  `peligro`. El plan no los nombró.
+- **Cuatro botones sueltos sin convertir:**
+  `evaluacion_paisaje/ponderacion.blade.php:122`,
+  `evaluacion_valoracion_territorial/ponderacion.blade.php:33` (el único
+  amarillo del sistema), `inventarios/show.blade.php:13`, y los dos pequeños de
+  `admin/zonas/index.blade.php`.
+- **`<x-badge>` no se usa en ninguna parte.** Seis tests y cero adopción: la
+  clave `insignia` y `NOMBRES_ESTADO` no llegan a ninguna pantalla.
+- **Dos `<x-contenedor ancho="estrecho">` anidados** dentro del del layout, en
+  `admin/lugares/form` y `operativo/frecuentacion/form`. **Lo prescribe el
+  plan.** En escritorio el ancho útil sale idéntico; por debajo del tope el
+  padding se aplica dos veces (311 px en vez de 343, a 375 px de ancho).
+- **`evaluacion_potencialidad/form.blade.php` es el único fichero entero fuera
+  del sistema:** cero `<x-tarjeta>`, un `<style>` en línea con `#e2e8f0` y
+  `#1e293b` —`slate-200` y `slate-800` copiados a mano, fuera del único fichero
+  que decide qué es gris— y `class="pt-area area-{{ $color }}"` construida por
+  concatenación. Hoy no se purga porque `area-*` es CSS propio; **el día que ese
+  bloque se migre a Tailwind, los seis colores desaparecen en silencio**.
+- **La excepción de `<x-resumen-lista>` se apoyaba en una premisa falsa**: el
+  plan decía que convertirla exigía mover su `flex` a un hijo, y no es cierto —
+  `$attributes->merge` concatena sobre el mismo `<div>`—.
+
+#### Dos riesgos del purgado que siguen abiertos
+
+- **`storage/framework/views` está en el `content` de Tailwind.** Son cientos de
+  vistas compiladas: una caché rancia mantiene viva en el CSS local una clase ya
+  borrada del Blade, y el fallo no aparece hasta un despliegue limpio. La
+  comprobación fiable es `php artisan view:clear` **antes** de `npm run build`.
+- **`resources/js/**/*.js` no está en el `content`.** Hoy inofensivo —esos
+  ficheros no tocan clases—, pero la primera que alguien escriba en JS se purga
+  en silencio.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -1284,6 +1424,8 @@ niveles de anidamiento— y ninguno se movió con el cambio.
 | `docs/superpowers/specs/2026-08-12-dashboard-y-formularios-design.md` | Diseño del dashboard y la barra lateral de los ocho formularios de matriz |
 | `docs/superpowers/specs/2026-08-12-resumen-lista-design.md` | Diseño de la franja de resumen, y por qué **no** es una barra lateral |
 | `docs/superpowers/plans/2026-08-12-resumen-lista.md` | Su plan, ejecutado en la rama `resumen-lista` |
+| `docs/superpowers/specs/2026-08-12-fundacion-visual-design.md` | Diseño de la Fase 0: por qué no es React, y qué es «el sistema» |
+| `docs/superpowers/plans/2026-08-12-fundacion-visual.md` | Su plan, once tareas, ejecutado en la rama `fundacion-visual` |
 | `AUDITORIA.md` | Auditoría de seguridad y calidad, con lo ya corregido marcado |
 
 ## 6. Lo que queda, por orden
@@ -1430,7 +1572,36 @@ niveles de anidamiento— y ninguno se movió con el cambio.
     Docker no levantaba en la máquina donde se implementó (backend de WSL2
     parado, sin permiso para arrancar el servicio). Es la única matriz cuya
     migración no se ha probado contra la base de producción.
-14. **Tres menores aplazados de `resumen-lista`**, cada uno con el motivo de no
+14. **Las fases 1 a 4 del rediseño de interfaz.** La Fase 0 —la fundación—
+    está fusionada (§3). Quedan cuatro, y **cada una necesita su propio
+    diseño corto antes de tocar código**: el orden importa porque si una vista
+    se rediseña antes de que exista el primitivo que necesita, inventa el suyo
+    y aparece la segunda fuente de verdad de siempre.
+
+    - **Fase 1 — navbar y breadcrumbs.** Toca todas las páginas. Aquí se
+      replantea el buscador `Cmd+K`, que se descartó en la Fase 0 por
+      desproporcionado: 80 rutas de las que el perfil operativo usa una docena,
+      y las listas de admin ya tienen buscador.
+    - **Fase 2 — dashboard / Mis Zonas.** KPIs en rejilla, tarjetas de zona con
+      cabecera visual y métricas, y una tabla ordenable para la vista de lista.
+    - **Fase 3 — detalle de zona** en dos columnas, con panel lateral de
+      información de la zona.
+    - **Fase 4 — formularios.** Consolidar el banner de borrador y la escala de
+      valoración en una sola franja compacta. **Ojo:** la barra lateral con
+      índice, progreso y botón de guardar **ya existe** (`<x-barra-lateral-formulario>`,
+      en los ocho formularios de matriz más Potencialidad), y las píldoras de
+      criterio ya son un control segmentado (`<x-criterio-pildoras>`). El
+      encargo original pedía las dos cosas como si no existieran.
+
+    **Fuera de las cuatro fases, hasta que se diseñe como funcionalidad:** el
+    badge de notificaciones. No hay sistema de notificaciones —solo el
+    `Notifiable` de Breeze—, así que es un dominio nuevo, no maquetación.
+15. **Los restos de la Fase 0**, detallados en §3 con su motivo: los botones de
+    Breeze en `auth/` y `profile/`, cuatro botones sueltos sin convertir,
+    `<x-badge>` sin estrenar, los dos contenedores anidados que el plan
+    prescribía, y `evaluacion_potencialidad/form.blade.php`, que es el único
+    fichero entero fuera del sistema.
+16. **Tres menores aplazados de `resumen-lista`**, cada uno con el motivo de no
     haberlo arreglado, para que nadie los tome por olvidos: dos tests del
     componente son solo negativos —pero cada uno tiene su contraparte positiva
     ejercitando la misma rama, y un negativo suelto es el que no asegura nada—;
@@ -1482,7 +1653,7 @@ conexión.
 **No hay ninguna rama que retomar: todo está fusionado en `main`**, incluidas las
 dos partes de dashboard-y-formularios.
 
-En `main`, comprobar que la suite da **553 tests** antes de tocar nada. Si da
+En `main`, comprobar que la suite da **576 tests** antes de tocar nada. Si da
 menos, algo no llegó; si fallan unos 57 de golpe, faltó el `npm run build`
 (ver §2).
 
@@ -1495,7 +1666,16 @@ decía 394 cuando `permisos-y-navegacion` ya declaraba 444. Luego 480 en
 `frecuentacion`, 483 con `volver-a-la-zona`, y ahí se quedó mientras `main`
 llegaba a 494 con la Parte A del dashboard. Luego 524, con la Parte B fusionada
 -merge `d65604b`-, y otra vez se quedó atrás mientras `main` pasaba por 525.
-Ahora **553**, con `resumen-lista` fusionada -merge `3516dde`-.)*
+Luego 553, con `resumen-lista` fusionada -merge `3516dde`-. Ahora **576**, con
+`fundacion-visual` -merge `f743a60`-.)*
+
+**Y hay una cifra más que este documento nunca ha llevado y conviene que
+lleve:** cuánto sale la aplicación en pantalla. Desde `fundacion-visual`, el
+contenedor mide **1440 px** en un monitor de 1920 —antes 1280—, el fondo es
+`#F8FAFC` y la tarjeta lleva `border-gray-200/80 rounded-xl shadow-sm`. Si algo
+de eso no cuadra al abrir la aplicación, mira `tailwind.config.js` y
+`resources/views/components/contenedor.blade.php`: los dos deciden por todas
+las vistas a la vez.
 
 **Este número hay que actualizarlo cada vez que se fusione algo**, o vuelve a
 mentir como acaba de hacerlo. Es el mismo tipo de deriva que esta sesión
