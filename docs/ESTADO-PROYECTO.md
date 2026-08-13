@@ -1369,7 +1369,8 @@ anotados con el token del que son copia.
   respetó a propósito; convertirlos exigiría un `tamano="pequeno"` en el
   primitivo, que es otra decisión. Igual que `<x-nav-link>` y
   `<x-responsive-nav-link>`: son navegación, no botones, y la Fase 1 rehace la
-  navbar entera.
+  navbar entera. *(Los dos quedaron borrados en `navbar-y-migas`, que es la
+  Fase 1; el aplazamiento se cumplió.)*
 
 #### El defecto que cazó un test escrito para cazarlo
 
@@ -1441,6 +1442,89 @@ maquetación.
 `texto="Regresar"`. Parece divergencia y no lo es del todo — ese botón vive en
 el `header` y los otros siete en el cuerpo bajo `<x-pestanas-matriz>`, así que
 igualar el texto sería inventar una regla— y además es anterior a esta rama.
+
+### Rama `navbar-y-migas` — Fase 1 del rediseño de interfaz, terminada (13 de agosto)
+
+Spec y plan en `docs/superpowers/`, ocho tareas. Suite: **589 → 608.** Objetivo:
+una sola forma de saber dónde se está y de subir de nivel —migas—, y una barra
+que sirva a los dos perfiles sin duplicar sus enlaces.
+
+**`<x-boton-volver>` ya no existe.** 22 llamadas en 20 ficheros, el componente y
+`BotonVolverTest` borrados; en su lugar, `<x-migas>` en 29 páginas. Las migas se
+pusieron **antes** de quitar ningún botón, que era la única restricción de orden
+del diseño: al revés, cada tarea intermedia dejaba páginas sin salida.
+
+También se fueron `<x-nav-link>` y `<x-responsive-nav-link>`, los dos últimos
+componentes de Breeze que la Fase 0 dejó anotados a propósito. **Del `Cmd+K`
+aplazado dos veces se decidió que no se hace**: lo sustituye un selector de zona,
+porque el salto que de verdad se repite en un árbol de tres niveles es cambiar
+de zona, y un atajo de teclado no sirve en móvil.
+
+**Cada vista declara su miga y no se deriva de la ruta**, siguiendo el patrón
+que `<x-pestanas-matriz>` ya había establecido en 18 vistas. Las 20 migas de
+matriz se insertaron **tomando la clave de la línea de `<x-pestanas-matriz>` que
+tenían al lado**, no escribiéndolas a mano: las dos responden a «qué matriz es
+esta», así que copiarla es lo que impide que discrepen.
+
+#### Los huecos que aparecieron al usar lo que el plan daba por hecho
+
+- **`vtt` no tiene `editar`.** Es de tipo `resultado` —se calcula a partir de FIT
+  y FET— y el componente pedía `rutas['editar']` a secas, así que reventaba con
+  «Undefined array key» ante una situación legítima. El arreglo obligó a separar
+  dos cosas que eran la misma: **«es la hoja» y «no tiene destino»**.
+  Confundirlas ponía `aria-current` en un tramo intermedio, o sea, anunciaba
+  como página actual una que no lo es.
+- **Dos «← Volver a la zona» más**, en `involucrados/index` y
+  `frecuentacion/index`, escritos como `<x-boton>` y no como `<x-boton-volver>`.
+  Ningún barrido del componente los encontraba. **Es la tercera vez en este
+  repositorio que un barrido falla por cómo se buscó y no por lo que había.**
+- **El guardián se escribió antes de tocar las vistas y se usó para
+  encontrarlas.** Nombró siete; una de las siete —`operativo/dashboard`— no debe
+  llevarlas, porque *es* «Mis Zonas», la raíz del rastro.
+
+#### Lo que encontró la revisión de rama, y ningún test veía
+
+- **El selector de zona no existía en móvil.** Iba dentro del grupo
+  `hidden sm:flex`. Que «funciona en móvil, donde un atajo de teclado no sirve
+  de nada» es medio argumento por el que sustituyó al `Cmd+K`, y estaba escrito
+  en el componente, en el commit y en el docstring del test mientras el móvil se
+  quedaba sin él. **Ningún test podía verlo: el elemento SÍ está en el HTML
+  servido y lo esconde el CSS**, que es precisamente lo que los tests no miran.
+- **Once migas enlazaban a la página en la que ya estabas.** La ruta `editar` de
+  una matriz ES la del formulario, así que en los nueve formularios y en los
+  índices de involucrados y frecuentación el tramo de la matriz recargaba lo que
+  ya tenías delante. La regla estaba escrita en el componente pero solo se
+  aplicaba a la hoja; ahora vale para todo el rastro.
+- **Un test que no podía fallar por su motivo.**
+  `test_sin_zonas_asignadas_no_se_pinta_el_selector` medía sobre «Mis Zonas», la
+  única página donde el selector no se pinta nunca: pasaba aunque se borrara la
+  guarda que decía vigilar. Movido a «Perfil», con contraparte.
+
+**Y una que encontró mirar la barra de verdad**, no leer el diff: el selector
+flotaba en mitad de la barra. El contenedor superior es `justify-between` y
+estaba pensado para dos hijos; el selector entró como tercero.
+
+#### Tres tests anteriores se pusieron rojos, y los tres tenían razón
+
+Ninguno se relajó sin consultar, y ninguno era un falso positivo del que
+deshacerse:
+
+- `PaginaZonaTest` afirmaba `assertSame(1, ...)` sobre el nombre de la zona,
+  cuando su propio docstring dice que vigila que no se pinte **una vez por
+  fila**. El 1 era un atajo; ahora se compara contra el número de matrices.
+- `ConmutadorVistaTest` contaba el enlace a la zona y encontró tres: fue lo que
+  destapó que el selector sobraba en «Mis Zonas». Quedó intacto.
+- El guardián de los destinos, escrito en T5, contaba `esAdmin()` y se puso rojo
+  cuando el selector añadió el suyo —que decide si el selector APARECE, no a
+  dónde lleva un enlace—. **Medía algo parecido a lo que importaba, y las cosas
+  parecidas dan falsos positivos.** Ahora cuenta la lista y sus consumidores.
+
+#### Los guardianes que deja
+
+`NavegacionCompletaTest`, tres tests sobre el fuente: que **toda** página de
+`operativo/` trae migas —así cubre también las que ninguna prueba renderiza—,
+que los destinos del navbar se deciden en un solo sitio, y que las zonas del
+selector también, ahora que escritorio y móvil las recorren los dos.
 
 ## 4. Lo que hay que saber para continuar
 
@@ -1680,14 +1764,16 @@ niveles de anidamiento— y ninguno se movió con el cambio.
    reapertura mostrado a quien no puede provocarla **estaba en dos pantallas**,
    `involucrados/index` y `frecuentacion/index`, no en la que la lista decía.
 
-   Los tres que quedan, con su motivo intacto: `<x-pestanas-matriz>` consulta
-   la base desde la vista y arreglarlo bien exige pasar la evaluación por prop
-   y tocar 18 vistas; `EstadoZona` usa `self::` donde podría usar `static::`,
-   que en una `final class` da igual; y `vtt/resultado` no tiene test del texto
-   ni el color de su botón —hoy menos grave que cuando se anotó: ese botón dejó
-   de repintarse con `!important` en `restos-fase-0`, así que su aspecto lo
-   fijan ya los tests de `<x-boton>` y `<x-boton-volver>`; lo que sigue sin
-   cubrir es su texto—.
+   Quedan **dos**, con su motivo intacto: `<x-pestanas-matriz>` consulta la
+   base desde la vista y arreglarlo bien exige pasar la evaluación por prop y
+   tocar 18 vistas; y `EstadoZona` usa `self::` donde podría usar `static::`,
+   que en una `final class` da igual.
+
+   El tercero —`vtt/resultado` sin test del texto ni el color de su botón— se
+   cierra en `navbar-y-migas` **porque el botón dejó de existir**: se fue con
+   `<x-boton-volver>` y lo sustituye la miga, que sí tiene tests. Se anota así
+   y no se tacha a secas: no se cubrió lo que pedía, desapareció lo que había
+   que cubrir.
 8. **Verificación visual pendiente** de la rama `permisos-y-navegacion`: el
    conmutador lista/tarjetas es Alpine puro y ningún test comprueba que el botón
    conmute ni que la preferencia sobreviva a una recarga.
@@ -1824,16 +1910,19 @@ niveles de anidamiento— y ninguno se movió con el cambio.
     decoración**: en Postgres `numeric` llega del driver como **cadena** y en
     SQLite como float, así que sin él la aritmética se comportaría distinto en
     producción que en desarrollo y ningún test de SQLite lo vería.
-14. **Las fases 1 a 4 del rediseño de interfaz.** La Fase 0 —la fundación—
-    está fusionada (§3). Quedan cuatro, y **cada una necesita su propio
-    diseño corto antes de tocar código**: el orden importa porque si una vista
-    se rediseña antes de que exista el primitivo que necesita, inventa el suyo
-    y aparece la segunda fuente de verdad de siempre.
+14. **Las fases 2 a 4 del rediseño de interfaz.** La Fase 0 —la fundación— y la
+    Fase 1 —navbar y migas— están fusionadas (§3). Quedan tres, y **cada una
+    necesita su propio diseño corto antes de tocar código**: el orden importa
+    porque si una vista se rediseña antes de que exista el primitivo que
+    necesita, inventa el suyo y aparece la segunda fuente de verdad de siempre.
 
-    - **Fase 1 — navbar y breadcrumbs.** Toca todas las páginas. Aquí se
-      replantea el buscador `Cmd+K`, que se descartó en la Fase 0 por
-      desproporcionado: 80 rutas de las que el perfil operativo usa una docena,
-      y las listas de admin ya tienen buscador.
+    - ~~**Fase 1 — navbar y breadcrumbs.**~~ — hecha en `navbar-y-migas` (§3).
+      Suite **589 → 608**. `<x-boton-volver>` borrado y sustituido por
+      `<x-migas>` en 29 páginas; el navbar decide sus destinos en un solo sitio
+      y los dos perfiles lo comparten. **El `Cmd+K` quedó descartado, no
+      aplazado por tercera vez:** lo sustituye un selector de zona, porque el
+      salto que de verdad se repite en un árbol de tres niveles es cambiar de
+      zona —y funciona en móvil, donde un atajo de teclado no sirve de nada—.
     - **Fase 2 — dashboard / Mis Zonas.** KPIs en rejilla, tarjetas de zona con
       cabecera visual y métricas, y una tabla ordenable para la vista de lista.
     - **Fase 3 — detalle de zona** en dos columnas, con panel lateral de
@@ -1924,9 +2013,19 @@ conexión.
 **No hay ninguna rama que retomar: todo está fusionado en `main`**, incluidas las
 dos partes de dashboard-y-formularios.
 
-En `main`, comprobar que la suite da **576 tests** antes de tocar nada. Si da
+En `main`, comprobar que la suite da **608 tests** antes de tocar nada. Si da
 menos, algo no llegó; si fallan unos 57 de golpe, faltó el `npm run build`
 (ver §2).
+
+Si `php artisan test` muere con `Out of memory` o «el archivo de paginación es
+demasiado pequeño», **no es el código**: es el *commit* de Windows, con RAM
+física libre de sobra. Se sortea partiendo la suite, que baja el pico por
+proceso y pasa entera:
+
+```bash
+php artisan test tests/Unit      # 82
+php artisan test tests/Feature   # 526
+```
 
 ```bash
 php artisan test

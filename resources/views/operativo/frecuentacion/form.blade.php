@@ -6,6 +6,8 @@
     </x-slot>
 
     <div class="py-12">
+        <x-migas :zona="$zona" clave="frecuentacion" :actual="$sitio->exists ? 'Editar sitio' : 'Nuevo sitio'" />
+
         {{-- :padding="false" porque este contenedor va dentro del que el
              layout ya pone: el ancho estrecho sí se quiere, el padding
              repetido no. --}}

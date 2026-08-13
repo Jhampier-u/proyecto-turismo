@@ -6,6 +6,11 @@
     </x-slot>
 
     <div class="py-12">
+            {{-- Sin `actual`: la Vocación del territorio ES esta página, no un
+                 apartado suyo. Y sin enlace, porque es una matriz derivada de
+                 FIT y FET que no tiene formulario al que llevar. --}}
+            <x-migas :zona="$zona" clave="vtt" />
+
             <x-tarjeta :padding="false" class="overflow-hidden p-8">
 
                 <h3 class="text-center text-4xl font-extrabold mb-8 text-gray-800">Dictamen Final</h3>
@@ -196,22 +201,6 @@
                     </div>
                 </div>
 
-                <div class="mt-6 text-center">
-                    {{-- Este reporte es de UNA zona: volver baja al panel de esa
-                         zona para los tres roles, igual que en cualquier matriz.
-                         Ya no hay ternario de rol -ni en el destino ni en el
-                         texto-, así que tampoco hace falta el color de aviso que
-                         antes distinguía al admin.
-
-                         El color y el tamaño tampoco: aquí había un repintado a
-                         azul con el modificador "!" de Tailwind, que gana a las
-                         clases del componente y lo deja fuera del sistema. Es
-                         medio arreglo de FV11, que convirtió <x-boton-volver>
-                         en <x-boton variante="secundario"> pero no quitó los
-                         repintados de las llamadas: el mismo botón tenía cuatro
-                         aspectos según la pantalla. --}}
-                    <x-boton-volver :zona="$zona" />
-                </div>
 
             </x-tarjeta>
     </div>

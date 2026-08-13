@@ -36,7 +36,6 @@
                         <x-boton :href="route('operativo.evaluacion_valoracion_territorial.edit', $zona->id)">
                             Ver Formulario de Evaluación
                         </x-boton>
-                        <x-boton-volver :zona="$zona" />
                     </div>
                 </div>
             </div>
@@ -45,6 +44,7 @@
 
     <div class="py-12">
 
+            <x-migas :zona="$zona" clave="valoracion_territorial" actual="Resultados" />
             <x-pestanas-matriz clave="valoracion_territorial" :zona="$zona" activa="resultados" />
 
             <x-tarjeta :padding="false" class="overflow-hidden p-8">
@@ -161,7 +161,6 @@
                     <x-boton :href="route('operativo.evaluacion_valoracion_territorial.edit', $zona->id)">
                         ← Volver al Formulario
                     </x-boton>
-                    <x-boton-volver :zona="$zona" />
                 </div>
 
             </x-tarjeta>

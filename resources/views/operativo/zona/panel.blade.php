@@ -7,6 +7,8 @@
 
     <div class="py-10">
 
+            <x-migas :zona="$zona" />
+
             @if(session('success'))
                 <div class="mb-6 bg-green-50 border-l-4 border-green-500 text-green-800 p-4 rounded text-base">
                     {{ session('success') }}
@@ -63,10 +65,6 @@
                     @endforeach
                 </x-tarjeta>
             @endforeach
-
-            <div class="flex justify-end">
-                <x-boton-volver texto="← Volver" />
-            </div>
 
     </div>
 </x-app-layout>

@@ -14,12 +14,9 @@
     <div class="py-12" x-data="{ vista: localStorage.getItem('inventario_vista') || 'lista' }"
          x-init="$watch('vista', v => localStorage.setItem('inventario_vista', v))">
 
-            <div class="mb-4 flex items-center justify-between">
-                {{-- El inventario está dentro de una zona: "volver" tiene que
-                     bajar al panel de esa zona, no saltarse ese nivel hacia
-                     Mis Zonas -el mismo criterio que las matrices. --}}
-                <x-boton-volver :zona="$zona" />
+            <x-migas :zona="$zona" clave="inventario" />
 
+            <div class="mb-4 flex items-center justify-between">
                 <x-conmutador-vista modelo="vista" />
             </div>
 

@@ -32,15 +32,18 @@
             @endif
         </div>
 
-        {{-- Todos pueden ir al formulario ahora, admin incluido: el enlace ya
-             no depende del rol. El botón de volver siempre tiene una zona
-             aquí -es el prop que ya recibe este componente-, así que vuelve
-             al panel de esa zona para los tres roles, no a una lista. --}}
-        <div class="mt-6 flex justify-center gap-3">
+        {{-- Todos pueden ir al formulario, admin incluido: el enlace ya no
+             depende del rol.
+
+             Aquí había también un botón de volver a la zona. Se fue con las
+             migas: la página que monta este componente ya las lleva arriba, y
+             el estado vacío no es una página propia. Queda una sola acción, que
+             además es la única que tiene sentido ofrecer aquí -si no hay
+             resultados es porque falta rellenar el formulario-. --}}
+        <div class="mt-6 flex justify-center">
             <x-boton :href="route($rutaFormulario, $zona->id)">
                 Ir al formulario
             </x-boton>
-            <x-boton-volver :zona="$zona" />
         </div>
     </div>
 </div>

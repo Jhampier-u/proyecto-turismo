@@ -242,7 +242,21 @@ class PaginaZonaTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        // El nombre aparece una vez, en el encabezado -no una vez por fila-.
-        $this->assertSame(1, substr_count($html, $this->zona->nombre));
+        // Esto afirmaba «exactamente 1», y dejó de ser cierto en la Fase 1 sin
+        // que el defecto que vigila hubiera vuelto: las migas nombran la zona
+        // una segunda vez, legítimamente, porque son el rastro que lleva de
+        // vuelta a Mis Zonas.
+        //
+        // Se compara ahora contra el NÚMERO DE MATRICES, que es lo que el
+        // docstring dice de verdad: el defecto era pintar el nombre una vez por
+        // fila, así que si volviera el recuento crecería con el registro -serían
+        // catorce, no dos-. Un número fijo volvería a atar el test a la
+        // maquetación del día, que es justo lo que lo puso en rojo.
+        $this->assertLessThan(
+            count(\App\Matrices\Registro::ENTRADAS),
+            substr_count($html, $this->zona->nombre),
+            'El nombre de la zona se pinta tantas veces como matrices hay: '
+            . '<x-fila-matriz> ha vuelto a recibir :zona.'
+        );
     }
 }

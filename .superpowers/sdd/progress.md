@@ -7,301 +7,156 @@
 > `*.diff` y los `*-brief.md` no viajan: se derivan de `git diff` y de los
 > planes de `docs/superpowers/plans/`, que ya están versionados.
 
-# Progreso — Los restos de la Fase 0
+# Progreso — Navbar y migas (Fase 1 del rediseño de interfaz)
 
-Rama: restos-fase-0
-Base de la rama: 4e5a709
-Suite en la base: 576 tests
+Spec: `docs/superpowers/specs/2026-08-13-navbar-y-migas-design.md`
+Plan: `docs/superpowers/plans/2026-08-13-navbar-y-migas.md`
+Rama: navbar-y-migas
+Base de la rama: 6dc2019
+Suite en la base: 589 tests
 
-Sin plan escrito: el encargo se clasificó como **acotado** —seis cambios a
-código que ya existe y se puede leer— así que el diseño se acordó en la
-conversación y no hay fichero de spec. Esta bitácora hace de registro.
+Lo de `restos-fase-0` que estaba aquí antes ya está volcado en el traspaso (§3),
+así que sobrescribir este fichero no pierde nada.
 
-Objetivo: cerrar el punto 15 de `docs/ESTADO-PROYECTO.md` §6, la lista de lo
-que la revisión final de `fundacion-visual` (FV11) encontró y dejó sin
-arreglar con su motivo. Ninguna vista cambia de estructura: esto sigue siendo
-Fase 0.
-
-## Lo que se midió antes de empezar, y corrige al encargo
-
-El traspaso se queda corto en dos sitios y largo en uno:
-
-- **«los dos pequeños de `admin/zonas/index`» son seis** —tres en la tabla,
-  tres en las tarjetas— y **no son un olvido**: `px-3 py-1.5 text-sm` con
-  colores suaves dentro de una tabla densa es la tercera excepción que FV10
-  respetó a propósito. Quedan fuera con su motivo.
-- **`<x-badge>` tenía dos candidatos que el traspaso no nombra:**
-  `frecuentacion/index:146` e `involucrados/index:101` pintan «Completo» con
-  `bg-green-100 text-green-800` y «A medias» con `bg-amber-100 text-amber-800`,
-  que son letra por letra el fondo y el texto de `validada` y `borrador` en
-  `ESTILOS_ESTADO`, sin el borde. Aun así **no se adoptan**: ver la decisión
-  más abajo.
-- **Los dos contenedores anidados no se arreglan borrándolos.** Esas dos
-  vistas son estrechas a propósito; quitar el interior las mandaría a 1440.
-
-## El hallazgo que cambió el tamaño de la rama
-
-`evaluacion_potencialidad/form.blade.php` no solo tiene «colores copiados a
-mano», como decía el traspaso. Tiene esto, en la línea 49:
-
-```css
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:...');
-.pt-root { font-family:'DM Sans',sans-serif; background:#f0f4f8; min-height:100vh; }
-```
-
-**Una tercera tipografía y un segundo fondo de página.** FV4 puso Inter en
-todo el sistema y tuvo que corregir `layouts/guest`, que se había quedado
-pidiendo Figtree, justo por esto; esta vista se lo salta con un `@import`
-remoto. La matriz más grande —156 criterios— es la única pantalla con otra
-letra y otro fondo, y **ningún test lo ve**, porque los tests miran HTML y no
-qué fuente resuelve el navegador.
-
-Y los hexadecimales copiados no son dos: son `#e2e8f0`, `#1e293b`, `#64748b`,
-`#f8fafc`, `#f1f5f9`, `#22c55e`, `#d1d5db`, más seis degradados.
+Objetivo: una sola forma de saber dónde se está y de subir de nivel —migas— y
+una barra que sirva a los dos perfiles sin duplicar sus enlaces.
 
 ## Decisiones que vienen del diseño y no se replantean
 
-- **Potencialidad se alinea, no se migra.** Fuera la tipografía y el fondo
-  propios; el CSS del acordeón, el toggle y el grid se queda como excepción
-  documentada. Reescribir 68 líneas de CSS en una vista de 445 con Alpine
-  cambiaría el aspecto y arriesgaría regresiones que sus tests —que miran
-  radios y campos activos, no maquetación— no verían.
-- **`<x-badge>` se queda sin adoptar, con el motivo escrito.** Sus dos
-  candidatos pintan completitud de *fila*, no uno de los cinco estados: un
-  sitio «Completo» dentro de una lista en borrador no está `validada`, nadie
-  lo validó. Adoptarlo ahorraría cuatro copias de color a cambio de que el
-  código afirme algo falso —el precedente de Irritación, donde un componente
-  de nombre genérico reutilizado con otra semántica habría pintado de verde lo
-  peor—. Su primer consumidor natural son las tarjetas de zona de la Fase 2.
-- **Ningún test existente se modifica.** Uno que se ponga rojo es la señal de
-  que la sustitución cambió comportamiento, no aspecto, y se para. (En
-  `fundacion-visual` esta restricción chocó dos veces y las dos veces tenía
-  razón: los tests que afirmaban sobre `max-w-7xl` y los que contaban la
-  palabra `disabled` en vez del atributo.)
-- **Ninguna vista cambia de estructura.** Breadcrumbs, KPIs y columnas son las
-  fases 1 a 4.
-
-## Fuera de alcance, y por qué
-
-- Los seis botones de `admin/zonas/index` — excepción deliberada de tamaño.
-- `<x-nav-link>` y `<x-responsive-nav-link>`, también de Breeze — son
-  navegación, no botones, y la Fase 1 rehace la navbar entera.
-- Los dos riesgos de purgado abiertos (`storage/framework/views` dentro del
-  `content` de Tailwind, `resources/js` fuera) — son configuración, no restos
-  de la Fase 0.
+- **Las migas sustituyen a `<x-boton-volver>`**, no conviven con él. 22 llamadas
+  y el componente se borran.
+- **El `Cmd+K` queda descartado**, no aplazado por tercera vez.
+- **Cada vista declara su miga**, siguiendo el patrón que `<x-pestanas-matriz>`
+  ya estableció en 18 vistas. No se deriva de la ruta.
+- **Los grupos del `Registro` no entran en el rastro**: ninguno tiene ruta.
+- **El selector de zona es solo del operativo.**
+- **Orden innegociable:** las migas se ponen antes de quitar ningún botón.
 
 ## Tareas
 
-T1 botones de Breeze · T2 tres botones sueltos · T3 `:padding` en
-`<x-contenedor>` · T4 `<x-resumen-lista>` a `<x-tarjeta>` · T5 alineación de
-Potencialidad · T6 revisión de rama y traspaso.
+T1 el componente · T2 panel y matrices · T3 inventarios, involucrados y
+frecuentación · T4 fuera `<x-boton-volver>` · T5 los destinos del navbar en un
+sitio · T6 selector de zona · T7 estética y fuera Breeze · T8 revisión y
+traspaso.
 
-T1: completa. Diez botones convertidos en ocho ficheros; los tres componentes
-de Breeze borrados al quedarse sin un solo uso vivo. Suite 576 -> 578, ningún
-test existente tocado.
-  - **El riesgo previsto se materializó, y el test lo cazó.** Los dos
-    componentes tienen defaults OPUESTOS: `<x-secondary-button>` lleva
-    `type="button"` y `<x-boton>` lleva `type="submit"`. El «Cancelar» del
-    diálogo de borrar la cuenta vive dentro del `<form>` de borrado, así que
-    la conversión directa lo convirtió en un segundo botón de borrar. **Rojo
-    verificado**: se hizo la conversión sin el `type` a propósito, el test
-    falló, y solo entonces se puso. Ningún test de los que ya había lo habría
-    visto —el HTML sigue siendo válido y la página responde 200—.
-  - `BotonesPerfilTest` afirma sobre la página servida, no sobre el componente
-    en aislado: lo que hay que garantizar no es que `<x-boton>` sepa recibir
-    un `type`, sino que esta vista se lo pase. Lleva su contraparte positiva
-    —el botón de confirmar sí envía— porque sin ella poner `type="button"` en
-    los dos dejaría el primer test verde y el diálogo sin forma de borrar.
-  - Los otros siete son envíos limpios dentro de su formulario, comprobados
-    uno a uno antes de convertir.
-  - `<x-modal>`, `<x-input-label>`, `<x-text-input>` y `<x-input-error>` son
-    también de Breeze y se quedan: no son botones y esta tarea no los cubre.
+T1: completa. `<x-migas>` con siete tests. Suite 589 -> 596, ningún test
+existente tocado. Rojo verificado: los siete fallaban con «Unable to locate a
+class or view for component [migas]».
+  - **El riesgo que el plan avisaba no se materializó:** `$this->blade()` tras
+    `actingAs()` resuelve `auth()->user()` sin problema, así que no hizo falta
+    montar páginas servidas como hacía `BotonVolverTest`. Queda dicho porque la
+    duda era razonable y ahora está resuelta con un hecho.
+  - Dos guardias que revientan con mensaje útil: clave desconocida —listando
+    las válidas, como hace `<x-boton>`— y clave sin zona, porque la ruta de una
+    matriz necesita el id y sin él saldría una URL rota en vez de un error.
+  - El test del último tramo lleva su contraparte: sin
+    `test_con_hoja_la_zona_pasa_a_ser_enlace`, un componente que no pintara
+    nunca el enlace de la zona pasaría los dos.
 
-T2: completa. Cuatro botones convertidos, no tres. Suite sigue en 578, ningún
-test tocado.
-  - **La lista de «cuatro botones sueltos» del traspaso no era de fiar, y en
-    las dos direcciones.** En vez de creérsela se hizo un barrido por
-    expresión regular sobre todas las vistas.
-  - **Sobraban dos:** los de `admin/zonas/index` no son dos sino seis, y son
-    la excepción de tamaño que FV10 respetó a propósito —`px-3 py-1.5 text-sm`
-    con colores suaves en una tabla densa—. El barrido los saca junto a los
-    de `admin/users/index`, `admin/lugares/index`, `inventarios/index`,
-    `frecuentacion/index` e `involucrados/index`: son **la misma categoría**,
-    no cuatro despistes. Convertirlos exigiría un `tamano="pequeno"` en el
-    primitivo, que no es esta tarea.
-  - **Faltaba uno, y es el que más se ve:** `<x-matriz-sin-resultados>` tenía
-    su «Ir al formulario» escrito a mano (`bg-gray-200 text-black`), y es un
-    **componente compartido por cinco matrices**. El traspaso no lo lista
-    porque su lista salió de mirar vistas, no componentes.
-  - **Corrección a mi propio diseño:** dije que el de Paisaje iba a
-    `secundario`. Al mirar las otras cuatro pantallas iguales —Concentración,
-    Irritación, Potencialidad y Valoración Territorial ya tienen ese mismo
-    «← Volver al Formulario» como `<x-boton>` primario— quedó claro que
-    `secundario` lo habría dejado distinto igual, solo que de otra manera.
-    Va a primario, como sus cuatro hermanos.
-  - El amarillo de Valoración Territorial era del panel de aviso que lo
-    rodea, no del botón: el panel sigue amarillo y el botón se une al resto.
-  - El «← Volver al listado» de `inventarios/show` se queda como enlace de
-    texto: no es un botón y convertirlo sería inventar uno.
+T1b: **hueco de mi propio plan, encontrado al ir a usar el componente.** `vtt`
+es de tipo `resultado` —se calcula a partir de FIT y FET— y su entrada del
+Registro trae `ver` pero **no** `editar`. El componente pedía `rutas['editar']`
+a secas, así que reventaba con «Undefined array key» ante una situación
+legítima. Suite de migas 7 -> 8.
+  - El arreglo obligó a separar dos cosas que eran la misma: **«es la hoja» y
+    «no tiene destino»**. Confundirlas ponía `aria-current` en un tramo
+    intermedio, es decir, anunciaba como página actual una que no lo es. Ahora
+    la hoja se decide por posición.
+  - El tramo se sigue pintando —el nombre hace falta para saber dónde estás—
+    pero sin enlace. Inventarle un destino habría sido peor.
 
-T3: completa. `<x-contenedor>` gana `:padding`, y los dos anidados dejan de
-aplicarlo dos veces. Suite 578 -> 580, ningún test tocado. Rojo verificado.
-  - El arreglo **no es borrar los contenedores interiores**, que es lo primero
-    que parece al leer «contenedor anidado»: `admin/lugares/form` y
-    `operativo/frecuentacion/form` son estrechos a propósito —un formulario de
-    cuatro campos a 1440px es peor, no mejor— y borrarlos los mandaría a 1440.
-    Lo único que sobra al anidar es el padding.
-  - Mismo prop, mismo nombre y misma razón que `<x-tarjeta :padding="false">`,
-    que existe desde FV6. No se inventa un mecanismo nuevo para un problema
-    que el sistema ya sabía resolver.
-  - Dos tests: uno fija el padding por defecto —que nadie afirmaba, y es lo
-    que separa el contenido del borde de la ventana en móvil, así que
-    perderlo no se ve en escritorio— y otro que sin él no sale, conservando
-    el ancho.
+T2: completa. Migas en el panel de zona, en las nueve matrices y en el
+resultado de VTT. Suite 596 -> 598.
+  - **Las 20 migas se insertaron tomando la clave de la línea de
+    `<x-pestanas-matriz>` que tenían al lado**, no escribiéndolas a mano. Las
+    dos responden a «qué matriz es esta» y así no pueden discrepar.
+  - `vtt/resultado` va **sin `actual`**: la Vocación del territorio *es* esa
+    página, no un apartado suyo.
+  - **Un test anterior se puso rojo, y la restricción funcionó.**
+    `PaginaZonaTest::test_la_pagina_de_zona_no_repite_el_nombre_de_la_zona_en_cada_fila`
+    afirmaba `assertSame(1, ...)`. Su propio docstring dice que vigila que
+    `<x-fila-matriz>` no pinte el nombre **una vez por fila**; el 1 era un
+    atajo. La miga añade una segunda aparición legítima. Consultado y decidido:
+    se compara contra el **número de matrices**, que es lo que el docstring
+    dice de verdad —si el defecto volviera serían catorce, no dos—. Es el mismo
+    caso que el `max-w-7xl` de FV2: un test que afirma sobre la maquetación
+    como sustituto del comportamiento.
 
-T4: completa. `<x-resumen-lista>` pasa a `<x-tarjeta>`. Suite 580 -> 581,
-ningún test tocado.
-  - **La premisa falsa era falsa, comprobado y no supuesto.** La revisión de
-    `fundacion-visual` dejó la franja fuera creyendo que convertirla obligaba
-    a mover su `flex` a un hijo. `$attributes->merge` concatena sobre el
-    `<div>` del componente, así que no.
-  - El test nuevo afirma las dos mitades **en la misma etiqueta**: el
-    `border-gray-200/80` y el `rounded-xl` del sistema junto al `flex`,
-    `justify-between` y `p-4` propios. Comprobarlas por separado pasaría en
-    verde con la franja partida en dos divs, que es justo lo que se quería
-    evitar: `flex` y `justify-*` actúan sobre hijos directos.
-  - `:padding="false"` conservando el `p-4`: la franja va pegada sobre una
-    tabla y el `p-6` del componente la engordaría. Misma regla que siguió
-    `profile/edit` con su `p-4 sm:p-8` en FV8.
-  - El botón verde de validar **se queda verde**: esa sí es una excepción real
-    y deliberada de FV10, no un resto.
-  - Cambia el radio de `sm:rounded-lg` (8px) a `rounded-xl` (12px) y gana el
-    borde. Es la unificación que persigue la fase, igual que las tarjetas de
-    `admin/dashboard` en FV8.
+T3: completa. Migas en inventarios, involucrados y frecuentación, más el
+guardián. Suite 598 -> 599, que cubre 29 páginas.
+  - **El guardián se escribió antes de tocar las vistas y se usó para
+    encontrarlas**, en vez de adivinar cuáles faltaban. Nombró siete.
+  - **Una de las siete no debe llevarlas:** `operativo/dashboard` *es* «Mis
+    Zonas», la raíz del rastro, así que su miga sería un solo tramo
+    apuntándose a sí misma. Excluida con el motivo escrito, igual que las
+    páginas de `admin/`.
 
-T5: completa, y creció con un hallazgo consultado. Suite 583 -> 584.
-  - Fuera el `@import` a otro proveedor de fuentes con DM Sans, el
-    `font-family` de `.pt-root`, el `background:#f0f4f8` y el
-    `min-height:100vh`. Era la única pantalla de la aplicación con otra letra
-    y otro fondo.
-  - `TipografiaUnicaTest`, tres tests: dos sobre el fuente de las 84 vistas
-    —quitando antes los comentarios de Blade, porque si no el guardián
-    fallaría contra la explicación de su propio hallazgo— y uno sobre el HTML
-    servido de la página que tenía el defecto. **Rojo verificado** volviendo a
-    meter el `@import`.
-  - Dos grises huérfanos corregidos: `#d1d5db` y `#374151` son `gray-300` y
-    `gray-700` de la paleta ANTERIOR a FV4. Nadie los actualizó cuando `gray`
-    pasó a ser alias de `slate`, que es exactamente lo que le pasa a una copia.
-    Los demás hexadecimales quedan anotados con el token del que son copia.
-  - La bomba de `area-{{ $color }}` **no se desactiva**, se documenta: hoy no
-    explota porque `area-*` es CSS propio y no de Tailwind.
+T4: completa, y **la parte que no estaba en el plan fue la mitad del trabajo.**
+22 llamadas fuera en 20 ficheros, el componente y `BotonVolverTest` borrados.
+Suite 599 -> 597 (se van tres, entra uno).
+  - **La cobertura se movió, no se perdió.** `BotonVolverTest` afirmaba tres
+    cosas; dos ya las cubría `MigasTest` y la tercera —que los **tres** roles
+    suben al panel de la misma zona— no. Se escribió **antes** de borrar nada.
+    No se dio por hecha porque el equipo caiga en la misma rama que el jefe: el
+    fallo que motivó aquel test era justamente de rol.
+  - **Dos «← Volver a la zona» más**, en `involucrados/index` y
+    `frecuentacion/index`, escritos como `<x-boton>` y no como
+    `<x-boton-volver>`. Ningún barrido del componente los encontraba y
+    duplicaban la miga igual. **Es la tercera vez en este repositorio que un
+    barrido falla por cómo se buscó y no por lo que había.**
+  - Comentarios que narraban dónde vivía un botón que ya no existe —en cinco
+    vistas— y **dos contenedores que se quedaron vacíos** al irse su único
+    hijo. Quitar la llamada no era terminar.
 
-T5b: los repintados con `!important`, consultado antes de meterlo porque no
-estaba en el diseño y cambia el aspecto de cuatro pantallas. Suite sigue en
-584.
-  - **FV11 arregló el componente y dio por cerrado el defecto, pero no tocó
-    las llamadas.** `<x-boton-volver>` delega en `<x-boton
-    variante="secundario">` desde entonces, y cuatro vistas seguían
-    repintándolo con el modificador `!` de Tailwind, que gana a las clases del
-    componente: azul sólido en `vtt/resultado` e `inventarios/index`, gris
-    sólido en `potencialidad/ponderacion`, enlace de texto azul en
-    `potencialidad/form`. El mismo botón, cuatro aspectos.
-  - Ninguno era decisión de su pantalla: los comentarios que los justificaban
-    son de antes de que existiera el sistema de botones. Concentración e
-    Irritación ya ponen `<x-boton-volver :zona="$zona" />` a secas junto a su
-    primario, y a esa forma se igualan las cuatro.
-  - Un quinto botón a mano en la cabecera de `potencialidad/form`, con
-    `style=` en línea. **Por eso ningún barrido lo encontraba: buscaban por
-    `class`.** Es el segundo caso de esta rama en que la lista heredada de lo
-    pendiente falla por cómo se buscó, no por lo que había.
+T5: completa. Los destinos del navbar en un array `$secciones` que recorren los
+dos bloques. Suite 597 -> 598.
+  - El fichero ya llevaba escrito el motivo: el bloque móvil llegó a tener solo
+    `dashboard` y **la aplicación era inservible en el teléfono**. Estaban los
+    enlaces dos veces, con su propio `@if` de rol cada uno.
+  - **El guardián mira el fuente y no las dos páginas servidas, a propósito.**
+    El defecto no es que pinten distinto hoy —hoy coinciden—, es que puedan
+    divergir mañana. Lo que hay que fijar es que exista UNA fuente.
 
-T6: completa. Revisión de rama y traspaso. Suite sigue en **584** sobre el
-resultado de la rama entera, no solo sobre la última tarea.
+T6: completa. Selector de zona para el operativo. Suite 598 -> 603.
+  - **No se pinta en «Mis Zonas», y eso no estaba en la spec.** Lo destaparon
+    dos tests anteriores: `ConmutadorVistaTest` cuenta el enlace a la zona
+    esperando uno por maquetación y encontró tres. Se consultó en vez de
+    relajarlos y tenían razón: esa página ES la lista de zonas.
+  - Se afinó el guardián de T5, que contaba `esAdmin()` para medir «los
+    destinos en un solo sitio» y se puso rojo cuando el selector añadió el
+    suyo. **Contar roles medía algo parecido a lo que importa, y las cosas
+    parecidas dan falsos positivos.**
 
-  - **Los barridos se rehicieron desde cero en vez de creerse esta bitácora**,
-    que es la lección de la propia rama. Cero referencias vivas a los tres
-    componentes de Breeze borrados —solo quedan nombrados en comentarios y en
-    el docblock del test que explica por qué—, cero repintados con el
-    modificador `!` sobre `<x-boton>` o `<x-boton-volver>`, y los `style=` en
-    línea que quedan son los de Potencialidad, que son la excepción acordada.
-  - **Un defecto encontrado, y es de documentación:** el comentario grande de
-    `potencialidad/form` abría con «LOS HEXADECIMALES QUE QUEDAN son copias de
-    tokens, y por eso van anotados» y listaba siete. En el bloque hay **treinta**.
-    Los otros veintitrés son los verdes, rojos, ámbar y los seis degradados de
-    área: no son descuido —cotejarlos es la migración que la rama decidió no
-    hacer—, pero la frase se leía como enumeración completa. Es el patrón de
-    «la tabla que enseñaba doce de dieciocho criterios» en forma de comentario:
-    quien lo lea y haga `grep` encuentra veintitrés sin anotar y deja de fiarse
-    del resto de la nota. Acotado a los grises, con el porqué del resto escrito.
-  - Corregido también el docblock de `TipografiaUnicaTest`, que decía «las 80
-    vistas» cuando son 84. Contadas, no supuestas.
-  - **Falsa alarma que conviene no repetir:** un `grep` de `#374151` y `#d1d5db`
-    sobre el fichero los sigue encontrando en tres líneas. Son las tres que
-    explican que se corrigieron —dos son comentarios de CSS dentro del propio
-    `<style>`—. El barrido de hexadecimales de ese bloque no distingue código
-    de comentario.
-  - El traspaso queda con su sección de rama en §3 y el punto 15 de §6 tachado,
-    con las dos cosas que siguen abiertas a propósito nombradas ahí para que no
-    se lean como olvidos: `<x-badge>` sin estrenar y los seis botones pequeños
-    de `admin/zonas/index`.
+T7: completa. Fuera `<x-nav-link>` y `<x-responsive-nav-link>`, los dos últimos
+componentes de Breeze que la Fase 0 dejó a propósito. Suite 603, sin cambios.
+  - Verificado **sobre el CSS construido** y no solo sobre el fuente:
+    `border-indigo-600`, `border-s-4`, `bg-indigo-50` y `border-b-2` están las
+    cuatro en `public/build`.
+  - El paso 4 —«mirar la barra de verdad»— **encontró lo que ningún test podía
+    ver**: el selector flotaba en mitad de la barra. El contenedor superior es
+    `justify-between` con dos hijos y T6 colgó un tercero. Arreglado agrupando
+    selector y menú de usuario bajo un solo hijo.
 
-T6b: la revisión de la rama entera, repetida sobre `4e5a709..59b3d90` porque
-la sesión se cortó a mitad de T6 y no quedaba registro de que hubiera corrido.
-Suite 584 -> 585.
-  - **Ningún defecto bloqueante.** Lo verificado de verdad y no por lectura:
-    no queda ninguna referencia viva a los tres componentes de Breeze
-    borrados; `<x-boton :href>` da `<a>` y no `<button>`, así que las cuatro
-    conversiones de enlace conservan comportamiento; `<x-tarjeta>` fusiona en
-    el mismo `<div>`, así que el `flex` de la franja sigue actuando sobre los
-    mismos hijos; y quitar `background` y `min-height:100vh` de `.pt-root` es
-    seguro porque el envoltorio del layout ya lleva `min-h-screen bg-gray-50`.
-  - **La premisa de T3 se comprobó, no se creyó:** `layouts/app` envuelve
-    `$slot` en `<x-contenedor>` con padding (línea 40), que es lo único que
-    hace correcto el `:padding="false"` de los dos anidados. Si el layout no
-    lo pusiera, esos dos formularios habrían quedado pegados al borde en
-    móvil y ningún test lo vería —afirman clases, no maquetación—. Y son
-    exactamente dos: los otros tres `<x-contenedor>` del layout son hermanos.
-  - **Un test afirmaba menos de lo que decía su docblock.**
-    `ResumenListaTest` buscaba `flex` como subcadena, y `flex` está contenida
-    en `flex-wrap`. Hoy pasaba por el motivo correcto, pero quitar `flex`
-    dejando `flex-wrap` lo habría dejado verde afirmando que hay contenedor
-    flex donde no lo habría. Pasa a comparar por token. Rojo verificado
-    quitando el `flex` de verdad.
-  - **El guardián de tipografía dejaba abierta la puerta más ancha.** Barría
-    `resources/views`, que es donde estaban los dos casos conocidos, pero el
-    sitio natural para añadir una fuente no es una vista: es
-    `resources/css/app.css`, y un `@import` ahí no afecta a una pantalla sino
-    a la aplicación **entera**. Test nuevo, rojo verificado metiendo el
-    `@import`. Hoy el fichero son tres directivas de Tailwind y nada más.
-  - **Mirado y no cambiado:** `potencialidad/form:29` conserva
-    `texto="← Volver a la Zona"` mientras las siete matrices hermanas usan
-    `texto="Regresar"`. Parece divergencia y no lo es del todo: ese botón vive
-    en el `header` y los otros siete en el cuerpo bajo `<x-pestanas-matriz>`,
-    así que son posiciones distintas e igualar el texto sería inventar una
-    regla. Además es previo a esta rama —T5b quitó repintados, no textos—.
-  - **La suite hubo que partirla en dos** (`tests/Unit` y `tests/Feature`) por
-    una condición de la máquina, no del código: el commit de Windows estaba a
-    19,34 GB de un límite de 19,79 y PHP no podía reservar. Sobraba RAM
-    física; lo que faltaba era archivo de paginación.
-
-### Lo que no se pudo verificar, y no se da por hecho
-
-**La comprobación en navegador de T5 no se hizo:** Playwright no está
-instalado en esta máquina, y ponerlo con su Chromium es un cambio de entorno
-que no estaba en el encargo. Lo que sí se verificó, y hasta dónde llega:
-
-- El CSS construido declara **solo** `Inter` para `font-sans`; ni rastro de
-  DM Sans, googleapis o gstatic en `public/build`.
-- El HTML servido del formulario de Potencialidad no contiene `@import`,
-  `font-family` ni ningún proveedor ajeno, y sí el `fonts.bunny.net` del
-  layout.
-
-Queda sin cubrir **qué fuente acaba dibujando el navegador**, que depende de
-que bunny.net responda y de las fuentes de la máquina. La causa sí está
-atada: en esa página ya no se pide ninguna familia, así que la única que
-gobierna es la del layout.
-
-**Anotado para la Fase 1, no arreglado aquí:** las cinco páginas de
-resultados que tienen «← Volver al Formulario» al pie llevan ya un
-`<x-pestanas-matriz>` arriba con esa misma navegación. El botón duplica la
-pestaña. Es estructura de página, que es justo lo que esta fase no toca.
+T8: revisión de rama y traspaso. **Tres hallazgos, ninguno visible para la
+suite**, y los dos primeros consultados antes de tocar nada:
+  - **El selector de zona no existía en móvil.** Iba dentro del grupo `hidden
+    sm:flex`. Que «funciona en móvil, donde un atajo de teclado no sirve de
+    nada» era medio argumento por el que sustituyó al `Cmd+K`, y estaba escrito
+    en tres sitios mientras el móvil se quedaba sin él. **Ningún test podía
+    verlo: el elemento SÍ está en el HTML servido, lo esconde el CSS.** Ahora
+    el menú móvil lo lleva, recorriendo la misma lista —que sube a
+    `navigation.blade.php` por el mismo motivo que `$secciones`, ahora que son
+    dos los bloques que la recorren—.
+  - **Once migas enlazaban a la página en la que ya estabas.** La ruta `editar`
+    de una matriz ES la del formulario, así que en los nueve formularios y en
+    los índices de involucrados y frecuentación el tramo de la matriz apuntaba
+    a la pantalla que se estaba viendo. La regla ya estaba escrita en el
+    componente y solo se aplicaba a la hoja; ahora vale para todo el rastro,
+    que arregla las once vistas y las que vengan.
+  - **Un test que no podía fallar por su motivo.**
+    `test_sin_zonas_asignadas_no_se_pinta_el_selector` medía sobre «Mis Zonas»,
+    la única página donde el selector no se pinta nunca: pasaba aunque se
+    borrara la guarda que decía vigilar. Movido a «Perfil» y con contraparte.
+  - Menor y arreglado de paso: `<x-matriz-sin-resultados>` conservaba un
+    `gap-3` de cuando tenía dos hijos y un comentario que narraba el botón que
+    ya no está.

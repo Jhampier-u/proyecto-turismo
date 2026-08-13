@@ -35,6 +35,7 @@
 
     <div class="py-12">
 
+            <x-migas :zona="$zona" clave="paisaje" actual="Resultados" />
             <x-pestanas-matriz clave="paisaje" :zona="$zona" activa="resultados" />
 
             @if($evaluacion?->exists && $evaluacion->user)
@@ -122,7 +123,6 @@
                 <x-boton :href="route('operativo.evaluacion_paisaje.edit', $zona->id)">
                     ← Volver al Formulario
                 </x-boton>
-                <x-boton-volver :zona="$zona" />
             </div>
 
     </div>

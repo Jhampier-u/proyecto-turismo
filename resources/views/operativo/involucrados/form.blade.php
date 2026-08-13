@@ -6,6 +6,8 @@
     </x-slot>
 
     <div class="py-12">
+        <x-migas :zona="$zona" clave="involucrados" :actual="$actor->exists ? 'Editar actor' : 'Nuevo actor'" />
+
 
             <x-boton :href="route('operativo.involucrados.index', $zona->id)" variante="secundario" class="mb-4">
                 ← Volver al listado

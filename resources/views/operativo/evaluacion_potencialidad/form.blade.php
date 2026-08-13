@@ -19,14 +19,6 @@
                     </x-boton>
                 </form>
                 @endif
-                {{-- Este formulario vive dentro de una zona: "volver" baja a
-                     su panel, no salta a Mis Zonas -mismo criterio que el
-                     resto de matrices. --}}
-                {{-- Sin el repintado a enlace de texto que tenía: eran nueve
-                     modificadores "!" de Tailwind que ganaban a las clases del
-                     componente, y dejaban este «Volver a la Zona» sin
-                     parecerse al de ninguna otra pantalla. --}}
-                <x-boton-volver :zona="$zona" texto="← Volver a la Zona" />
             </div>
         </div>
     </x-slot>
@@ -180,6 +172,7 @@
     --}}
     <div class="pt-root">
 
+        <x-migas :zona="$zona" clave="potencialidad" actual="Formulario" />
         <x-pestanas-matriz clave="potencialidad" :zona="$zona" activa="formulario" />
 
         @if($evaluacion?->exists && $evaluacion->user)

@@ -25,7 +25,6 @@
                     <p>Esta zona aún no cuenta con una Matriz de Percepción registrada. El Jefe de Zona o el Equipo operativo deben completarla primero.</p>
                 </div>
                 <div class="mt-6 text-center">
-                    <x-boton-volver :zona="$zona" />
                 </div>
             </div>
         </div>
@@ -33,6 +32,7 @@
 
     <div class="py-12">
 
+            <x-migas :zona="$zona" clave="percepcion" actual="Resultados" />
             <x-pestanas-matriz clave="percepcion" :zona="$zona" activa="resultados" />
 
             @if(session('success'))
@@ -171,7 +171,6 @@
                     <x-boton :href="route('operativo.evaluacion_percepcion.edit', $zona->id)">
                         Ver el Formulario
                     </x-boton>
-                    <x-boton-volver :zona="$zona" />
                 </div>
             </x-tarjeta>
     </div>

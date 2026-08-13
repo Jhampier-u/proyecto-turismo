@@ -26,6 +26,7 @@
 
     <div class="py-12">
 
+            <x-migas :zona="$zona" clave="irritacion" actual="Resultados" />
             <x-pestanas-matriz clave="irritacion" :zona="$zona" activa="resultados" />
 
             <x-tarjeta :padding="false" class="overflow-hidden p-8">
@@ -110,7 +111,6 @@
                     <x-boton :href="route('operativo.evaluacion_irritacion.edit', $zona->id)">
                         ← Volver al Formulario
                     </x-boton>
-                    <x-boton-volver :zona="$zona" />
                 </div>
 
             </x-tarjeta>
