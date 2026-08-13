@@ -1691,6 +1691,17 @@ niveles de anidamiento— y ninguno se movió con el cambio.
 8. **Verificación visual pendiente** de la rama `permisos-y-navegacion`: el
    conmutador lista/tarjetas es Alpine puro y ningún test comprueba que el botón
    conmute ni que la preferencia sobreviva a una recarga.
+
+   **Auditado el 13 de agosto de 2026 y sigue siendo exacto**, que es lo único
+   que se podía hacer sin cambiar el entorno. `ConmutadorVistaTest` tiene seis
+   tests y todos miran lo mismo: que las dos maquetaciones están en el HTML
+   servido y que cada pantalla usa su propia variable. El componente no guarda
+   nada —`<x-conmutador-vista modelo="...">` solo emite dos `<button>` con
+   `@click` de Alpine—, así que **conmutar y persistir solo ocurre en el
+   navegador**. Cerrarlo exige Playwright, que no está instalado, y ponerlo con
+   su Chromium es un cambio de entorno que merece decidirse aparte. **No es
+   código: es la única entrada de esta lista que un test de PHP no puede
+   cubrir.**
 9. ~~**Dashboard vacío y ancho de los formularios**~~ — hecho en
    `dashboard-y-formularios` (Parte A) y `barra-lateral` (Parte B), las dos
    fusionadas. Ver §3.
@@ -1706,8 +1717,18 @@ niveles de anidamiento— y ninguno se movió con el cambio.
     duplicarse. Lo que esta entrada sí acertó de lleno: no se empezó copiando el
     componente, y `<x-resumen-lista>` no comparte una línea con
     `<x-barra-lateral-formulario>`.
-11. **Etiquetas de FIT y FET** — dos de las tres resueltas, y una tercera cosa
-    peor que salió al mirarlo.
+11. ~~**Etiquetas de FIT y FET**~~ — **cerrado del todo; el encabezado se quedó
+    sin tachar cuando se resolvió la tercera el 12 de agosto de 2026.**
+    Verificado contra el código el 13 de agosto: `app/Matrices/Fet.php` y
+    `evaluacion_fet/ponderacion.blade.php` dicen los dos «Seguridad del Destino
+    o Sitio de Visita», así que la contradicción que este punto describía —el
+    mismo criterio con dos nombres según la pantalla— ya no existe. Lo que
+    sigue debajo es el razonamiento, que se conserva porque la regla que fija
+    —manda la mayoría, 2 de 3, cuando las hojas del instrumento se
+    contradicen— vale para la próxima discrepancia.
+
+    El texto original decía: dos de las tres resueltas, y una tercera cosa peor
+    que salió al mirarlo.
 
     **Resueltas**, cotejadas contra `IMPLEMENTADA MATRIZ DE VOCACIÓN TURISTICA
     RURAL .xlsx`: no eran decisión de contenido, eran **palabras caídas al
@@ -1840,17 +1861,28 @@ niveles de anidamiento— y ninguno se movió con el cambio.
     componente, y su primer consumidor natural es la Fase 2— y los **seis**
     botones de `admin/zonas/index` se quedan pequeños hasta que exista un
     `tamano="pequeno"` en el primitivo.
-16. **Tres menores aplazados de `resumen-lista`**, cada uno con el motivo de no
-    haberlo arreglado, para que nadie los tome por olvidos: dos tests del
-    componente son solo negativos —pero cada uno tiene su contraparte positiva
-    ejercitando la misma rama, y un negativo suelto es el que no asegura nada—;
-    `test_el_campo_de_superficie_sigue_siendo_editable` comprueba que el campo
-    está y no que no esté deshabilitado —la garantía real ya existe en dos tests
-    que sí distinguen el atributo `disabled` de la clase `disabled:bg-gray-100`—;
-    y tres tests de Frecuentación repiten el montaje de «sitio con DET + ST» en
-    vez de extraerlo a un ayudante, con el fichero ya teniendo
-    `dosSitiosUnoSinDet()`, así que el patrón está aceptado y el pliegue es
-    mecánico en cuanto alguien toque ese bloque.
+16. **Tres menores aplazados de `resumen-lista`.** Auditados el 13 de agosto de
+    2026: **uno arreglado, y los otros dos se quedan con el motivo afinado.**
+
+    - ~~`test_el_campo_de_superficie_sigue_siendo_editable` comprueba que el
+      campo está y no que no esté deshabilitado.~~ — **arreglado.** Era cierto
+      y merecía cerrarse: el campo lleva `@disabled(! $puedeEditar)`, así que
+      podía llegar deshabilitado con el test en verde afirmando por su nombre
+      que se puede escribir en él. Ahora mira el atributo con el mismo recorte
+      que ya usaban los dos tests del final del fichero —la clase
+      `disabled:bg-gray-100` está SIEMPRE, así que solo la parte de la etiqueta
+      anterior a `class=` puede llevar el atributo real—. Rojo verificado
+      forzando el campo a deshabilitado.
+    - Dos tests del componente son solo negativos. **Se quedan**: cada uno
+      tiene su contraparte positiva ejercitando la misma rama, que es
+      exactamente lo que hace que un negativo asegure algo.
+    - Tres tests de Frecuentación repiten el montaje de «sitio con DET + ST».
+      **Se quedan, y el motivo cambia respecto a lo que decía esta entrada.**
+      Al mirarlos de cerca **no son el mismo montaje**: cada uno usa una ST y
+      unos DET distintos (5.0, 12.5, 2.0, 4.0…) sobre los que ese test afirma
+      después. Un ayudante genérico escondería justo el dato del que depende
+      cada prueba, que es peor que la repetición. `dosSitiosUnoSinDet()` existe
+      para el caso que sí se repite igual, y ahí ya se usa.
 
 ### Fuera de código, en Render
 
