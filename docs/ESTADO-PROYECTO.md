@@ -3,9 +3,14 @@
 **Fecha:** 13 de agosto de 2026 (actualizado al cerrar la Fase 2 del rediseño)
 **Para:** continuar en otro ordenador sin perder contexto.
 
-**Estado en una línea:** `main` = `d0e03a2`, subida a `origin`, árbol limpio,
-**632 tests verdes comprobados sobre ese commit** el 13 de agosto. No hay
-ninguna rama que retomar; sí hay una deuda de revisión, el punto 17 de §6.
+**Estado en una línea:** `main` subida a `origin`, árbol limpio, **632 tests
+verdes** comprobados el 13 de agosto. No hay ninguna rama que retomar; sí hay
+una deuda de revisión, el punto 17 de §6.
+
+El último commit que toca **código** es `d0e03a2`, y es sobre él donde se
+corrieron esos 632. Lo que haya encima en `main` son commits de este documento:
+si el árbol está limpio y `git log --oneline -1` enseña un `docs(traspaso)`, la
+cifra sigue valiendo sin volver a correr nada.
 
 *(La cabecera decía «10 de agosto, al terminar `cabos-sueltos`» cuando el
 documento ya contaba `permisos-y-navegacion`, `frecuentacion` y tres fases del
