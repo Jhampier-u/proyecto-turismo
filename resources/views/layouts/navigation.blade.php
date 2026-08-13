@@ -40,6 +40,13 @@
                 </div>
             </div>
 
+            {{-- Solo para el perfil operativo: el admin ya tiene la sección
+                 «Zonas» con su buscador, y un desplegable con todas las zonas
+                 del sistema crece sin techo. --}}
+            @unless(auth()->user()->esAdmin())
+                <x-selector-zona />
+            @endunless
+
             <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 <x-dropdown align="right" width="48">

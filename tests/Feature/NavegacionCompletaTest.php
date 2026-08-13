@@ -62,11 +62,23 @@ class NavegacionCompletaTest extends TestCase
 
         $sinComentarios = preg_replace('/\{\{--.*?--\}\}/s', '', $fuente);
 
+        // Se mide la lista, no las comprobaciones de rol. La primera versión de
+        // este test contaba `esAdmin()` y se puso roja en cuanto el selector de
+        // zona añadió el suyo —que decide si el selector APARECE, no a dónde
+        // lleva un enlace—. Contar roles medía una cosa parecida a la que
+        // importa, y las cosas parecidas dan falsos positivos.
         $this->assertSame(
             1,
-            preg_match_all('/esAdmin\(\)/', $sinComentarios),
-            'El navbar decide el perfil más de una vez: los destinos han vuelto a estar '
-            . 'escritos dos veces, que es como el menú móvil se quedó atrás.'
+            preg_match_all('/\$secciones\s*=/', $sinComentarios),
+            'Hay más de una lista de secciones en el navbar: los destinos han vuelto a '
+            . 'estar decididos en dos sitios, que es como el menú móvil se quedó atrás.'
+        );
+
+        // Los dos bloques -escritorio y móvil- recorren esa única lista.
+        $this->assertSame(
+            2,
+            preg_match_all('/@foreach\(\$secciones as /', $sinComentarios),
+            'Escritorio y móvil no recorren los dos la misma lista de secciones.'
         );
     }
 
