@@ -56,46 +56,62 @@
                 </div>
             </div>
 
-            {{-- Solo para el perfil operativo: el admin ya tiene la sección
-                 «Zonas» con su buscador, y un desplegable con todas las zonas
-                 del sistema crece sin techo. --}}
-            @unless(auth()->user()->esAdmin())
-                <x-selector-zona />
-            @endunless
+            {{-- El selector y el menú de usuario van dentro de UN solo hijo, no
+                 sueltos: el contenedor de arriba es `justify-between` con dos
+                 hijos -izquierda y derecha-, y colgar un tercero reparte el
+                 espacio entre tres y deja el selector flotando en mitad de la
+                 barra. Ningún test lo vería: afirman sobre el marcado, no sobre
+                 el reparto. --}}
+            {{-- `hidden sm:flex` y no `flex` a secas: en móvil este grupo entero
+                 desaparece y manda el hamburguesa, que es `sm:hidden`. Así en
+                 cada punto de ruptura el contenedor de arriba sigue teniendo
+                 exactamente dos hijos visibles, que es lo que hace que
+                 `justify-between` reparta bien. --}}
+            <div class="hidden sm:flex sm:items-center">
+                {{-- Solo para el perfil operativo: el admin ya tiene la sección
+                     «Zonas» con su buscador, y un desplegable con todas las
+                     zonas del sistema crece sin techo. --}}
+                @unless(auth()->user()->esAdmin())
+                    <x-selector-zona />
+                @endunless
 
-            <!-- Settings Dropdown -->
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
-                <x-dropdown align="right" width="48">
-                    <x-slot name="trigger">
-                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div>
+                {{-- Settings Dropdown. Solo `ms-6`: el `hidden sm:flex
+                     sm:items-center` que traía de Breeze ya lo pone el grupo
+                     que ahora lo envuelve, y repetirlo aquí solo escondía que
+                     el reparto se decide un nivel más arriba. --}}
+                <div class="ms-6">
+                    <x-dropdown align="right" width="48">
+                        <x-slot name="trigger">
+                            <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                                <div>{{ Auth::user()->name }}</div>
 
-                            <div class="ms-1">
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                        </button>
-                    </x-slot>
+                                <div class="ms-1">
+                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </button>
+                        </x-slot>
 
-                    <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
-                        </x-dropdown-link>
-
-                        <!-- Authentication -->
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-
-                            <x-dropdown-link :href="route('logout')"
-                                onclick="event.preventDefault();
-                                                this.closest('form').submit();">
-                                {{ __('Log Out') }}
+                        <x-slot name="content">
+                            <x-dropdown-link :href="route('profile.edit')">
+                                {{ __('Profile') }}
                             </x-dropdown-link>
-                        </form>
-                    </x-slot>
-                </x-dropdown>
-            </div>
+
+                            <!-- Authentication -->
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+
+                                <x-dropdown-link :href="route('logout')"
+                                    onclick="event.preventDefault();
+                                                    this.closest('form').submit();">
+                                    {{ __('Log Out') }}
+                                </x-dropdown-link>
+                            </form>
+                        </x-slot>
+                    </x-dropdown>
+                </div>
+            </div>{{-- cierra el grupo de la derecha: selector + menú de usuario --}}
 
             <!-- Hamburger -->
             <div class="-me-2 flex items-center sm:hidden">
