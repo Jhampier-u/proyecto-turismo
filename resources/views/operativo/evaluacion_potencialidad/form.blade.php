@@ -180,6 +180,7 @@
     --}}
     <div class="pt-root">
 
+        <x-migas :zona="$zona" clave="potencialidad" actual="Formulario" />
         <x-pestanas-matriz clave="potencialidad" :zona="$zona" activa="formulario" />
 
         @if($evaluacion?->exists && $evaluacion->user)

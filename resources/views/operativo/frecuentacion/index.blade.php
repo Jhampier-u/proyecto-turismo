@@ -17,6 +17,7 @@
 
     <div class="py-12">
 
+            <x-migas :zona="$zona" clave="frecuentacion" actual="Formulario" />
             <x-pestanas-matriz clave="frecuentacion" :zona="$zona" activa="formulario" />
 
             <x-boton :href="route('operativo.zona.panel', $zona->id)" variante="secundario" class="mb-4">

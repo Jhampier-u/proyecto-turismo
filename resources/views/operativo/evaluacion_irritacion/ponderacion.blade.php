@@ -26,6 +26,7 @@
 
     <div class="py-12">
 
+            <x-migas :zona="$zona" clave="irritacion" actual="Resultados" />
             <x-pestanas-matriz clave="irritacion" :zona="$zona" activa="resultados" />
 
             <x-tarjeta :padding="false" class="overflow-hidden p-8">

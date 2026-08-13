@@ -52,3 +52,32 @@ class or view for component [migas]».
   - El test del último tramo lleva su contraparte: sin
     `test_con_hoja_la_zona_pasa_a_ser_enlace`, un componente que no pintara
     nunca el enlace de la zona pasaría los dos.
+
+T1b: **hueco de mi propio plan, encontrado al ir a usar el componente.** `vtt`
+es de tipo `resultado` —se calcula a partir de FIT y FET— y su entrada del
+Registro trae `ver` pero **no** `editar`. El componente pedía `rutas['editar']`
+a secas, así que reventaba con «Undefined array key» ante una situación
+legítima. Suite de migas 7 -> 8.
+  - El arreglo obligó a separar dos cosas que eran la misma: **«es la hoja» y
+    «no tiene destino»**. Confundirlas ponía `aria-current` en un tramo
+    intermedio, es decir, anunciaba como página actual una que no lo es. Ahora
+    la hoja se decide por posición.
+  - El tramo se sigue pintando —el nombre hace falta para saber dónde estás—
+    pero sin enlace. Inventarle un destino habría sido peor.
+
+T2: completa. Migas en el panel de zona, en las nueve matrices y en el
+resultado de VTT. Suite 596 -> 598.
+  - **Las 20 migas se insertaron tomando la clave de la línea de
+    `<x-pestanas-matriz>` que tenían al lado**, no escribiéndolas a mano. Las
+    dos responden a «qué matriz es esta» y así no pueden discrepar.
+  - `vtt/resultado` va **sin `actual`**: la Vocación del territorio *es* esa
+    página, no un apartado suyo.
+  - **Un test anterior se puso rojo, y la restricción funcionó.**
+    `PaginaZonaTest::test_la_pagina_de_zona_no_repite_el_nombre_de_la_zona_en_cada_fila`
+    afirmaba `assertSame(1, ...)`. Su propio docstring dice que vigila que
+    `<x-fila-matriz>` no pinte el nombre **una vez por fila**; el 1 era un
+    atajo. La miga añade una segunda aparición legítima. Consultado y decidido:
+    se compara contra el **número de matrices**, que es lo que el docstring
+    dice de verdad —si el defecto volviera serían catorce, no dos—. Es el mismo
+    caso que el `max-w-7xl` de FV2: un test que afirma sobre la maquetación
+    como sustituto del comportamiento.

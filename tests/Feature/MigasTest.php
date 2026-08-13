@@ -110,6 +110,26 @@ class MigasTest extends TestCase
     }
 
     /**
+     * La miga de un formulario de matriz nombra la zona y la matriz.
+     *
+     * Se comprueba sobre la página servida y no sobre el componente: lo que
+     * hay que garantizar no es que <x-migas> sepa recibir una clave, sino que
+     * esta vista se la pase —y que se la pase igual que a sus pestañas—.
+     */
+    public function test_el_formulario_de_una_matriz_trae_sus_migas(): void
+    {
+        $html = $this->actingAs($this->jefe)
+            ->get(route('operativo.evaluacion_fit.edit', $this->zona->id))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('Mis Zonas', $html);
+        $this->assertStringContainsString('Zona de prueba', $html);
+        $this->assertStringContainsString(\App\Matrices\Registro::ENTRADAS['fit']['nombre'], $html);
+        $this->assertStringContainsString(route('operativo.dashboard'), $html);
+    }
+
+    /**
      * Una matriz derivada no enlaza a un formulario que no tiene.
      *
      * `vtt` es de tipo 'resultado': se calcula a partir de FIT y FET y no

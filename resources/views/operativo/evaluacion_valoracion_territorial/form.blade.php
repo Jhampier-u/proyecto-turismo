@@ -7,6 +7,7 @@
 
     <div class="py-12">
 
+            <x-migas :zona="$zona" clave="valoracion_territorial" actual="Formulario" />
             <x-pestanas-matriz clave="valoracion_territorial" :zona="$zona" activa="formulario" />
 
             <x-boton-volver :zona="$zona" texto="Regresar"

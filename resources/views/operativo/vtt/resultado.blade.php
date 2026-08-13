@@ -6,6 +6,11 @@
     </x-slot>
 
     <div class="py-12">
+            {{-- Sin `actual`: la Vocación del territorio ES esta página, no un
+                 apartado suyo. Y sin enlace, porque es una matriz derivada de
+                 FIT y FET que no tiene formulario al que llevar. --}}
+            <x-migas :zona="$zona" clave="vtt" />
+
             <x-tarjeta :padding="false" class="overflow-hidden p-8">
 
                 <h3 class="text-center text-4xl font-extrabold mb-8 text-gray-800">Dictamen Final</h3>

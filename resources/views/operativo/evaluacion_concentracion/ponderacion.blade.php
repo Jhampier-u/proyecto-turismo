@@ -61,6 +61,7 @@
 
     <div class="py-12">
 
+            <x-migas :zona="$zona" clave="concentracion" actual="Resultados" />
             <x-pestanas-matriz clave="concentracion" :zona="$zona" activa="resultados" />
 
             <x-tarjeta :padding="false" class="overflow-hidden p-8">

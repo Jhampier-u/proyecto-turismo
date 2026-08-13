@@ -19,6 +19,7 @@
 
     <div class="py-12">
 
+            <x-migas :zona="$zona" clave="fit" actual="Resultados" />
             <x-pestanas-matriz clave="fit" :zona="$zona" activa="resultados" />
 
             {{-- "Volver a la Zona" sube aquí, junto a las pestañas -mismo

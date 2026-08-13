@@ -13,6 +13,7 @@
     @else
         <div class="py-12">
 
+                <x-migas :zona="$zona" clave="involucrados" actual="Resultados" />
                 <x-pestanas-matriz clave="involucrados" :zona="$zona" activa="resultados" />
 
                 <x-tarjeta :padding="false" class="overflow-hidden p-8">
