@@ -107,3 +107,56 @@ Suite 599 -> 597 (se van tres, entra uno).
   - Comentarios que narraban dónde vivía un botón que ya no existe —en cinco
     vistas— y **dos contenedores que se quedaron vacíos** al irse su único
     hijo. Quitar la llamada no era terminar.
+
+T5: completa. Los destinos del navbar en un array `$secciones` que recorren los
+dos bloques. Suite 597 -> 598.
+  - El fichero ya llevaba escrito el motivo: el bloque móvil llegó a tener solo
+    `dashboard` y **la aplicación era inservible en el teléfono**. Estaban los
+    enlaces dos veces, con su propio `@if` de rol cada uno.
+  - **El guardián mira el fuente y no las dos páginas servidas, a propósito.**
+    El defecto no es que pinten distinto hoy —hoy coinciden—, es que puedan
+    divergir mañana. Lo que hay que fijar es que exista UNA fuente.
+
+T6: completa. Selector de zona para el operativo. Suite 598 -> 603.
+  - **No se pinta en «Mis Zonas», y eso no estaba en la spec.** Lo destaparon
+    dos tests anteriores: `ConmutadorVistaTest` cuenta el enlace a la zona
+    esperando uno por maquetación y encontró tres. Se consultó en vez de
+    relajarlos y tenían razón: esa página ES la lista de zonas.
+  - Se afinó el guardián de T5, que contaba `esAdmin()` para medir «los
+    destinos en un solo sitio» y se puso rojo cuando el selector añadió el
+    suyo. **Contar roles medía algo parecido a lo que importa, y las cosas
+    parecidas dan falsos positivos.**
+
+T7: completa. Fuera `<x-nav-link>` y `<x-responsive-nav-link>`, los dos últimos
+componentes de Breeze que la Fase 0 dejó a propósito. Suite 603, sin cambios.
+  - Verificado **sobre el CSS construido** y no solo sobre el fuente:
+    `border-indigo-600`, `border-s-4`, `bg-indigo-50` y `border-b-2` están las
+    cuatro en `public/build`.
+  - El paso 4 —«mirar la barra de verdad»— **encontró lo que ningún test podía
+    ver**: el selector flotaba en mitad de la barra. El contenedor superior es
+    `justify-between` con dos hijos y T6 colgó un tercero. Arreglado agrupando
+    selector y menú de usuario bajo un solo hijo.
+
+T8: revisión de rama y traspaso. **Tres hallazgos, ninguno visible para la
+suite**, y los dos primeros consultados antes de tocar nada:
+  - **El selector de zona no existía en móvil.** Iba dentro del grupo `hidden
+    sm:flex`. Que «funciona en móvil, donde un atajo de teclado no sirve de
+    nada» era medio argumento por el que sustituyó al `Cmd+K`, y estaba escrito
+    en tres sitios mientras el móvil se quedaba sin él. **Ningún test podía
+    verlo: el elemento SÍ está en el HTML servido, lo esconde el CSS.** Ahora
+    el menú móvil lo lleva, recorriendo la misma lista —que sube a
+    `navigation.blade.php` por el mismo motivo que `$secciones`, ahora que son
+    dos los bloques que la recorren—.
+  - **Once migas enlazaban a la página en la que ya estabas.** La ruta `editar`
+    de una matriz ES la del formulario, así que en los nueve formularios y en
+    los índices de involucrados y frecuentación el tramo de la matriz apuntaba
+    a la pantalla que se estaba viendo. La regla ya estaba escrita en el
+    componente y solo se aplicaba a la hoja; ahora vale para todo el rastro,
+    que arregla las once vistas y las que vengan.
+  - **Un test que no podía fallar por su motivo.**
+    `test_sin_zonas_asignadas_no_se_pinta_el_selector` medía sobre «Mis Zonas»,
+    la única página donde el selector no se pinta nunca: pasaba aunque se
+    borrara la guarda que decía vigilar. Movido a «Perfil» y con contraparte.
+  - Menor y arreglado de paso: `<x-matriz-sin-resultados>` conservaba un
+    `gap-3` de cuando tenía dos hijos y un comentario que narraba el botón que
+    ya no está.
