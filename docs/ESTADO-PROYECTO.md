@@ -842,19 +842,32 @@ El plan cubrió las diecinueve vistas de instrumento y se olvidó del concentrad
 que enlaza a todas. La funcionalidad estrella de la rama era inalcanzable desde
 la interfaz mientras todas las revisiones por tarea daban verde.
 
-**Cinco menores aplazados a propósito**, ninguno bloqueante:
+**Cinco menores aplazados a propósito**, ninguno bloqueante. **Dos de los cinco
+están cerrados desde el 13 de agosto de 2026** y quedan tachados aquí; los otros
+tres siguen en pie con su motivo:
 
-- Seis formularios conservan `url()->previous()` en su botón «Regresar»; solo
-  Paisaje usa `<x-boton-volver>`. Sin cabecera `Referer`, ese botón no lleva a
-  ningún sitio. Es el que más merece cerrarse.
+- ~~Seis formularios conservan `url()->previous()` en su botón «Regresar»; solo
+  Paisaje usa `<x-boton-volver>`.~~ — **ya no existe en el código**: no queda un
+  solo `url()->previous()` ni en `resources/views` ni en `app/`. Lo cerró la
+  conversión de botones de `fundacion-visual`, que pasó los «Regresar» a
+  `<x-boton-volver>`, pero **nadie tachó la entrada**. Era el que esta lista
+  daba como «el que más merece cerrarse», y llevaba ramas hecho.
 - `<x-pestanas-matriz>` consulta la base desde la vista Blade y duplica la carga
   que el controlador ya hizo. Arreglarlo bien exige pasar la evaluación por prop
   y tocar las 18 vistas.
 - `EstadoZona` usa `self::` donde podría usar `static::`. En una `final class`
   da igual.
 - `vtt/resultado.blade.php` no tiene test del texto ni el color de su botón.
-- `involucrados/index` enseña el aviso de reapertura también a quien no puede
-  provocarla.
+- ~~`involucrados/index` enseña el aviso de reapertura también a quien no puede
+  provocarla.~~ — **arreglado, y estaba en dos pantallas, no en una.** El
+  párrafo «si la modificas, vuelve a borrador» del banner verde no miraba
+  `$puedeEditar`, que con la lista validada solo es cierto para el jefe: al
+  admin y al equipo se les anunciaba la consecuencia de una acción que
+  `bloqueoSiCerrada()` les impide, y cuyos botones ni siquiera se les pintan.
+  **`frecuentacion/index` tenía el mismo párrafo con el mismo hueco** —son las
+  dos pantallas que comparten esta forma de banner— y esta lista solo nombraba
+  una. Cuatro tests, dos por pantalla, cada negativo con su contraparte
+  positiva para que borrar el aviso a todo el mundo no pase por arreglo.
 
 **Sin verificación visual.** Todo lo comprobado es marcado y comportamiento. El
 conmutador es Alpine puro: que el botón conmute y la preferencia sobreviva a una
@@ -1660,9 +1673,21 @@ niveles de anidamiento— y ninguno se movió con el cambio.
 6. ~~**Permisos del admin y navegación**~~ — hecho en `permisos-y-navegacion`
    (§3). El admin escribe, hay pestañas formulario/resultados y conmutador
    lista/tarjetas en zonas.
-7. **Cinco menores aplazados de esa rama.** Detallados en §3; el que más merece
-   cerrarse es el `url()->previous()` de seis formularios, que sin cabecera
-   `Referer` deja el botón «Regresar» sin destino.
+7. **Tres menores aplazados de esa rama** —eran cinco—. Detallados en §3. El 13
+   de agosto de 2026 se cerraron dos, y **los dos por el mismo motivo: la lista
+   estaba mal**. El `url()->previous()` que ella misma daba como «el que más
+   merece cerrarse» llevaba ramas arreglado y nadie lo tachó; y el aviso de
+   reapertura mostrado a quien no puede provocarla **estaba en dos pantallas**,
+   `involucrados/index` y `frecuentacion/index`, no en la que la lista decía.
+
+   Los tres que quedan, con su motivo intacto: `<x-pestanas-matriz>` consulta
+   la base desde la vista y arreglarlo bien exige pasar la evaluación por prop
+   y tocar 18 vistas; `EstadoZona` usa `self::` donde podría usar `static::`,
+   que en una `final class` da igual; y `vtt/resultado` no tiene test del texto
+   ni el color de su botón —hoy menos grave que cuando se anotó: ese botón dejó
+   de repintarse con `!important` en `restos-fase-0`, así que su aspecto lo
+   fijan ya los tests de `<x-boton>` y `<x-boton-volver>`; lo que sigue sin
+   cubrir es su texto—.
 8. **Verificación visual pendiente** de la rama `permisos-y-navegacion`: el
    conmutador lista/tarjetas es Alpine puro y ningún test comprueba que el botón
    conmute ni que la preferencia sobreviva a una recarga.

@@ -34,10 +34,19 @@
                         (o la ST) la reabre tiene que estar aquí, antes de que
                         se pulse cualquier acción, no solo en el flash que
                         sale después de guardar.
+
+                        Y condicionado a $puedeEditar, también igual que
+                        Involucrados: con la lista validada solo el jefe puede
+                        tocarla, así que a los demás se les anunciaba la
+                        consecuencia de algo que no pueden hacer. Las acciones
+                        que este párrafo advierte ya iban condicionadas; el
+                        párrafo era lo único que no.
                     --}}
+                    @if($puedeEditar)
                     <p class="text-sm mt-1">
                         Si la modificas —añades, editas o borras un sitio, o cambias la Superficie Territorial—, vuelve a borrador: hay que validarla de nuevo.
                     </p>
+                    @endif
                 </div>
             @else
                 <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded">

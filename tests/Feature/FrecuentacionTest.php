@@ -992,4 +992,65 @@ class FrecuentacionTest extends TestCase
             ->assertDontSee('ÍETP')
             ->assertDontSee('ÍEFT');
     }
+
+    /**
+     * Mismo defecto que tenía Involucrados, y por el mismo motivo: el aviso de
+     * que tocar la lista la reabre es para quien puede tocarla.
+     *
+     * Con la lista validada `$puedeEditar` solo es cierto para el jefe, así
+     * que al admin y al equipo se les anunciaba la consecuencia de una acción
+     * que no pueden ejecutar — y que ni siquiera se les pinta: los botones que
+     * el párrafo advierte ya iban condicionados.
+     *
+     * El traspaso listaba este defecto solo en Involucrados. Estaba en las dos
+     * pantallas, que son las dos que comparten esta forma de banner.
+     */
+    public function test_quien_no_puede_tocar_la_lista_validada_no_lee_que_tocarla_la_reabre(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Malecón 2000',
+            'det'     => 1500,
+        ]);
+
+        FrecuentacionConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'confirmado',
+            'st'      => 1200,
+        ]);
+
+        $this->actingAs($admin)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('Lista de sitios validada')
+            ->assertDontSee('vuelve a borrador: hay que validarla de nuevo');
+    }
+
+    /** La contraparte positiva: al jefe sí hay que decírselo. */
+    public function test_el_jefe_si_lee_que_tocar_la_lista_validada_la_reabre(): void
+    {
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Malecón 2000',
+            'det'     => 1500,
+        ]);
+
+        FrecuentacionConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'confirmado',
+            'st'      => 1200,
+        ]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('Lista de sitios validada')
+            ->assertSee('vuelve a borrador: hay que validarla de nuevo');
+    }
 }
