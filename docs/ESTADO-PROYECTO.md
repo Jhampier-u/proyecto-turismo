@@ -1526,6 +1526,94 @@ deshacerse:
 que los destinos del navbar se deciden en un solo sitio, y que las zonas del
 selector también, ahora que escritorio y móvil las recorren los dos.
 
+### Rama `dashboard-mis-zonas` — Fase 2 del rediseño, fusionada con la revisión pendiente (13 de agosto)
+
+**Se fusionó sin la Tarea 7, y eso hay que saberlo al leer lo que sigue.** La
+sesión se cortó tras la Tarea 6; las seis tareas hechas tienen su revisión
+limpia una por una —salvo la sexta, cuyo paquete quedó armado sin revisor que
+volviera—, pero **la revisión de la rama entera y el paso de mirar la página
+funcionando no llegaron a correr**. Se fusionó igualmente, por decisión
+explícita, para no dejar la rama a medias entre dos máquinas. Lo que falta está
+anotado como punto 17 de §6, con el guion exacto; no es un olvido, es una deuda
+con fecha.
+
+Por qué importa: en las cuatro fases anteriores ese paso encontró justo lo que
+ningún test veía —una franja verde sobre un estado bloqueado, un selector
+flotando en mitad de la barra, un contenedor que doblaba el padding—.
+
+Spec y plan en `docs/superpowers/`, siete tareas. Suite: **608 → 632** (3973
+aserciones, ~50 s; partida, 85 en `Unit` y 547 en `Feature`). Base de rama:
+`0cd8ecf`.
+
+| Tarea | Commit | Suite |
+|---|---|---|
+| T1 el desglose en el servicio | `7b3c247` | 611 |
+| T2 la ordenación en el servidor | `7ffe6a6` | 619 |
+| T3 la franja de cifras | `272453c` | 622 |
+| T4 el desglose en las dos maquetaciones | `c0910ed` | 626 |
+| T5 la tabla ordenable | `3fb0732` | 631 |
+| T6 cero zonas | `1bcffd1` | 632 |
+| T7 revisión y traspaso | — | **no hecha** (§6, punto 17) |
+
+Las cinco primeras pasaron revisión limpia. **La de T6 no llegó a correr**: el
+paquete quedó armado y la sesión murió antes de que volviera el revisor.
+
+Qué hace la rama: `progresoDe()` pasa a devolver `hechas`, `borradores`,
+`sin_empezar` y `total` —el estado de una zona es un desglose, no una
+fracción—; el orden de «Mis Zonas» se pide por URL y **lo resuelve el
+servidor** (Playwright no está instalado, así que con Alpine sería invisible
+para la suite); una franja de cifras de conjunto arriba; la vista de lista pasa
+a ser una tabla con cabeceras ordenables; y sin zonas no se pinta el conmutador
+de maquetación, que no tendría nada que conmutar.
+
+#### Lo que apareció al implementar y el plan no decía
+
+- **Un barrido de mi plan se dejó dos consumidores.** El de `hechas / total`
+  encontró `admin/zonas/index` y `ConmutadorVistaTest`, y no vio que
+  `PaisajeTest` y `ValoracionTerritorialTest` afirmaban `assertSee('0 / 10')`
+  contra el dashboard. **Es la cuarta vez en este repositorio que un barrido
+  falla por cómo se buscó y no por lo que había:** busqué la clave `'hechas'`
+  en el código y no la cadena renderizada en los tests. Los dos se actualizaron
+  al dato que pasa a ser (`'10 sin empezar'`), no se relajaron —la zona es
+  nueva, así que las diez sin empezar son un dato real que fallaría con el
+  dashboard roto—, pero son dos tests afirmando sobre una cadena distinta de la
+  que eligió su autor.
+- **Una clase de Tailwind construida por concatenación**, que es justo lo que
+  la restricción global de la rama prohíbe porque el purgado se las lleva.
+  `<x-cabecera-ordenable>` interpolaba `'text-' . $alineacion` en una prop que
+  no usaba nadie. Hoy no se rompía **de milagro**: `text-left` aparece literal
+  en dos vistas de admin y el purgado la conservaba por ellas. Arreglado en T6.
+- **La tabla de recuento del plan traía un error aritmético** —nueve tests en
+  T2 donde el brief lista ocho—, así que las cifras esperadas de T3 en adelante
+  iban una alta. El total real es 632, no 633. No falta ningún test.
+- **`scripts/review-package` y `scripts/sdd-workspace` machacan
+  `.superpowers/sdd/.gitignore`**, dejándolo en `*` y borrando los comentarios
+  que explican qué de esa carpeta viaja con el repositorio. Pasó dos veces; se
+  dejó de usar el script y los paquetes de revisión se arman a mano.
+
+#### Restos que la rama deja escritos y no toca
+
+- **Renombrar `hechas` a `validadas`**, cuando una fase entre de verdad en
+  admin. Aquí no se toca ninguna pantalla de admin, por restricción global.
+- **El `📍` de la tarjeta**, anterior a la Fase 0; se arregla donde se arreglen
+  los demás.
+- **Una premisa comprobada que no generó trabajo:** «Mis Zonas» elige zonas por
+  rol y el selector de la barra hace la unión. Hoy coinciden porque
+  `Admin\ZonaController` valida los roles; el día que esa validación se afloje,
+  discreparán.
+
+#### Dónde está el porqué
+
+`.superpowers/sdd/2026-08-13-dashboard-mis-zonas/progress.md` es el detalle: los
+rulings de cada tarea y los **seis menores aplazados** que la revisión de rama
+tiene que ver. Los `task-N-report.md` de esa carpeta son el porqué de cada
+commit. El guion de la T7 está en la Tarea 7 del plan.
+
+**Esa carpeta no se borró al terminar, contra lo que dice la skill**, y es
+deliberado: la regla 3 de `CLAUDE.md` manda que los informes viajen con el
+repositorio. Tampoco se copiaron a la raíz de `sdd/`, donde ya viven los de la
+Fase 1 y copiarlos encima destruiría justamente ese rastro.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -1923,8 +2011,12 @@ niveles de anidamiento— y ninguno se movió con el cambio.
       aplazado por tercera vez:** lo sustituye un selector de zona, porque el
       salto que de verdad se repite en un árbol de tres niveles es cambiar de
       zona —y funciona en móvil, donde un atajo de teclado no sirve de nada—.
-    - **Fase 2 — dashboard / Mis Zonas.** KPIs en rejilla, tarjetas de zona con
-      cabecera visual y métricas, y una tabla ordenable para la vista de lista.
+    - ~~**Fase 2 — dashboard / Mis Zonas.**~~ — hecha en `dashboard-mis-zonas`
+      (§3). Suite **608 → 632**. El estado de una zona pasa a ser un desglose y
+      no una fracción, hay cifras de conjunto arriba, y la vista de lista es una
+      tabla que ordena **en el servidor**, por parámetro de URL, porque
+      Playwright no está instalado y con Alpine el orden sería invisible para la
+      suite. **Se fusionó con la revisión de rama sin correr:** punto 17.
     - **Fase 3 — detalle de zona** en dos columnas, con panel lateral de
       información de la zona.
     - **Fase 4 — formularios.** Consolidar el banner de borrador y la escala de
@@ -1972,6 +2064,32 @@ niveles de anidamiento— y ninguno se movió con el cambio.
       después. Un ayudante genérico escondería justo el dato del que depende
       cada prueba, que es peor que la repetición. `dosSitiosUnoSinDet()` existe
       para el caso que sí se repite igual, y ahí ya se usa.
+17. **La revisión de la Fase 2, que se fusionó sin correr.** Es lo primero de
+    esta lista, no lo último: cada día que pase, el código revisado y el sin
+    revisar se mezclan más. Son dos pasos, y ninguno necesita escribir código:
+
+    - **Mirar «Mis Zonas» funcionando**, con un jefe de tres o más zonas en
+      estados distintos. Seis comprobaciones: que la franja de cifras cuadre con
+      lo que suman las tarjetas; que las tres insignias quepan sin desbordar la
+      tarjeta ni partir una palabra; que cada cabecera ordene y la flecha señale
+      el sentido correcto; que a ~375 px la tabla haga scroll **dentro de su
+      tarjeta** y no empuje la página; que con una sola zona no haya franja y
+      con ninguna solo el aviso; y que el panel de «siguiente paso» señale a la
+      misma zona ordenes como ordenes.
+    - **Revisar la rama entera**, `git diff 0cd8ecf..1bcffd1`. Dos cosas
+      llamarán la atención de cualquier revisor y **son decisiones, no
+      descuidos**: `hechas` no se renombra a `validadas` —eso entra el día que
+      una fase toque admin de verdad— y el desglose no lleva insignia de «zona
+      terminada», porque los colores de `ESTILOS_ESTADO` significan el estado de
+      una MATRIZ. La respuesta está escrita en la spec; no se rehacen.
+
+    Los **seis menores aplazados** que la revisión debe ver están en
+    `.superpowers/sdd/2026-08-13-dashboard-mis-zonas/progress.md`, cada uno con
+    su razón. El que más peso tiene: `PaisajeTest` y `ValoracionTerritorialTest`
+    cambiaron su `assertSee('0 / 10')` por `'10 sin empezar'`. Fue obligado y no
+    relaja nada —la zona es nueva, así que las diez sin empezar son un dato real
+    que fallaría con el dashboard roto—, pero son dos tests afirmando sobre una
+    cadena que no eligió su autor.
 
 ### Fuera de código, en Render
 
@@ -2010,10 +2128,11 @@ La base es SQLite y el fichero **no viaja en el repositorio**: hay que crear
 `database/database.sqlite` vacío antes del `migrate`, o Laravel no encuentra la
 conexión.
 
-**No hay ninguna rama que retomar: todo está fusionado en `main`**, incluidas las
-dos partes de dashboard-y-formularios.
+**No hay ninguna rama que retomar: todo está fusionado en `main`**, incluida la
+Fase 2 del rediseño. Lo que sí queda vivo es una **deuda de revisión** —la Fase 2
+se fusionó sin la suya—, y es el punto 17 de §6.
 
-En `main`, comprobar que la suite da **608 tests** antes de tocar nada. Si da
+En `main`, comprobar que la suite da **632 tests** antes de tocar nada. Si da
 menos, algo no llegó; si fallan unos 57 de golpe, faltó el `npm run build`
 (ver §2).
 
@@ -2023,8 +2142,8 @@ física libre de sobra. Se sortea partiendo la suite, que baja el pico por
 proceso y pasa entera:
 
 ```bash
-php artisan test tests/Unit      # 82
-php artisan test tests/Feature   # 526
+php artisan test tests/Unit      # 85
+php artisan test tests/Feature   # 547
 ```
 
 ```bash
@@ -2036,8 +2155,10 @@ decía 394 cuando `permisos-y-navegacion` ya declaraba 444. Luego 480 en
 `frecuentacion`, 483 con `volver-a-la-zona`, y ahí se quedó mientras `main`
 llegaba a 494 con la Parte A del dashboard. Luego 524, con la Parte B fusionada
 -merge `d65604b`-, y otra vez se quedó atrás mientras `main` pasaba por 525.
-Luego 553, con `resumen-lista` fusionada -merge `3516dde`-. Ahora **576**, con
-`fundacion-visual` -merge `f743a60`-.)*
+Luego 553, con `resumen-lista` fusionada -merge `3516dde`-. Luego 576 con
+`fundacion-visual` -merge `f743a60`-, y ahí volvió a quedarse mientras `main`
+pasaba por 585 -`restos-fase-0`- y 608 -`navbar-y-migas`-. Ahora **632**, con
+la Fase 2 fusionada.)*
 
 **Y hay una cifra más que este documento nunca ha llevado y conviene que
 lleve:** cuánto sale la aplicación en pantalla. Desde `fundacion-visual`, el

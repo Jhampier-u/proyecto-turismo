@@ -16,10 +16,13 @@
             @endif
 
             @if($zonas->isEmpty())
+            {{-- Y nada más: sin zonas no hay cifras que sumar, ni orden que
+                 elegir, ni maquetación que conmutar. Un conmutador que no
+                 conmuta nada es una pregunta sin respuesta posible. --}}
             <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                 <p class="text-sm text-yellow-700">No tienes zonas asignadas actualmente. Contacta al administrador.</p>
             </div>
-            @endif
+            @else
 
             {{-- ═══ SIGUIENTE PASO ═══════════════════════════════════════════════
                  El dashboard como punto de partida, no como índice: arriba, lo
@@ -49,48 +52,106 @@
             </div>
             @endif
 
+            {{-- ═══ CIFRAS DE CONJUNTO ═══════════════════════════════════════════
+                 Debajo de lo accionable, no encima: el siguiente paso sigue
+                 siendo lo primero que se lee. Y solo con dos o más zonas —con
+                 una, la franja repetiría lo que su propia tarjeta ya dice—.
+
+                 Misma rejilla que el panel de administración (grid
+                 md:grid-cols-3 sobre <x-tarjeta>): las dos portadas del
+                 sistema quedan con la misma forma sin inventar un primitivo
+                 nuevo. --}}
+            @if($resumen['zonas'] >= 2)
+            <div id="zonas-kpis" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <x-tarjeta>
+                    <p class="text-3xl font-semibold text-gray-900">{{ $resumen['zonas'] }}</p>
+                    <h3 class="text-lg font-medium text-gray-800 mt-1">Zonas asignadas</h3>
+                </x-tarjeta>
+
+                <x-tarjeta>
+                    <p class="text-3xl font-semibold text-gray-900">{{ $resumen['validadas'] }}</p>
+                    <h3 class="text-lg font-medium text-gray-800 mt-1">Matrices validadas</h3>
+                    <p class="text-sm text-gray-600 mt-2">de {{ $resumen['matrices'] }} en total</p>
+                </x-tarjeta>
+
+                <x-tarjeta>
+                    <p class="text-3xl font-semibold text-gray-900">{{ $resumen['terminadas'] }}</p>
+                    <h3 class="text-lg font-medium text-gray-800 mt-1">Zonas terminadas</h3>
+                    <p class="text-sm text-gray-600 mt-2">de {{ $resumen['zonas'] }} asignadas</p>
+                </x-tarjeta>
+            </div>
+            @endif
+
             <div class="flex justify-end mb-4">
                 <x-conmutador-vista modelo="vista" />
             </div>
 
-            {{-- ═══ VISTA LISTA ══════════════════════════════════════════════════ --}}
-            <x-tarjeta :padding="false" x-show="vista === 'lista'" x-transition
-                 class="divide-y divide-gray-200">
-                @foreach($zonas as $zona)
-                    @php $p = $progreso[$zona->id]; @endphp
-                    <div class="flex items-center gap-4 p-4">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-base text-gray-900">{{ $zona->nombre }}</p>
-                            <p class="text-sm text-gray-600">📍 {{ $zona->lugar->nombre }}</p>
-                            {{-- Misma descripción que la tarjeta, para que cambiar de
-                                 formato no le esconda este dato al usuario. --}}
-                            <p class="text-sm text-gray-600 mt-1 line-clamp-1">
-                                {{ $zona->descripcion ?? 'Sin descripción disponible.' }}
-                            </p>
-                        </div>
+            {{-- ═══ VISTA LISTA ══════════════════════════════════════════════════
+                 Una tabla de verdad, porque es una tabla: cinco columnas de la
+                 misma naturaleza para varias zonas. En un teléfono no caben, y
+                 por eso el contenedor lleva scroll horizontal en vez de
+                 esconderse: elegir maquetación es del usuario, su preferencia
+                 se guarda, y la de tarjetas -que es la que viene por defecto-
+                 sigue siendo la que mejor funciona ahí. --}}
+            <x-tarjeta :padding="false" id="zonas-lista" x-show="vista === 'lista'" x-transition
+                 class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <x-cabecera-ordenable columna="nombre" :orden="$orden" :dir="$dir">Zona</x-cabecera-ordenable>
+                            <x-cabecera-ordenable columna="lugar" :orden="$orden" :dir="$dir">Lugar</x-cabecera-ordenable>
+                            <th scope="col" class="px-6 py-3 text-left text-sm font-medium text-gray-600">Estado</th>
+                            <x-cabecera-ordenable columna="progreso" :orden="$orden" :dir="$dir">Progreso</x-cabecera-ordenable>
+                            <th scope="col" class="px-6 py-3 text-right text-sm font-medium text-gray-600">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach($zonas as $zona)
+                            @php $p = $progreso[$zona->id]; @endphp
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">
+                                    <p class="text-base text-gray-900">{{ $zona->nombre }}</p>
+                                    {{-- Misma descripción que la tarjeta, para que cambiar de
+                                         formato no le esconda este dato al usuario. --}}
+                                    <p class="text-sm text-gray-600 mt-1 line-clamp-1">
+                                        {{ $zona->descripcion ?? 'Sin descripción disponible.' }}
+                                    </p>
+                                </td>
 
-                        <div class="w-40 shrink-0">
-                            <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div class="h-full bg-green-500 rounded-full"
-                                     style="width: {{ $p['total'] > 0 ? round($p['hechas'] / $p['total'] * 100) : 0 }}%"></div>
-                            </div>
-                            <p class="text-sm text-gray-600 mt-1">{{ $p['hechas'] }} / {{ $p['total'] }}</p>
-                        </div>
+                                {{-- Sin el 📍 de la tarjeta: aquí el lugar es una
+                                     columna con su cabecera, y el emoji repetiría
+                                     en cada fila lo que el encabezado ya dice. --}}
+                                <td class="px-6 py-4 text-sm text-gray-600">{{ $zona->lugar->nombre }}</td>
 
-                        <div class="flex gap-2 shrink-0">
-                            <x-boton :href="route('operativo.zona.panel', $zona->id)">
-                                Abrir zona
-                            </x-boton>
-                            <x-boton :href="route('operativo.inventarios.index', $zona->id)" variante="secundario">
-                                Inventario
-                            </x-boton>
-                        </div>
-                    </div>
-                @endforeach
+                                <td class="px-6 py-4">
+                                    <x-desglose-estados :progreso="$p" />
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <div class="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                        <div class="h-full bg-green-500 rounded-full"
+                                             style="width: {{ $p['total'] > 0 ? round($p['hechas'] / $p['total'] * 100) : 0 }}%"></div>
+                                    </div>
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <div class="flex justify-end gap-2">
+                                        <x-boton :href="route('operativo.zona.panel', $zona->id)">
+                                            Abrir zona
+                                        </x-boton>
+                                        <x-boton :href="route('operativo.inventarios.index', $zona->id)" variante="secundario">
+                                            Inventario
+                                        </x-boton>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </x-tarjeta>
 
             {{-- ═══ VISTA TARJETAS ═══════════════════════════════════════════════ --}}
-            <div x-show="vista === 'tarjetas'" x-transition
+            <div id="zonas-tarjetas" x-show="vista === 'tarjetas'" x-transition
                  class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($zonas as $zona)
                 <x-tarjeta :padding="false" class="hover:shadow-md transition duration-300">
@@ -118,14 +179,12 @@
                         </p>
 
                         @php $p = $progreso[$zona->id]; @endphp
-                        <div class="flex items-center gap-3 mt-5">
-                            <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div class="mt-5">
+                            <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
                                 <div class="h-full bg-green-500 rounded-full"
                                      style="width: {{ $p['total'] > 0 ? round($p['hechas'] / $p['total'] * 100) : 0 }}%"></div>
                             </div>
-                            <span class="text-sm text-gray-600 whitespace-nowrap">
-                                {{ $p['hechas'] }} / {{ $p['total'] }}
-                            </span>
+                            <x-desglose-estados :progreso="$p" class="mt-3" />
                         </div>
 
                         {{-- Dos botones, no siete. El resto vive dentro de la zona.
@@ -142,6 +201,7 @@
                 </x-tarjeta>
                 @endforeach
             </div>
+            @endif
 
     </div>
 </x-app-layout>

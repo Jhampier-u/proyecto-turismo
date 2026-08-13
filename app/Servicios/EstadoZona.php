@@ -111,36 +111,53 @@ final class EstadoZona
      * Progreso de varias zonas con un número fijo de consultas.
      *
      * El dashboard solo necesita el recuento, no las filas resueltas. Instanciar
-     * un EstadoZona por zona costaba seis consultas por zona; esto son seis en
-     * total, haya una zona o cincuenta.
+     * un EstadoZona por zona costaba seis consultas por zona; esto son diez en
+     * total —una por matriz validable—, haya una zona o cincuenta.
+     *
+     * Devuelve el reparto y no solo el numerador: un «3 / 10» mete en el mismo
+     * saco las siete que nadie ha abierto y las siete en borrador esperando
+     * validación, que piden cosas distintas.
      *
      * @param  \Illuminate\Support\Collection<int, \App\Models\Zona>  $zonas
-     * @return array<int, array{hechas: int, total: int}>  indexado por zona_id
+     * @return array<int, array{hechas: int, borradores: int, sin_empezar: int, total: int}>  indexado por zona_id
      */
     public static function progresoDe(Collection $zonas): array
     {
         $ids   = $zonas->pluck('id');
         $total = count(Registro::matrices());
 
-        // Arranca en 0 para que toda zona pedida aparezca en el resultado,
+        // Arrancan en 0 para que toda zona pedida aparezca en el resultado,
         // incluidas las que no tengan ninguna evaluación todavía.
-        $hechasPorZona = $ids->mapWithKeys(fn(int $id) => [$id => 0])->all();
+        $hechasPorZona     = $ids->mapWithKeys(fn(int $id) => [$id => 0])->all();
+        $borradoresPorZona = $ids->mapWithKeys(fn(int $id) => [$id => 0])->all();
 
         foreach (Registro::matrices() as $entrada) {
             $modelo = $entrada['modelo'];
 
-            $confirmadas = $modelo::whereIn('zona_id', $ids)
-                ->where('estado', 'confirmado')
-                ->pluck('zona_id');
+            // Pedir estado además de zona_id no añade una consulta: es la
+            // misma de antes trayendo una columna más. `zona_id` es único en
+            // las diez tablas -lo garantiza la migración
+            // 2026_08_06_000001_add_unique_zona_id_to_evaluaciones-, así que
+            // indexar por él no pierde filas.
+            $estados = $modelo::whereIn('zona_id', $ids)->pluck('estado', 'zona_id');
 
-            foreach ($confirmadas as $zonaId) {
-                $hechasPorZona[$zonaId]++;
+            foreach ($estados as $zonaId => $estado) {
+                if ($estado === 'confirmado') {
+                    $hechasPorZona[$zonaId]++;
+                } else {
+                    $borradoresPorZona[$zonaId]++;
+                }
             }
         }
 
         return $ids->mapWithKeys(fn(int $id) => [$id => [
-            'hechas' => $hechasPorZona[$id],
-            'total'  => $total,
+            'hechas'     => $hechasPorZona[$id],
+            'borradores' => $borradoresPorZona[$id],
+            // Sin fila no hay estado: lo que no está validado ni en borrador
+            // es lo que nadie ha abierto. Se deriva en vez de preguntarlo,
+            // que serían diez consultas más para contar ausencias.
+            'sin_empezar' => $total - $hechasPorZona[$id] - $borradoresPorZona[$id],
+            'total'       => $total,
         ]])->all();
     }
 

@@ -414,11 +414,15 @@ class PaisajeTest extends TestCase
 
     public function test_la_zona_aparece_en_el_dashboard_con_su_progreso(): void
     {
+        // El «0 / 10» dejó de existir en el dashboard (Tarea 4 de "Mis
+        // Zonas"): el progreso ahora es el desglose por estado de
+        // <x-desglose-estados>, y una zona recién creada muestra sus diez
+        // matrices como "sin empezar".
         $this->actingAs($this->jefe)->get('/mis-zonas')
             ->assertOk()
             ->assertSee($this->zona->nombre)
             ->assertSee(route('operativo.zona.panel', $this->zona->id), false)
-            ->assertSee('0 / 10');
+            ->assertSee('10 sin empezar');
     }
 
     public function test_paisaje_es_alcanzable_desde_la_pagina_de_zona(): void
