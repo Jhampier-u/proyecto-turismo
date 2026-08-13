@@ -1526,7 +1526,7 @@ deshacerse:
 que los destinos del navbar se deciden en un solo sitio, y que las zonas del
 selector también, ahora que escritorio y móvil las recorren los dos.
 
-### Rama `dashboard-mis-zonas` — Fase 2 del rediseño, fusionada con la revisión pendiente (13 de agosto)
+### Rama `dashboard-mis-zonas` — Fase 2 del rediseño, fusionada con la revisión pendiente (merge `d6f3516`, 13 de agosto)
 
 **Se fusionó sin la Tarea 7, y eso hay que saberlo al leer lo que sigue.** La
 sesión se cortó tras la Tarea 6; las seis tareas hechas tienen su revisión
