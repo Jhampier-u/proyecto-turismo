@@ -167,7 +167,6 @@
                     <x-boton :href="route('operativo.evaluacion_concentracion.edit', $zona->id)">
                         ← Volver al Formulario
                     </x-boton>
-                    <x-boton-volver :zona="$zona" />
                 </div>
 
             </x-tarjeta>

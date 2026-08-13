@@ -36,7 +36,6 @@
                         <x-boton :href="route('operativo.evaluacion_valoracion_territorial.edit', $zona->id)">
                             Ver Formulario de Evaluación
                         </x-boton>
-                        <x-boton-volver :zona="$zona" />
                     </div>
                 </div>
             </div>
@@ -162,7 +161,6 @@
                     <x-boton :href="route('operativo.evaluacion_valoracion_territorial.edit', $zona->id)">
                         ← Volver al Formulario
                     </x-boton>
-                    <x-boton-volver :zona="$zona" />
                 </div>
 
             </x-tarjeta>

@@ -377,10 +377,6 @@
                     <x-boton :href="route('operativo.evaluacion_potencialidad.edit', $zona->id)">
                         ← Volver al Formulario
                     </x-boton>
-                    {{-- Igual que el resto de matrices: esta página vive dentro
-                         de una zona, así que "volver" baja a su panel, no salta
-                         a Mis Zonas. --}}
-                    <x-boton-volver :zona="$zona" />
                 </div>
 
             </x-tarjeta>

@@ -10,8 +10,6 @@
             <x-migas :zona="$zona" clave="irritacion" actual="Formulario" />
             <x-pestanas-matriz clave="irritacion" :zona="$zona" activa="formulario" />
 
-            <x-boton-volver :zona="$zona" texto="Regresar"
-                class="mb-4" />
 
             @php
                 $esJefe         = auth()->user()->esJefe();

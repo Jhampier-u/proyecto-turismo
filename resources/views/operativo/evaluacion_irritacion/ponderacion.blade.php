@@ -111,7 +111,6 @@
                     <x-boton :href="route('operativo.evaluacion_irritacion.edit', $zona->id)">
                         ← Volver al Formulario
                     </x-boton>
-                    <x-boton-volver :zona="$zona" />
                 </div>
 
             </x-tarjeta>

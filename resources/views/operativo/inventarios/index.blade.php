@@ -17,11 +17,6 @@
             <x-migas :zona="$zona" clave="inventario" />
 
             <div class="mb-4 flex items-center justify-between">
-                {{-- El inventario está dentro de una zona: "volver" tiene que
-                     bajar al panel de esa zona, no saltarse ese nivel hacia
-                     Mis Zonas -el mismo criterio que las matrices. --}}
-                <x-boton-volver :zona="$zona" />
-
                 <x-conmutador-vista modelo="vista" />
             </div>
 

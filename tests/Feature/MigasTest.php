@@ -26,6 +26,7 @@ class MigasTest extends TestCase
 
     private User $jefe;
     private User $admin;
+    private User $equipo;
     private Zona $zona;
 
     protected function setUp(): void
@@ -35,13 +36,38 @@ class MigasTest extends TestCase
         $this->seed(SystemSeeder::class);
 
         $this->jefe  = User::factory()->create(['role_id' => Role::where('nombre', 'jefe_zona')->value('id')]);
-        $this->admin = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+        $this->admin  = User::factory()->create(['role_id' => Role::where('nombre', 'admin')->value('id')]);
+        $this->equipo = User::factory()->create(['role_id' => Role::where('nombre', 'equipo')->value('id')]);
 
         $this->zona = Zona::create([
             'lugar_id'     => DB::table('lugares')->value('id'),
             'jefe_user_id' => $this->jefe->id,
             'nombre'       => 'Zona de prueba',
         ]);
+        $this->zona->equipo()->attach($this->equipo->id);
+    }
+
+    /**
+     * Los tres roles suben al mismo sitio desde una matriz: el panel de ESA
+     * zona.
+     *
+     * Esta cobertura viene de `BotonVolverTest`, que se borró al borrarse el
+     * componente. No se da por hecha porque el equipo caiga en la misma rama
+     * que el jefe: el fallo que motivó aquel test era precisamente de rol —el
+     * admin viendo enlaces que no le tocaban durante toda una rama— y un
+     * ternario de rol es lo que hay debajo.
+     */
+    public function test_los_tres_roles_suben_al_panel_de_la_misma_zona(): void
+    {
+        foreach ([$this->jefe, $this->equipo, $this->admin] as $usuario) {
+            $html = $this->migas($usuario, '<x-migas :zona="$zona" clave="fit" actual="Formulario" />');
+
+            $this->assertStringContainsString(
+                route('operativo.zona.panel', $this->zona->id),
+                $html,
+                'Un rol no sube al panel de la zona desde una matriz.'
+            );
+        }
     }
 
     private function migas(User $usuario, string $etiqueta): string

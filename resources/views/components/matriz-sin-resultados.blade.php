@@ -40,7 +40,6 @@
             <x-boton :href="route($rutaFormulario, $zona->id)">
                 Ir al formulario
             </x-boton>
-            <x-boton-volver :zona="$zona" />
         </div>
     </div>
 </div>

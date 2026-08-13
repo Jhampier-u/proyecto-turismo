@@ -201,22 +201,6 @@
                     </div>
                 </div>
 
-                <div class="mt-6 text-center">
-                    {{-- Este reporte es de UNA zona: volver baja al panel de esa
-                         zona para los tres roles, igual que en cualquier matriz.
-                         Ya no hay ternario de rol -ni en el destino ni en el
-                         texto-, así que tampoco hace falta el color de aviso que
-                         antes distinguía al admin.
-
-                         El color y el tamaño tampoco: aquí había un repintado a
-                         azul con el modificador "!" de Tailwind, que gana a las
-                         clases del componente y lo deja fuera del sistema. Es
-                         medio arreglo de FV11, que convirtió <x-boton-volver>
-                         en <x-boton variante="secundario"> pero no quitó los
-                         repintados de las llamadas: el mismo botón tenía cuatro
-                         aspectos según la pantalla. --}}
-                    <x-boton-volver :zona="$zona" />
-                </div>
 
             </x-tarjeta>
     </div>

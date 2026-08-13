@@ -66,9 +66,5 @@
                 </x-tarjeta>
             @endforeach
 
-            <div class="flex justify-end">
-                <x-boton-volver texto="← Volver" />
-            </div>
-
     </div>
 </x-app-layout>

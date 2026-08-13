@@ -123,7 +123,6 @@
                 <x-boton :href="route('operativo.evaluacion_paisaje.edit', $zona->id)">
                     ← Volver al Formulario
                 </x-boton>
-                <x-boton-volver :zona="$zona" />
             </div>
 
     </div>

@@ -10,8 +10,6 @@
             <x-migas :zona="$zona" clave="percepcion" actual="Formulario" />
             <x-pestanas-matriz clave="percepcion" :zona="$zona" activa="formulario" />
 
-            <x-boton-volver :zona="$zona" texto="Regresar"
-                class="mb-4" />
 
             <div class="lg:grid lg:grid-cols-[1fr_256px] lg:gap-6 lg:items-start">
             <div class="lg:min-w-0">

@@ -22,13 +22,6 @@
             <x-migas :zona="$zona" clave="fet" actual="Resultados" />
             <x-pestanas-matriz clave="fet" :zona="$zona" activa="resultados" />
 
-            {{-- "Volver a la Zona" sube aquí, junto a las pestañas -mismo
-                 sitio que ocupa "Regresar" en el formulario-: es la misma
-                 acción de navegación, y antes vivía duplicada al pie junto a
-                 dos enlaces que ya no existen (ver el comentario de más
-                 abajo, donde estaban). --}}
-            <x-boton-volver :zona="$zona" class="mb-4" />
-
             <x-tarjeta :padding="false" class="overflow-hidden p-8">
 
                 @if($fet?->exists && $fet->user)
@@ -174,8 +167,9 @@
                      enlazaba a operativo.vtt.final, que da error si FIT y FET
                      no están las dos confirmadas -un enlace que falla es peor
                      que ninguno, el panel de la zona ya muestra Vocación con
-                     su candado y el motivo-; y "Mis Zonas" subió junto a las
-                     pestañas, convertido en el botón de volver a la zona. --}}
+                     su candado y el motivo-; y "Mis Zonas" lo dicen ahora
+                     las migas de arriba, que son la única forma de subir de
+                     nivel desde la Fase 1. --}}
             </x-tarjeta>
     </div>
 
