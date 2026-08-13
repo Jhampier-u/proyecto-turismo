@@ -45,7 +45,18 @@
     }
 @endphp
 
-<div class="bg-white shadow-sm sm:rounded-lg p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+{{--
+    La caja es <x-tarjeta>, no una escrita a mano. La revisión de
+    fundacion-visual dejó esta franja fuera del sistema con una premisa falsa:
+    que convertirla exigía mover su `flex` a un hijo. No es cierto —
+    $attributes->merge concatena sobre el mismo <div>, así que el flex, el
+    espaciado y el margen siguen actuando donde actuaban.
+
+    :padding="false" conservando el p-4 propio: esta franja es compacta a
+    propósito —va pegada sobre una tabla— y el p-6 del componente la
+    engordaría. Es la misma regla que siguió profile/edit con su p-4 sm:p-8.
+--}}
+<x-tarjeta :padding="false" class="p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
 
     <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-base text-gray-700">
         {{-- (int) porque un total="1" en cadena -viajando por un atributo
@@ -93,4 +104,4 @@
         @endif
     </div>
 
-</div>
+</x-tarjeta>

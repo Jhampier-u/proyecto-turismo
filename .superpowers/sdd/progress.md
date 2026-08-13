@@ -159,6 +159,26 @@ aplicarlo dos veces. Suite 578 -> 580, ningún test tocado. Rojo verificado.
     perderlo no se ve en escritorio— y otro que sin él no sale, conservando
     el ancho.
 
+T4: completa. `<x-resumen-lista>` pasa a `<x-tarjeta>`. Suite 580 -> 581,
+ningún test tocado.
+  - **La premisa falsa era falsa, comprobado y no supuesto.** La revisión de
+    `fundacion-visual` dejó la franja fuera creyendo que convertirla obligaba
+    a mover su `flex` a un hijo. `$attributes->merge` concatena sobre el
+    `<div>` del componente, así que no.
+  - El test nuevo afirma las dos mitades **en la misma etiqueta**: el
+    `border-gray-200/80` y el `rounded-xl` del sistema junto al `flex`,
+    `justify-between` y `p-4` propios. Comprobarlas por separado pasaría en
+    verde con la franja partida en dos divs, que es justo lo que se quería
+    evitar: `flex` y `justify-*` actúan sobre hijos directos.
+  - `:padding="false"` conservando el `p-4`: la franja va pegada sobre una
+    tabla y el `p-6` del componente la engordaría. Misma regla que siguió
+    `profile/edit` con su `p-4 sm:p-8` en FV8.
+  - El botón verde de validar **se queda verde**: esa sí es una excepción real
+    y deliberada de FV10, no un resto.
+  - Cambia el radio de `sm:rounded-lg` (8px) a `rounded-xl` (12px) y gana el
+    borde. Es la unificación que persigue la fase, igual que las tarjetas de
+    `admin/dashboard` en FV8.
+
 **Anotado para la Fase 1, no arreglado aquí:** las cinco páginas de
 resultados que tienen «← Volver al Formulario» al pie llevan ya un
 `<x-pestanas-matriz>` arriba con esa misma navegación. El botón duplica la
