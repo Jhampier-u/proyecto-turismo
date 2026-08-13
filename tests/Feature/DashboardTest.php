@@ -127,6 +127,30 @@ class DashboardTest extends TestCase
     }
 
     /**
+     * Sin zonas, el aviso ámbar y nada más: hoy quedan debajo una tarjeta
+     * vacía y un conmutador que no conmuta nada.
+     *
+     * Es la misma doctrina que este fichero ya aplica al panel de siguiente
+     * paso —si no hay nada que decir, no se dice nada—, aplicada al resto de
+     * la página.
+     */
+    public function test_sin_zonas_no_se_pinta_ni_el_conmutador_ni_las_maquetaciones(): void
+    {
+        $sinZona = User::factory()->create([
+            'role_id' => Role::where('nombre', 'jefe_zona')->value('id'),
+        ]);
+
+        $this->actingAs($sinZona)
+            ->get('/mis-zonas')
+            ->assertOk()
+            ->assertSee('No tienes zonas asignadas actualmente. Contacta al administrador.')
+            ->assertDontSee('id="zonas-lista"', false)
+            ->assertDontSee('id="zonas-tarjetas"', false)
+            ->assertDontSee('id="zonas-kpis"', false)
+            ->assertDontSee('Tarjetas');
+    }
+
+    /**
      * Zona nueva, sin ninguna evaluación: el panel ofrece "Empieza por
      * aquí" señalando a FIT -la primera matriz declarada-, y NO ofrece
      * "Sigue por aquí" -no hay nada que continuar todavía-.

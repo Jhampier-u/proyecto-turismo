@@ -16,10 +16,13 @@
             @endif
 
             @if($zonas->isEmpty())
+            {{-- Y nada más: sin zonas no hay cifras que sumar, ni orden que
+                 elegir, ni maquetación que conmutar. Un conmutador que no
+                 conmuta nada es una pregunta sin respuesta posible. --}}
             <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                 <p class="text-sm text-yellow-700">No tienes zonas asignadas actualmente. Contacta al administrador.</p>
             </div>
-            @endif
+            @else
 
             {{-- ═══ SIGUIENTE PASO ═══════════════════════════════════════════════
                  El dashboard como punto de partida, no como índice: arriba, lo
@@ -198,6 +201,7 @@
                 </x-tarjeta>
                 @endforeach
             </div>
+            @endif
 
     </div>
 </x-app-layout>

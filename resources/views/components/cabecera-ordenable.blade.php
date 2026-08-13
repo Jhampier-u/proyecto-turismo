@@ -1,4 +1,4 @@
-@props(['columna', 'orden', 'dir', 'alineacion' => 'left'])
+@props(['columna', 'orden', 'dir'])
 
 {{--
     Una cabecera de tabla que ordena.
@@ -35,7 +35,7 @@
 
 <th scope="col"
     @if($ariaSort) aria-sort="{{ $ariaSort }}" @endif
-    {{ $attributes->merge(['class' => 'px-6 py-3 text-' . $alineacion . ' text-sm font-medium text-gray-600']) }}>
+    {{ $attributes->merge(['class' => 'px-6 py-3 text-left text-sm font-medium text-gray-600']) }}>
     <a href="{{ request()->fullUrlWithQuery(['orden' => $columna, 'dir' => $siguienteDir]) }}"
        class="inline-flex items-center gap-1 hover:text-gray-900">
         {{ $slot }}
