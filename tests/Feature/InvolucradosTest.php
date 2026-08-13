@@ -1309,4 +1309,66 @@ class InvolucradosTest extends TestCase
             ->assertOk()
             ->assertSee(route('operativo.involucrados.index', $this->zona->id), false);
     }
+
+    /**
+     * El aviso de que tocar la lista la reabre es para quien puede tocarla.
+     *
+     * El banner verde de «lista validada» lo ve cualquiera que entre, y dentro
+     * lleva la frase «si la modificas, vuelve a borrador». Pero con la lista
+     * validada solo el jefe puede modificarla —`bloqueoSiCerrada()` cierra el
+     * paso a los demás, y este mismo fichero ya lo comprueba—, así que al
+     * admin y al equipo se les anuncia una consecuencia de una acción que no
+     * pueden ejecutar. La vista ya recibe el dato que lo distingue,
+     * `$puedeEditar`; el banner era lo único que no lo miraba.
+     */
+    public function test_quien_no_puede_tocar_la_lista_validada_no_lee_que_tocarla_la_reabre(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor validado',
+        ]);
+
+        InvolucradosConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'confirmado',
+        ]);
+
+        $this->actingAs($admin)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            // El banner sí lo ve: saber que está validada le sirve. Sin esta
+            // línea el test pasaría también si la página dejara de pintarlo.
+            ->assertSee('Lista de actores validada')
+            ->assertDontSee('vuelve a borrador: hay que validarla de nuevo');
+    }
+
+    /**
+     * La contraparte positiva de la anterior. Sin ella, borrar el aviso para
+     * todo el mundo dejaría el test de arriba en verde y al jefe sin saber
+     * que editar un actor le tira la validación.
+     */
+    public function test_el_jefe_si_lee_que_tocar_la_lista_validada_la_reabre(): void
+    {
+        Involucrado::create($this->todosEn(1) + [
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Actor validado',
+        ]);
+
+        InvolucradosConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'confirmado',
+        ]);
+
+        $this->actingAs($this->jefe)
+            ->get($this->urlIndex($this->zona))
+            ->assertOk()
+            ->assertSee('Lista de actores validada')
+            ->assertSee('vuelve a borrador: hay que validarla de nuevo');
+    }
 }

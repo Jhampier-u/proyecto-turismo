@@ -39,10 +39,19 @@
                                 tocarla la reabre tiene que estar aquí, antes de que
                                 pulse cualquiera de los tres, no solo en el flash que
                                 sale después de guardar.
+
+                                Y condicionado a $puedeEditar, que con la lista
+                                validada solo es cierto para el jefe: a los demás
+                                bloqueoSiCerrada() les cierra el paso, así que
+                                anunciarles la consecuencia de una acción que no
+                                pueden ejecutar solo confunde. Los tres botones que
+                                este párrafo advierte tampoco se les pintan.
                             --}}
+                            @if($puedeEditar)
                             <p class="text-sm mt-1">
                                 Si la modificas —añades, editas o borras un actor—, vuelve a borrador: hay que validarla de nuevo.
                             </p>
+                            @endif
                         </div>
                     </div>
                 </div>
