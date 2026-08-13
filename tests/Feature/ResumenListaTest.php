@@ -39,6 +39,42 @@ class ResumenListaTest extends TestCase
         );
     }
 
+    /**
+     * La caja es <x-tarjeta> y su maquetación sigue en el mismo elemento.
+     *
+     * La revisión de fundacion-visual dejó esta franja fuera del sistema
+     * creyendo que convertirla obligaba a mover su `flex` a un hijo. Era
+     * falso: $attributes->merge concatena sobre el <div> del componente. Este
+     * test fija las dos mitades de esa afirmación a la vez —el borde y el
+     * radio del sistema, y el flex propio, en la MISMA etiqueta— porque
+     * comprobarlas por separado pasaría en verde con la franja partida en dos
+     * divs, que es justo lo que se quería evitar.
+     */
+    public function test_la_caja_es_del_sistema_y_conserva_su_maquetacion(): void
+    {
+        $html = $this->renderizar();
+
+        preg_match('/<div class="([^"]*)"/', $html, $primeraEtiqueta);
+
+        $this->assertNotEmpty($primeraEtiqueta, 'La franja no abre con un <div> con clases.');
+
+        // Por token y no por subcadena: `flex` está contenida en `flex-wrap`,
+        // que no es lo mismo -no hace de contenedor flex-, así que buscarla
+        // como texto dejaría este test en verde con solo el segundo puesto,
+        // afirmando justo lo que no comprobaría.
+        $clases = preg_split('/\s+/', trim($primeraEtiqueta[1]));
+
+        // De <x-tarjeta>: el borde a 80% y el radio del sistema.
+        $this->assertContains('border-gray-200/80', $clases);
+        $this->assertContains('rounded-xl', $clases);
+
+        // Propias, y en la misma etiqueta: actúan sobre hijos directos, así
+        // que un div intermedio las dejaría actuando sobre otra cosa.
+        $this->assertContains('flex', $clases);
+        $this->assertContains('justify-between', $clases);
+        $this->assertContains('p-4', $clases);
+    }
+
     public function test_cuenta_el_total_y_lo_que_falta(): void
     {
         $html = $this->renderizar();

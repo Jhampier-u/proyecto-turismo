@@ -1241,6 +1241,10 @@ silencio, que es exactamente para lo que servía la regla.
 
 #### Lo que quedó fuera de la Fase 0, anotado a propósito
 
+**Todo esto se cerró en la rama `restos-fase-0`; se conserva la lista porque
+la mitad de sus entradas resultaron estar mal contadas, y eso es lo que hay
+que recordar. Ver `restos-fase-0` más abajo en esta misma sección.**
+
 - **Breeze sigue vivo:** `primary-button` y `danger-button` los usan las cinco
   vistas de `auth/` y los tres parciales de `profile/`. Solapan con `primario` y
   `peligro`. El plan no los nombró.
@@ -1274,6 +1278,156 @@ silencio, que es exactamente para lo que servía la regla.
 - **`resources/js/**/*.js` no está en el `content`.** Hoy inofensivo —esos
   ficheros no tocan clases—, pero la primera que alguien escriba en JS se purga
   en silencio.
+
+### Rama `restos-fase-0` — cierra el punto 15, terminada (13 de agosto)
+
+El encargo era la lista de arriba: los seis restos que la revisión final de
+`fundacion-visual` encontró y dejó sin arreglar con su motivo. **Sin plan
+escrito**: seis cambios a código que ya existe y se puede leer, así que el
+diseño se acordó en la conversación y la bitácora de `.superpowers/sdd/progress.md`
+hizo de registro. Cinco tareas, una añadida a mitad y la revisión de rama.
+Suite: **576 → 585.** Ninguna vista cambió de estructura, y **ningún test
+anterior a la rama se modificó** —el único retocado es uno que escribió la
+propia rama, y lo retocó su revisión: ver más abajo—.
+
+**La lección de la rama no es lo que se arregló, sino que la lista heredada
+estaba mal contada en las dos direcciones.** Es el motivo por el que la lista
+original se conserva ahí arriba en vez de borrarse:
+
+| Lo que decía el traspaso | Lo que había |
+|---|---|
+| «cuatro botones sueltos» | **Dos de ellos eran seis**, y de otra categoría; **faltaba uno**, el más visible |
+| «colores copiados a mano» en Potencialidad | Eso, **más una tercera tipografía y un segundo fondo de página** |
+| `<x-boton-volver>` arreglado en FV11 | El componente sí; **cuatro vistas seguían repintándolo con `!important`** |
+
+**Los barridos fallaron por cómo se buscó, no por lo que había.** Dos veces:
+`<x-matriz-sin-resultados>` —un componente compartido por **cinco** matrices—
+tenía su botón escrito a mano y no aparecía porque la lista original salió de
+mirar vistas, no componentes; y un quinto botón de la cabecera de
+`potencialidad/form` llevaba `style=` en línea, así que ningún barrido por
+`class` lo encontraba nunca.
+
+#### El hallazgo que cambió el tamaño de la rama
+
+`evaluacion_potencialidad/form.blade.php` tenía en su `<style>` un `@import`
+remoto a **DM Sans** y un `background:#f0f4f8`. La matriz más grande —156
+criterios— era **la única pantalla de la aplicación con otra letra y otro
+fondo**, y **ningún test lo veía**, porque los tests miran HTML y no qué fuente
+resuelve el navegador. FV4 puso Inter en todo el sistema y tuvo que corregir
+`layouts/guest` justo por esto; esta vista se lo saltaba por otra puerta.
+
+Lo cubre ahora `tests/Feature/TipografiaUnicaTest.php`, tres tests: dos sobre
+el fuente de las 84 vistas —quitando antes los comentarios de Blade, porque si
+no el guardián fallaría contra la explicación de su propio hallazgo— y uno
+sobre el **HTML servido**, que es donde se comprueba el montaje y no solo el
+fichero. Rojo verificado volviendo a meter el `@import`.
+
+Los hexadecimales copiados no eran dos sino siete más seis degradados. Dos de
+ellos, `#d1d5db` y `#374151`, eran `gray-300` y `gray-700` **de la paleta
+anterior a FV4**: nadie los actualizó cuando `gray` pasó a ser alias de
+`slate`, que es exactamente lo que le pasa a una copia. Los demás quedan
+anotados con el token del que son copia.
+
+#### Lo que se decidió no hacer, y está escrito donde se mira
+
+- **`<x-badge>` sigue sin adoptarse, y ahora el motivo vive en el componente.**
+  Sus dos candidatos —«Completo» / «A medias» en `frecuentacion/index` e
+  `involucrados/index`— usan letra por letra el verde y el ámbar de `validada`
+  y `borrador`. Parece adopción cantada y no lo es: esas píldoras dicen si una
+  **fila** está completa, no el estado de una matriz. Un sitio «Completo»
+  dentro de una lista en borrador no está validado, nadie lo validó. Ahorraría
+  cuatro copias de color a cambio de que el código afirme algo falso — el
+  precedente es `<x-insignia-clasificacion>`, que por llamarse genérico invitaba
+  a pintar de verde el peor resultado. **Su primer consumidor natural son las
+  tarjetas de zona de la Fase 2.**
+- **Potencialidad se alineó, no se migró.** Fuera la tipografía y el fondo; las
+  68 líneas de CSS del acordeón, el toggle y el grid se quedan como excepción
+  documentada. Reescribirlas en una vista de 445 líneas con Alpine cambiaría el
+  aspecto y arriesgaría regresiones que sus tests —que miran radios y campos
+  activos, no maquetación— no verían.
+- **Los dos contenedores anidados no se arreglaron borrándolos**, que es lo
+  primero que parece al leer «contenedor anidado». Son estrechos a propósito y
+  borrarlos los mandaría a 1440. Lo único que sobraba era el padding, así que
+  `<x-contenedor>` ganó `:padding` — mismo prop, mismo nombre y misma razón que
+  el `<x-tarjeta :padding="false">` que existe desde FV6. No se inventó un
+  mecanismo nuevo para un problema que el sistema ya sabía resolver.
+- **Los seis botones de `admin/zonas/index` se quedan.** `px-3 py-1.5 text-sm`
+  con colores suaves en una tabla densa es la excepción de tamaño que FV10
+  respetó a propósito; convertirlos exigiría un `tamano="pequeno"` en el
+  primitivo, que es otra decisión. Igual que `<x-nav-link>` y
+  `<x-responsive-nav-link>`: son navegación, no botones, y la Fase 1 rehace la
+  navbar entera.
+
+#### El defecto que cazó un test escrito para cazarlo
+
+`<x-secondary-button>` y `<x-boton>` tienen defaults **opuestos**: `button`
+frente a `submit`. El «Cancelar» del diálogo de borrar la cuenta vive dentro
+del `<form>` de borrado, así que la conversión directa lo convertía en **un
+segundo botón de borrar**. Se hizo la conversión sin el `type` a propósito, el
+test falló, y solo entonces se puso. **Ningún test de los que ya había lo
+habría visto**: el HTML sigue siendo válido y la página responde 200.
+
+`BotonesPerfilTest` afirma sobre la página servida y no sobre el componente en
+aislado —lo que hay que garantizar no es que `<x-boton>` sepa recibir un
+`type`, sino que esta vista se lo pase—, y lleva su contraparte positiva,
+porque sin ella poner `type="button"` en los dos dejaría el primer test verde
+y el diálogo sin forma de borrar.
+
+Los tres componentes de Breeze (`primary-button`, `secondary-button`,
+`danger-button`) quedaron **borrados** al no tener un solo uso vivo.
+`<x-modal>`, `<x-input-label>`, `<x-text-input>` y `<x-input-error>` son
+también de Breeze y **siguen ahí**: no son botones.
+
+#### Lo que no se pudo verificar, y no se da por hecho
+
+**La comprobación en navegador no se hizo:** Playwright no está instalado en
+esta máquina y ponerlo con su Chromium es un cambio de entorno que no estaba en
+el encargo. Lo que sí se verificó: el CSS construido declara **solo** `Inter`
+para `font-sans` —ni rastro de DM Sans, googleapis o gstatic en `public/build`—
+y el HTML servido de Potencialidad no contiene `@import` ni `font-family`
+ajeno. Queda sin cubrir **qué fuente acaba dibujando el navegador**, que
+depende de que bunny.net responda. La causa sí está atada: esa página ya no
+pide ninguna familia.
+
+#### Anotado para la Fase 1, no arreglado aquí
+
+Las cinco páginas de resultados que tienen «← Volver al Formulario» al pie
+llevan ya un `<x-pestanas-matriz>` arriba con esa misma navegación. **El botón
+duplica la pestaña.** Es estructura de página, que es justo lo que la Fase 0 no
+toca.
+
+Y la bomba de `area-{{ $color }}` de Potencialidad **no se desactivó, se
+documentó**: hoy no explota porque `area-*` es CSS propio y no de Tailwind.
+
+#### Lo que encontró la revisión de la rama
+
+Se repitió sobre la rama entera porque la sesión se cortó a mitad de T6 y no
+quedaba registro de que hubiera corrido. **Ningún defecto bloqueante**, y dos
+guardianes que afirmaban menos de lo que decía su docblock — que es la forma
+que toma aquí el defecto que ningún test ve, porque el test *es* el defecto:
+
+- **`ResumenListaTest` buscaba `flex` como subcadena, y `flex` está contenida
+  en `flex-wrap`.** Pasaba por el motivo correcto, pero quitar `flex` dejando
+  `flex-wrap` lo habría dejado en verde afirmando que hay contenedor flex
+  donde no lo habría. Compara por token desde ahora.
+- **`TipografiaUnicaTest` barría `resources/views` y dejaba abierta la puerta
+  más ancha.** El sitio natural para añadir una fuente no es una vista: es
+  `resources/css/app.css`, donde un `@import` no afecta a una pantalla sino a
+  **toda** la aplicación. El guardián nacido para impedir una segunda
+  tipografía no miraba el único sitio desde el que se impone a todas. Cubierto.
+
+Los dos rojos verificados. **Y una premisa que se comprobó en vez de creerse:**
+el `:padding="false"` de los dos contenedores anidados solo es correcto porque
+`layouts/app` envuelve `$slot` en un `<x-contenedor>` que ya trae el padding
+(línea 40). Si no lo trajera, esos dos formularios habrían quedado pegados al
+borde de la pantalla en móvil y **ningún test lo vería**: afirman clases, no
+maquetación.
+
+**Mirado y no cambiado:** `potencialidad/form:29` conserva
+`texto="← Volver a la Zona"` mientras las siete matrices hermanas usan
+`texto="Regresar"`. Parece divergencia y no lo es del todo — ese botón vive en
+el `header` y los otros siete en el cuerpo bajo `<x-pestanas-matriz>`, así que
+igualar el texto sería inventar una regla— y además es anterior a esta rama.
 
 ## 4. Lo que hay que saber para continuar
 
@@ -1596,11 +1750,19 @@ niveles de anidamiento— y ninguno se movió con el cambio.
     **Fuera de las cuatro fases, hasta que se diseñe como funcionalidad:** el
     badge de notificaciones. No hay sistema de notificaciones —solo el
     `Notifiable` de Breeze—, así que es un dominio nuevo, no maquetación.
-15. **Los restos de la Fase 0**, detallados en §3 con su motivo: los botones de
-    Breeze en `auth/` y `profile/`, cuatro botones sueltos sin convertir,
-    `<x-badge>` sin estrenar, los dos contenedores anidados que el plan
-    prescribía, y `evaluacion_potencialidad/form.blade.php`, que es el único
-    fichero entero fuera del sistema.
+15. ~~**Los restos de la Fase 0**~~ — hecho en `restos-fase-0` (§3). Suite
+    **576 → 585**. Los botones de Breeze convertidos y sus tres componentes
+    borrados; los «cuatro botones sueltos» resultaron ser otra cosa en las dos
+    direcciones; `<x-contenedor>` ganó `:padding` y los dos anidados dejaron de
+    doblarlo; `<x-resumen-lista>` pasó a `<x-tarjeta>`; y Potencialidad se
+    alineó — donde apareció **una tercera tipografía y un segundo fondo de
+    página** que el traspaso no mencionaba y ningún test veía.
+
+    **Dos cosas siguen abiertas a propósito, y no son olvidos:**
+    `<x-badge>` **sigue sin usarse** —el motivo está escrito en el propio
+    componente, y su primer consumidor natural es la Fase 2— y los **seis**
+    botones de `admin/zonas/index` se quedan pequeños hasta que exista un
+    `tamano="pequeno"` en el primitivo.
 16. **Tres menores aplazados de `resumen-lista`**, cada uno con el motivo de no
     haberlo arreglado, para que nadie los tome por olvidos: dos tests del
     componente son solo negativos —pero cada uno tiene su contraparte positiva

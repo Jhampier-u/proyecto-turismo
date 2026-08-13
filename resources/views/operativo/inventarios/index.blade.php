@@ -18,8 +18,7 @@
                 {{-- El inventario está dentro de una zona: "volver" tiene que
                      bajar al panel de esa zona, no saltarse ese nivel hacia
                      Mis Zonas -el mismo criterio que las matrices. --}}
-                <x-boton-volver :zona="$zona"
-                    class="!inline-block !border-0 !px-5 !bg-blue-600 !text-white !font-bold !text-lg hover:!bg-blue-700 hover:!scale-105 !transition-transform !shadow-md" />
+                <x-boton-volver :zona="$zona" />
 
                 <x-conmutador-vista modelo="vista" />
             </div>

@@ -11,17 +11,22 @@
                       action="{{ route('operativo.evaluacion_potencialidad.reconfigurar', $zona->id) }}"
                       onsubmit="return confirm('¿Activar todos los campos? Se restaurará la selección completa.');">
                     @csrf
-                    <button type="submit"
-                            style="font-size:.75rem;font-weight:600;color:#92400e;background:#fffbeb;border:1.5px solid #fde68a;padding:6px 14px;border-radius:8px;cursor:pointer;">
+                    {{-- Iba con `style=` en línea, que es por lo que ningún
+                         barrido de botones escritos a mano lo encontraba: los
+                         buscaban por `class`. --}}
+                    <x-boton variante="secundario">
                         ↺ Activar todos los campos
-                    </button>
+                    </x-boton>
                 </form>
                 @endif
                 {{-- Este formulario vive dentro de una zona: "volver" baja a
                      su panel, no salta a Mis Zonas -mismo criterio que el
                      resto de matrices. --}}
-                <x-boton-volver :zona="$zona" texto="← Volver a la Zona"
-                    class="!inline !p-0 !border-0 !rounded-none !shadow-none !bg-transparent !text-sm !text-blue-600 hover:!bg-transparent hover:!underline" />
+                {{-- Sin el repintado a enlace de texto que tenía: eran nueve
+                     modificadores "!" de Tailwind que ganaban a las clases del
+                     componente, y dejaban este «Volver a la Zona» sin
+                     parecerse al de ninguna otra pantalla. --}}
+                <x-boton-volver :zona="$zona" texto="← Volver a la Zona" />
             </div>
         </div>
     </x-slot>
@@ -45,10 +50,56 @@
         ];
     @endphp
 
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+    {{--
+        Por qué esta vista conserva CSS propio, y qué se le quitó.
 
-        .pt-root { font-family:'DM Sans',sans-serif; background:#f0f4f8; min-height:100vh; padding:1.5rem 0 5rem; }
+        SE QUEDA: el acordeón de áreas, el toggle de campo activo, la rejilla
+        auto-fill y las seis cabeceras en degradado. Son maquetación de un
+        formulario de 156 criterios que no existe en ninguna otra pantalla;
+        reescribirla en clases del sistema cambiaría el aspecto y arriesgaría
+        regresiones que los tests de esta matriz —que cuentan radios y campos
+        activos, no maquetación— no verían.
+
+        SE FUE, porque no era maquetación propia sino un segundo sistema:
+
+        - Un @import a un proveedor de fuentes ajeno pidiendo DM Sans, más un
+          font-family en .pt-root. La aplicación entera va con Inter desde
+          FV4, servida además por otro proveedor (fonts.bunny.net, en
+          layouts/app). Esta era la única pantalla con otra letra, y ningún
+          test lo veía: los tests miran HTML, y el HTML de una página con otra
+          tipografía es idéntico al de una con la correcta. Es el mismo
+          hallazgo que FV4 tuvo que corregir en layouts/guest, que se había
+          quedado pidiendo Figtree. Ahora lo vigila TipografiaUnicaTest.
+        - background:#f0f4f8 y min-height:100vh. El fondo del sistema es el
+          bg-gray-50 del layout —#f8fafc con el alias de tailwind.config.js—,
+          así que esta vista pintaba el suyo encima.
+
+        LOS GRISES QUE QUEDAN son copias de la escala del sistema, y por eso
+        van anotados uno a uno: #f8fafc slate-50, #f1f5f9 slate-100, #e2e8f0
+        slate-200, #cbd5e1 slate-300, #64748b slate-500, #334155 slate-700,
+        #1e293b slate-800. Son copias de verdad, no referencias, y una copia se
+        queda atrás sola: dos de ellas ya lo habían hecho —#d1d5db y #374151
+        eran gray-300 y gray-700 de la paleta ANTERIOR a FV4, que nadie
+        actualizó cuando `gray` pasó a ser alias de `slate`—. Corregidas aquí.
+
+        Los otros ~23 hexadecimales del bloque NO están anotados, y conviene
+        saberlo antes de dar la lista de arriba por completa: son los verdes de
+        confirmado, los rojos de error, los ámbar de aviso y los seis
+        degradados de cabecera de área. Se quedan sin cotejar porque cotejarlos
+        es la migración que esta rama decidió no hacer —no un descuido—: son el
+        aspecto propio de la pantalla, no la escala de grises que el sistema
+        centraliza. El riesgo de que se queden atrás es el mismo; lo que cambia
+        es que ahí no hay un token del que sean copia evidente.
+
+        BOMBA CONOCIDA, no desactivada: `class="pt-area area-{{ $color }}"`
+        se construye por concatenación, que es justo lo que Tailwind purga.
+        Hoy no explota porque `area-*` es CSS de este bloque y no de Tailwind.
+        El día que alguien migre estas reglas a clases del sistema, los seis
+        colores de área desaparecen en silencio. Está aquí escrito para que ese
+        día no sea una sorpresa.
+    --}}
+    <style>
+        .pt-root { padding:1.5rem 0 5rem; }
 
         /* ── Area accordion ────────────────────────────────────────────────── */
         .pt-area { background:#fff; border-radius:14px; border:1.5px solid #e2e8f0; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.04); }
@@ -99,7 +150,9 @@
         /* Dot indicator (non-Jefe roles) */
         .pt-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:6px; }
         .pt-dot-on  { background:#22c55e; box-shadow:0 0 0 2px #dcfce7; }
-        .pt-dot-off { background:#d1d5db; }
+        /* slate-300. Era #d1d5db, que es gray-300 de la paleta anterior a
+           FV4: se quedó atrás cuando `gray` pasó a ser alias de `slate`. */
+        .pt-dot-off { background:#cbd5e1; }
 
         /* Banner confirmado */
         .pt-banner-ok { background:linear-gradient(135deg,#f0fdf4,#dcfce7); border:1.5px solid #86efac; border-radius:13px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
@@ -107,7 +160,8 @@
 
         /* Footer */
         .pt-footer { background:#fff; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px 22px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-top:16px; }
-        .pt-btn-draft   { background:#f8fafc; color:#374151; font-weight:700; font-size:.84rem; padding:10px 20px; border-radius:10px; border:1.5px solid #e2e8f0; cursor:pointer; display:flex; align-items:center; gap:7px; }
+        /* color: slate-700. Era #374151, gray-700 de la paleta anterior. */
+        .pt-btn-draft   { background:#f8fafc; color:#334155; font-weight:700; font-size:.84rem; padding:10px 20px; border-radius:10px; border:1.5px solid #e2e8f0; cursor:pointer; display:flex; align-items:center; gap:7px; }
         .pt-btn-confirm { background:linear-gradient(135deg,#15803d,#16a34a); color:#fff; font-weight:700; font-size:.84rem; padding:10px 20px; border-radius:10px; border:none; cursor:pointer; display:flex; align-items:center; gap:7px; box-shadow:0 4px 12px rgba(22,163,74,.3); }
         .pt-btn-draft:hover   { background:#f1f5f9; }
         .pt-btn-confirm:hover { opacity:.9; }
