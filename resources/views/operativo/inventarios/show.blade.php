@@ -10,9 +10,9 @@
                 <a href="{{ route('operativo.inventarios.index', $zona->id) }}" class="text-blue-600 hover:underline">&larr; Volver al listado</a>
                 
                 <div class="flex gap-2">
-                    <a href="{{ route('operativo.inventarios.edit', ['zona' => $zona->id, 'inventario' => $inventario->id]) }}" class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded font-bold hover:bg-indigo-200">
+                    <x-boton :href="route('operativo.inventarios.edit', ['zona' => $zona->id, 'inventario' => $inventario->id])">
                         Editar Información
-                    </a>
+                    </x-boton>
                 </div>
             </div>
 

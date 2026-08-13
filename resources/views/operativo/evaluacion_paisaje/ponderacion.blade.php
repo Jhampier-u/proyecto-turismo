@@ -119,10 +119,9 @@
             </x-tarjeta>
 
             <div class="flex justify-end gap-3">
-                <a href="{{ route('operativo.evaluacion_paisaje.edit', $zona->id) }}"
-                   class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded shadow">
+                <x-boton :href="route('operativo.evaluacion_paisaje.edit', $zona->id)">
                     ← Volver al Formulario
-                </a>
+                </x-boton>
                 <x-boton-volver :zona="$zona" />
             </div>
 

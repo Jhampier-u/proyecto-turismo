@@ -29,10 +29,13 @@
                     <div class="mt-4 flex gap-3">
                         {{-- Ahora todos pueden ir al formulario, admin
                              incluido: el enlace ya no depende del rol. --}}
-                        <a href="{{ route('operativo.evaluacion_valoracion_territorial.edit', $zona->id) }}"
-                           class="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-5 rounded shadow transition">
+                        {{-- Era el único botón amarillo del sistema. El amarillo
+                             era del panel de aviso que lo rodea, no del botón:
+                             ir al formulario es la misma acción aquí que en las
+                             otras nueve matrices, y ahora se pinta igual. --}}
+                        <x-boton :href="route('operativo.evaluacion_valoracion_territorial.edit', $zona->id)">
                             Ver Formulario de Evaluación
-                        </a>
+                        </x-boton>
                         <x-boton-volver :zona="$zona" />
                     </div>
                 </div>

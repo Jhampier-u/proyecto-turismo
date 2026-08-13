@@ -116,3 +116,35 @@ test existente tocado.
     uno a uno antes de convertir.
   - `<x-modal>`, `<x-input-label>`, `<x-text-input>` y `<x-input-error>` son
     también de Breeze y se quedan: no son botones y esta tarea no los cubre.
+
+T2: completa. Cuatro botones convertidos, no tres. Suite sigue en 578, ningún
+test tocado.
+  - **La lista de «cuatro botones sueltos» del traspaso no era de fiar, y en
+    las dos direcciones.** En vez de creérsela se hizo un barrido por
+    expresión regular sobre todas las vistas.
+  - **Sobraban dos:** los de `admin/zonas/index` no son dos sino seis, y son
+    la excepción de tamaño que FV10 respetó a propósito —`px-3 py-1.5 text-sm`
+    con colores suaves en una tabla densa—. El barrido los saca junto a los
+    de `admin/users/index`, `admin/lugares/index`, `inventarios/index`,
+    `frecuentacion/index` e `involucrados/index`: son **la misma categoría**,
+    no cuatro despistes. Convertirlos exigiría un `tamano="pequeno"` en el
+    primitivo, que no es esta tarea.
+  - **Faltaba uno, y es el que más se ve:** `<x-matriz-sin-resultados>` tenía
+    su «Ir al formulario» escrito a mano (`bg-gray-200 text-black`), y es un
+    **componente compartido por cinco matrices**. El traspaso no lo lista
+    porque su lista salió de mirar vistas, no componentes.
+  - **Corrección a mi propio diseño:** dije que el de Paisaje iba a
+    `secundario`. Al mirar las otras cuatro pantallas iguales —Concentración,
+    Irritación, Potencialidad y Valoración Territorial ya tienen ese mismo
+    «← Volver al Formulario» como `<x-boton>` primario— quedó claro que
+    `secundario` lo habría dejado distinto igual, solo que de otra manera.
+    Va a primario, como sus cuatro hermanos.
+  - El amarillo de Valoración Territorial era del panel de aviso que lo
+    rodea, no del botón: el panel sigue amarillo y el botón se une al resto.
+  - El «← Volver al listado» de `inventarios/show` se queda como enlace de
+    texto: no es un botón y convertirlo sería inventar uno.
+
+**Anotado para la Fase 1, no arreglado aquí:** las cinco páginas de
+resultados que tienen «← Volver al Formulario» al pie llevan ya un
+`<x-pestanas-matriz>` arriba con esa misma navegación. El botón duplica la
+pestaña. Es estructura de página, que es justo lo que esta fase no toca.
