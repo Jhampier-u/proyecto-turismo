@@ -1,3 +1,23 @@
+@php
+    // Los destinos de la barra, en UN sitio.
+    //
+    // Estaban escritos dos veces -una para escritorio y otra para el menú
+    // móvil- con su propio @if de rol cada uno. No es un riesgo teórico: el
+    // bloque móvil llegó a tener solo 'dashboard', y con él la aplicación era
+    // inservible en el teléfono. Un array que los dos recorren hace que
+    // añadir una sección no pueda olvidarse en una de las dos.
+    $secciones = auth()->user()->esAdmin()
+        ? [
+            ['texto' => 'Panel Admin', 'destino' => route('admin.dashboard'),     'activa' => request()->routeIs('admin.dashboard')],
+            ['texto' => 'Usuarios',    'destino' => route('admin.users.index'),   'activa' => request()->routeIs('admin.users.*')],
+            ['texto' => 'Lugares',     'destino' => route('admin.lugares.index'), 'activa' => request()->routeIs('admin.lugares.*')],
+            ['texto' => 'Zonas',       'destino' => route('admin.zonas.index'),   'activa' => request()->routeIs('admin.zonas.*')],
+        ]
+        : [
+            ['texto' => 'Mis Zonas',   'destino' => route('operativo.dashboard'), 'activa' => request()->routeIs('operativo.dashboard')],
+        ];
+@endphp
+
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
     <!-- Primary Navigation Menu -->
     <x-contenedor>
@@ -12,29 +32,11 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <!--
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
-                    </x-nav-link>
-                    !-->
-                    @if(Auth::user()->esAdmin())
-                        <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                            {{ __('Panel Admin') }}
+                    @foreach($secciones as $seccion)
+                        <x-nav-link :href="$seccion['destino']" :active="$seccion['activa']">
+                            {{ $seccion['texto'] }}
                         </x-nav-link>
-                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
-                            {{ __('Usuarios') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('admin.lugares.index')" :active="request()->routeIs('admin.lugares.*')">
-                            {{ __('Lugares') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('admin.zonas.index')" :active="request()->routeIs('admin.zonas.*')">
-                            {{ __('Zonas') }}
-                        </x-nav-link>
-                    @else
-                        <x-nav-link :href="route('operativo.dashboard')" :active="request()->routeIs('operativo.dashboard')">
-                            {{ __('Mis Zonas') }}
-                        </x-nav-link>
-                    @endif
+                    @endforeach
                 </div>
             </div>
 
@@ -86,27 +88,16 @@
 
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
-        {{-- Mismos destinos que el menú de escritorio: antes este bloque solo
-             tenía el enlace a 'dashboard' y la app era inservible en móvil. --}}
+        {{-- Recorre el MISMO $secciones que el bloque de escritorio. Antes cada
+             uno tenía su propio @if de rol, y este llegó a quedarse con solo
+             'dashboard': la aplicación era inservible en móvil y nada lo
+             señalaba. --}}
         <div class="pt-2 pb-3 space-y-1">
-            @if(Auth::user()->esAdmin())
-                <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                    {{ __('Panel Admin') }}
+            @foreach($secciones as $seccion)
+                <x-responsive-nav-link :href="$seccion['destino']" :active="$seccion['activa']">
+                    {{ $seccion['texto'] }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
-                    {{ __('Usuarios') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.lugares.index')" :active="request()->routeIs('admin.lugares.*')">
-                    {{ __('Lugares') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.zonas.index')" :active="request()->routeIs('admin.zonas.*')">
-                    {{ __('Zonas') }}
-                </x-responsive-nav-link>
-            @else
-                <x-responsive-nav-link :href="route('operativo.dashboard')" :active="request()->routeIs('operativo.dashboard')">
-                    {{ __('Mis Zonas') }}
-                </x-responsive-nav-link>
-            @endif
+            @endforeach
         </div>
 
         <!-- Responsive Settings Options -->

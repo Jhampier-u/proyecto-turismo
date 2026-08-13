@@ -42,6 +42,35 @@ class NavegacionCompletaTest extends TestCase
     }
 
     /**
+     * Escritorio y móvil ofrecen los mismos destinos.
+     *
+     * No es hipotético: el propio fichero llevaba el comentario de que el
+     * bloque móvil llegó a tener solo `dashboard` y «la app era inservible en
+     * móvil». Los enlaces estaban escritos dos veces, así que
+     * desincronizarlos era cuestión de que alguien tocara uno.
+     *
+     * Se mira el fuente y no las dos páginas servidas porque el defecto no es
+     * que pinten distinto hoy —hoy coinciden—: es que puedan divergir mañana.
+     * Lo que hay que fijar es que exista UNA fuente, no que dos copias sean
+     * iguales por ahora.
+     */
+    public function test_los_destinos_del_navbar_se_deciden_en_un_solo_sitio(): void
+    {
+        $fuente = (string) file_get_contents(
+            resource_path('views/layouts/navigation.blade.php')
+        );
+
+        $sinComentarios = preg_replace('/\{\{--.*?--\}\}/s', '', $fuente);
+
+        $this->assertSame(
+            1,
+            preg_match_all('/esAdmin\(\)/', $sinComentarios),
+            'El navbar decide el perfil más de una vez: los destinos han vuelto a estar '
+            . 'escritos dos veces, que es como el menú móvil se quedó atrás.'
+        );
+    }
+
+    /**
      * Una página es una vista que monta el layout. Los componentes y parciales
      * no lo hacen, y no deben traer migas: las pinta la página que los incluye,
      * y repetirlas daría dos rastros en la misma pantalla.
