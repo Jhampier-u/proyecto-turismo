@@ -49,6 +49,36 @@
             </div>
             @endif
 
+            {{-- ═══ CIFRAS DE CONJUNTO ═══════════════════════════════════════════
+                 Debajo de lo accionable, no encima: el siguiente paso sigue
+                 siendo lo primero que se lee. Y solo con dos o más zonas —con
+                 una, la franja repetiría lo que su propia tarjeta ya dice—.
+
+                 Misma rejilla que el panel de administración (grid
+                 md:grid-cols-3 sobre <x-tarjeta>): las dos portadas del
+                 sistema quedan con la misma forma sin inventar un primitivo
+                 nuevo. --}}
+            @if($resumen['zonas'] >= 2)
+            <div id="zonas-kpis" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <x-tarjeta>
+                    <p class="text-3xl font-semibold text-gray-900">{{ $resumen['zonas'] }}</p>
+                    <h3 class="text-lg font-medium text-gray-800 mt-1">Zonas asignadas</h3>
+                </x-tarjeta>
+
+                <x-tarjeta>
+                    <p class="text-3xl font-semibold text-gray-900">{{ $resumen['validadas'] }}</p>
+                    <h3 class="text-lg font-medium text-gray-800 mt-1">Matrices validadas</h3>
+                    <p class="text-sm text-gray-600 mt-2">de {{ $resumen['matrices'] }} en total</p>
+                </x-tarjeta>
+
+                <x-tarjeta>
+                    <p class="text-3xl font-semibold text-gray-900">{{ $resumen['terminadas'] }}</p>
+                    <h3 class="text-lg font-medium text-gray-800 mt-1">Zonas terminadas</h3>
+                    <p class="text-sm text-gray-600 mt-2">de {{ $resumen['zonas'] }} asignadas</p>
+                </x-tarjeta>
+            </div>
+            @endif
+
             <div class="flex justify-end mb-4">
                 <x-conmutador-vista modelo="vista" />
             </div>

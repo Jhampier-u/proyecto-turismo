@@ -47,6 +47,19 @@ class DashboardController extends Controller
         // escalaba con la lista de zonas del jefe.
         $progreso = EstadoZona::progresoDe($zonas);
 
+        // Las cifras de conjunto, calculadas aquí y no en un @php de la vista:
+        // el panel de admin ya recibe su $resumen así, y las dos portadas del
+        // sistema se parecen también por dentro.
+        $resumen = [
+            'zonas'      => $zonas->count(),
+            'validadas'  => array_sum(array_column($progreso, 'hechas')),
+            'matrices'   => array_sum(array_column($progreso, 'total')),
+            'terminadas' => count(array_filter(
+                $progreso,
+                fn(array $p) => $p['total'] > 0 && $p['hechas'] === $p['total']
+            )),
+        ];
+
         // proximoPaso() recibe $progreso ya calculado -pedirlo dos veces
         // duplicaría las consultas de progresoDe() sin ganar nada- y la
         // colección en el orden POR DEFECTO, no en el que pida la URL:
@@ -64,7 +77,7 @@ class DashboardController extends Controller
 
         $zonas = $this->ordenar($zonas, $progreso, $orden, $dir);
 
-        return view('operativo.dashboard', compact('zonas', 'progreso', 'proximoPaso', 'orden', 'dir'));
+        return view('operativo.dashboard', compact('zonas', 'progreso', 'proximoPaso', 'resumen', 'orden', 'dir'));
     }
 
     /**

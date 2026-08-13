@@ -201,4 +201,89 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertSee('Zona identificable');
     }
+
+    /** El trozo de la franja de cifras, aislado por su id. */
+    private function franja(string $html): string
+    {
+        $inicio = strpos($html, 'id="zonas-kpis"');
+        $this->assertNotFalse($inicio, 'No se encontró la franja de cifras.');
+
+        return substr($html, $inicio, (int) strpos($html, 'id="zonas-lista"') - $inicio);
+    }
+
+    /**
+     * Con dos zonas, la franja suma: las matrices validadas de las dos sobre
+     * el total de las dos. Es la cifra que hoy obliga a sumar barras a ojo.
+     */
+    public function test_la_franja_suma_las_cifras_de_todas_las_zonas(): void
+    {
+        $primera = $this->crearZona('Zona primera');
+        $segunda = $this->crearZona('Zona segunda');
+
+        \App\Models\EvaluacionFit::create([
+            'zona_id' => $primera->id, 'user_id' => $this->jefe->id, 'estado' => 'confirmado',
+        ]);
+        \App\Models\EvaluacionFet::create([
+            'zona_id' => $primera->id, 'user_id' => $this->jefe->id, 'estado' => 'confirmado',
+        ]);
+        \App\Models\EvaluacionFit::create([
+            'zona_id' => $segunda->id, 'user_id' => $this->jefe->id, 'estado' => 'confirmado',
+        ]);
+
+        $franja = $this->franja($this->actingAs($this->jefe)->get('/mis-zonas')->assertOk()->getContent());
+
+        $this->assertStringContainsString('Zonas asignadas', $franja);
+        $this->assertStringContainsString('>2</p>', $franja);
+        $this->assertStringContainsString('Matrices validadas', $franja);
+        $this->assertStringContainsString('>3</p>', $franja);
+        $this->assertStringContainsString('de 20 en total', $franja);
+    }
+
+    /**
+     * Con una sola zona no hay franja: repetiría lo que su propia tarjeta ya
+     * dice, y ocupando el sitio de lo accionable.
+     */
+    public function test_con_una_sola_zona_no_se_pinta_la_franja(): void
+    {
+        $this->crearZona('Zona única');
+
+        $this->actingAs($this->jefe)
+            ->get('/mis-zonas')
+            ->assertOk()
+            ->assertDontSee('id="zonas-kpis"', false)
+            ->assertDontSee('Zonas asignadas');
+    }
+
+    /**
+     * «Terminada» es la zona cuyas diez matrices están validadas, y se cuenta
+     * sobre el desglose, no sobre una insignia inventada en la tarjeta.
+     */
+    public function test_la_franja_cuenta_las_zonas_terminadas(): void
+    {
+        $terminada = $this->crearZona('Zona terminada');
+        $this->crearZona('Zona a medias');
+
+        // Mismo patrón que EstadoZonaTest::test_con_todo_validado_no_hay_siguiente,
+        // y por el mismo motivo: las columnas de criterio salen del esquema
+        // para no repetir aquí una lista de campos que se desincronizaría, y
+        // rellenarlas evita chocar con cualquier NOT NULL de las diez tablas.
+        foreach (\App\Matrices\Registro::matrices() as $entrada) {
+            $modelo = $entrada['modelo'];
+
+            $columnas = array_filter(
+                \Illuminate\Support\Facades\Schema::getColumnListing((new $modelo())->getTable()),
+                fn(string $columna) => \App\Servicios\EstadoZona::esColumnaDeCriterio($columna)
+            );
+
+            $modelo::create(
+                ['zona_id' => $terminada->id, 'user_id' => $this->jefe->id, 'estado' => 'confirmado']
+                + array_fill_keys($columnas, 3)
+            );
+        }
+
+        $franja = $this->franja($this->actingAs($this->jefe)->get('/mis-zonas')->assertOk()->getContent());
+
+        $this->assertStringContainsString('Zonas terminadas', $franja);
+        $this->assertStringContainsString('>1</p>', $franja);
+    }
 }
