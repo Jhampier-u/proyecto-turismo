@@ -35,3 +35,32 @@ que distinga lo que nadie ha abierto de lo que espera validación.
 T1 el desglose en el servicio · T2 la ordenación en el servidor · T3 la franja
 de cifras · T4 el desglose en las dos maquetaciones · T5 la tabla ordenable ·
 T6 cero zonas · T7 revisión y traspaso.
+
+## Estado al 13 de agosto — la sesión se cortó en mitad de la rama
+
+**Seis tareas de siete, hechas y comiteadas. La rama NO está fusionada.**
+
+| Tarea | Commit | Suite | Revisión |
+|---|---|---|---|
+| T1 el desglose en el servicio | `7b3c247` | 611 | ✅ limpia |
+| T2 la ordenación en el servidor | `7ffe6a6` | 619 | ✅ limpia |
+| T3 la franja de cifras | `272453c` | 622 | ✅ limpia |
+| T4 el desglose en las maquetaciones | `c0910ed` | 626 | ✅ limpia |
+| T5 la tabla ordenable | `3fb0732` | 631 | ✅ limpia |
+| T6 cero zonas | `1bcffd1` | **632** | **pendiente** — el paquete quedó armado y la sesión murió antes de que volviera el revisor |
+| T7 revisión de rama y traspaso | — | — | **entera, sin empezar** |
+
+El recuento cierra en **632 y no en 633**: la tabla del plan traía un error
+aritmético —contaba nueve tests en T2 donde el brief lista ocho— que se detectó
+al ejecutar T2 y arrastra un uno de menos desde ahí. No falta ningún test.
+
+**Para retomar**, el detalle largo está en
+`.superpowers/sdd/2026-08-13-dashboard-mis-zonas/progress.md`: los rulings de
+cada tarea, los seis menores aplazados que la revisión de rama debe ver, y los
+cinco pasos de la T7. Los `task-N-report.md` de esa carpeta son el porqué de
+cada commit.
+
+Lo que queda, en corto: **mirar la página de verdad** (en las cuatro últimas
+ramas ese paso encontró lo que ningún test veía), **revisar la rama entera**
+contra `0cd8ecf`, correr la suite, escribir el traspaso y preguntar por la
+fusión.

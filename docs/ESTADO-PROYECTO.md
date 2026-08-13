@@ -1526,6 +1526,82 @@ deshacerse:
 que los destinos del navbar se deciden en un solo sitio, y que las zonas del
 selector también, ahora que escritorio y móvil las recorren los dos.
 
+### Rama `dashboard-mis-zonas` — Fase 2 del rediseño, EN CURSO y SIN FUSIONAR (13 de agosto)
+
+**La sesión se cortó en mitad de la rama.** Seis tareas de siete están hechas,
+comiteadas y con la suite en verde; la séptima —revisión de rama, mirar la
+página de verdad y este traspaso— está entera por hacer. La rama está subida a
+GitHub para poder retomarla desde otra máquina; **no se ha fusionado nada**.
+
+Spec y plan en `docs/superpowers/`, siete tareas. Suite: **608 → 632** (medida
+sobre `1bcffd1`, 3973 aserciones, ~50 s). Base de rama: `0cd8ecf`.
+
+| Tarea | Commit | Suite |
+|---|---|---|
+| T1 el desglose en el servicio | `7b3c247` | 611 |
+| T2 la ordenación en el servidor | `7ffe6a6` | 619 |
+| T3 la franja de cifras | `272453c` | 622 |
+| T4 el desglose en las dos maquetaciones | `c0910ed` | 626 |
+| T5 la tabla ordenable | `3fb0732` | 631 |
+| T6 cero zonas | `1bcffd1` | 632 |
+| T7 revisión y traspaso | — | pendiente |
+
+Las cinco primeras pasaron revisión limpia. **La de T6 no llegó a correr**: el
+paquete quedó armado y la sesión murió antes de que volviera el revisor.
+
+Qué hace la rama: `progresoDe()` pasa a devolver `hechas`, `borradores`,
+`sin_empezar` y `total` —el estado de una zona es un desglose, no una
+fracción—; el orden de «Mis Zonas» se pide por URL y **lo resuelve el
+servidor** (Playwright no está instalado, así que con Alpine sería invisible
+para la suite); una franja de cifras de conjunto arriba; la vista de lista pasa
+a ser una tabla con cabeceras ordenables; y sin zonas no se pinta el conmutador
+de maquetación, que no tendría nada que conmutar.
+
+#### Lo que apareció al implementar y el plan no decía
+
+- **Un barrido de mi plan se dejó dos consumidores.** El de `hechas / total`
+  encontró `admin/zonas/index` y `ConmutadorVistaTest`, y no vio que
+  `PaisajeTest` y `ValoracionTerritorialTest` afirmaban `assertSee('0 / 10')`
+  contra el dashboard. **Es la cuarta vez en este repositorio que un barrido
+  falla por cómo se buscó y no por lo que había:** busqué la clave `'hechas'`
+  en el código y no la cadena renderizada en los tests. Los dos se actualizaron
+  al dato que pasa a ser (`'10 sin empezar'`), no se relajaron —la zona es
+  nueva, así que las diez sin empezar son un dato real que fallaría con el
+  dashboard roto—, pero son dos tests afirmando sobre una cadena distinta de la
+  que eligió su autor.
+- **Una clase de Tailwind construida por concatenación**, que es justo lo que
+  la restricción global de la rama prohíbe porque el purgado se las lleva.
+  `<x-cabecera-ordenable>` interpolaba `'text-' . $alineacion` en una prop que
+  no usaba nadie. Hoy no se rompía **de milagro**: `text-left` aparece literal
+  en dos vistas de admin y el purgado la conservaba por ellas. Arreglado en T6.
+- **La tabla de recuento del plan traía un error aritmético** —nueve tests en
+  T2 donde el brief lista ocho—, así que las cifras esperadas de T3 en adelante
+  iban una alta. El total real es 632, no 633. No falta ningún test.
+- **`scripts/review-package` y `scripts/sdd-workspace` machacan
+  `.superpowers/sdd/.gitignore`**, dejándolo en `*` y borrando los comentarios
+  que explican qué de esa carpeta viaja con el repositorio. Pasó dos veces; se
+  dejó de usar el script y los paquetes de revisión se arman a mano.
+
+#### Restos que la rama deja escritos y no toca
+
+- **Renombrar `hechas` a `validadas`**, cuando una fase entre de verdad en
+  admin. Aquí no se toca ninguna pantalla de admin, por restricción global.
+- **El `📍` de la tarjeta**, anterior a la Fase 0; se arregla donde se arreglen
+  los demás.
+- **Una premisa comprobada que no generó trabajo:** «Mis Zonas» elige zonas por
+  rol y el selector de la barra hace la unión. Hoy coinciden porque
+  `Admin\ZonaController` valida los roles; el día que esa validación se afloje,
+  discreparán.
+
+#### Para retomar
+
+`.superpowers/sdd/progress.md` tiene el resumen y
+`.superpowers/sdd/2026-08-13-dashboard-mis-zonas/progress.md` el detalle: los
+rulings de cada tarea y los **seis menores aplazados** que la revisión de rama
+debe ver. Los `task-N-report.md` de esa carpeta son el porqué de cada commit.
+El guion de la T7 está en el plan y en `task-7-brief.md` (que no viaja: se
+recorta del plan).
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -1925,6 +2001,9 @@ niveles de anidamiento— y ninguno se movió con el cambio.
       zona —y funciona en móvil, donde un atajo de teclado no sirve de nada—.
     - **Fase 2 — dashboard / Mis Zonas.** KPIs en rejilla, tarjetas de zona con
       cabecera visual y métricas, y una tabla ordenable para la vista de lista.
+      **EN CURSO en la rama `dashboard-mis-zonas`, sin fusionar** (§3): seis
+      tareas de siete hechas, suite **608 → 632**. Queda la T7 —revisión de la
+      rama entera, mirar la página de verdad y cerrar el traspaso—.
     - **Fase 3 — detalle de zona** en dos columnas, con panel lateral de
       información de la zona.
     - **Fase 4 — formularios.** Consolidar el banner de borrador y la escala de
@@ -2010,8 +2089,13 @@ La base es SQLite y el fichero **no viaja en el repositorio**: hay que crear
 `database/database.sqlite` vacío antes del `migrate`, o Laravel no encuentra la
 conexión.
 
-**No hay ninguna rama que retomar: todo está fusionado en `main`**, incluidas las
-dos partes de dashboard-y-formularios.
+**Hay una rama que retomar: `dashboard-mis-zonas`**, la Fase 2 del rediseño, con
+seis tareas de siete hechas y sin fusionar (§3). Todo lo demás sí está fusionado
+en `main`, incluidas las dos partes de dashboard-y-formularios.
+
+```bash
+git checkout dashboard-mis-zonas   # suite: 632
+```
 
 En `main`, comprobar que la suite da **608 tests** antes de tocar nada. Si da
 menos, algo no llegó; si fallan unos 57 de golpe, faltó el `npm run build`
