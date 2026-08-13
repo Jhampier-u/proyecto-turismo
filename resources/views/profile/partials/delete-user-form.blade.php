@@ -9,10 +9,12 @@
         </p>
     </header>
 
-    <x-danger-button
+    <x-boton
+        variante="peligro"
+        type="button"
         x-data=""
         x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
-    >{{ __('Delete Account') }}</x-danger-button>
+    >{{ __('Delete Account') }}</x-boton>
 
     <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
         <form method="post" action="{{ route('profile.destroy') }}" class="p-6">
@@ -42,13 +44,20 @@
             </div>
 
             <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
+                {{-- type="button" a mano, y no es redundante: <x-boton> lleva
+                     type="submit" por defecto -nació para sustituir
+                     <button type="submit"> sin cambiar nada- mientras que el
+                     <x-secondary-button> de Breeze que había aquí llevaba
+                     type="button". Este botón vive DENTRO del <form> que borra
+                     la cuenta, así que sin esta línea cancelar la borra.
+                     BotonesPerfilTest lo ata; se comprobó quitándolo. --}}
+                <x-boton variante="secundario" type="button" x-on:click="$dispatch('close')">
                     {{ __('Cancel') }}
-                </x-secondary-button>
+                </x-boton>
 
-                <x-danger-button class="ms-3">
+                <x-boton variante="peligro" class="ms-3">
                     {{ __('Delete Account') }}
-                </x-danger-button>
+                </x-boton>
             </div>
         </form>
     </x-modal>
