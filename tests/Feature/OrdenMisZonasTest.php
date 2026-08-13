@@ -232,4 +232,79 @@ class OrdenMisZonasTest extends TestCase
             'El panel señala siempre a la misma zona, ordene la tabla como ordene.'
         );
     }
+
+    /**
+     * La tabla es una tabla: <thead> y <th scope="col">, cinco columnas. Sin
+     * scope, un lector de pantalla no sabe a qué se refiere cada cabecera.
+     */
+    public function test_la_vista_lista_es_una_tabla_con_cabeceras(): void
+    {
+        $this->crearZona('Alfa');
+
+        $lista = $this->maquetacion($this->html(), 'zonas-lista');
+
+        $this->assertStringContainsString('<thead', $lista);
+        $this->assertSame(5, substr_count($lista, '<th scope="col"'), 'Zona, Lugar, Estado, Progreso y Acciones.');
+    }
+
+    /**
+     * Las cabeceras ordenables son ENLACES, no botones con JavaScript: es lo
+     * que hace que el orden se pueda compartir en una URL y que esta suite
+     * pueda verlo. Tres ordenan -nombre, lugar y progreso-; descripción y
+     * acciones no.
+     */
+    public function test_solo_tres_cabeceras_ordenan(): void
+    {
+        $this->crearZona('Alfa');
+
+        $lista = $this->maquetacion($this->html(), 'zonas-lista');
+
+        $this->assertSame(3, substr_count($lista, 'orden='), 'Tres cabeceras ordenables, ni una más.');
+        $this->assertStringNotContainsString('<button', $lista);
+    }
+
+    /**
+     * aria-sort solo en la columna activa: es lo que un lector de pantalla
+     * anuncia, y ponerlo en las tres diría que la tabla está ordenada por
+     * tres columnas a la vez.
+     */
+    public function test_solo_la_columna_activa_anuncia_su_orden(): void
+    {
+        $this->crearZona('Alfa');
+
+        $lista = $this->maquetacion($this->html('/mis-zonas?orden=lugar&dir=desc'), 'zonas-lista');
+
+        $this->assertSame(1, substr_count($lista, 'aria-sort='));
+        $this->assertStringContainsString('aria-sort="descending"', $lista);
+    }
+
+    /**
+     * Pulsar la columna activa invierte el sentido; pulsar otra empieza en
+     * ascendente, sea cual sea. Una regla sin excepciones por columna: que
+     * «progreso» arrancara en descendente porque «es lo que se querría» haría
+     * que la tabla se comportara distinto según dónde pulses.
+     *
+     * El & del href sale escapado como &amp; porque el enlace se pinta con
+     * {{ }}, que es lo correcto en HTML.
+     */
+    public function test_la_columna_activa_ofrece_invertir_y_las_demas_ascendente(): void
+    {
+        $this->crearZona('Alfa');
+
+        $lista = $this->maquetacion($this->html(), 'zonas-lista');
+
+        $this->assertStringContainsString('orden=nombre&amp;dir=desc', $lista, 'La activa invierte.');
+        $this->assertStringContainsString('orden=lugar&amp;dir=asc', $lista, 'Las demás arrancan en asc.');
+        $this->assertStringContainsString('orden=progreso&amp;dir=asc', $lista, 'Progreso también, sin excepción.');
+    }
+
+    /** El desglose está también en la tabla: las dos maquetaciones llevan lo mismo. */
+    public function test_la_tabla_lleva_el_desglose_por_estado(): void
+    {
+        $this->crearZona('Alfa');
+
+        $lista = $this->maquetacion($this->html(), 'zonas-lista');
+
+        $this->assertStringContainsString('10 sin empezar', $lista);
+    }
 }

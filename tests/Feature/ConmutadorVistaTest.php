@@ -106,7 +106,11 @@ class ConmutadorVistaTest extends TestCase
         // test no colisiona: el panel no pinta el lugar, la descripción ni
         // la fracción de progreso, solo el nombre.
         $this->assertSame(3, substr_count($html, $this->zona->nombre), 'El nombre debe aparecer una vez por maquetación, más una en el panel de siguiente paso.');
-        $this->assertSame(2, substr_count($html, '📍 ' . $this->zona->lugar->nombre), 'El lugar debe aparecer una vez por maquetación.');
+        // Sobre el nombre del lugar y no sobre el «📍 »: en la tabla el lugar
+        // es una columna con cabecera y el emoji ahí sobra, pero el dato
+        // tiene que seguir estando en las dos maquetaciones, que es lo que
+        // este test defiende.
+        $this->assertSame(2, substr_count($html, $this->zona->lugar->nombre), 'El lugar debe aparecer una vez por maquetación.');
         $this->assertSame(2, substr_count($html, 'Zona costera con senderos y miradores.'), 'La descripción debe aparecer una vez por maquetación.');
         $this->assertSame(2, substr_count($html, $desglose), 'El desglose debe aparecer una vez por maquetación.');
     }
