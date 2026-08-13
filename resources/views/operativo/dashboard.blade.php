@@ -99,12 +99,12 @@
                             </p>
                         </div>
 
-                        <div class="w-40 shrink-0">
+                        <div class="w-56 shrink-0">
                             <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
                                 <div class="h-full bg-green-500 rounded-full"
                                      style="width: {{ $p['total'] > 0 ? round($p['hechas'] / $p['total'] * 100) : 0 }}%"></div>
                             </div>
-                            <p class="text-sm text-gray-600 mt-1">{{ $p['hechas'] }} / {{ $p['total'] }}</p>
+                            <x-desglose-estados :progreso="$p" class="mt-2" />
                         </div>
 
                         <div class="flex gap-2 shrink-0">
@@ -148,14 +148,12 @@
                         </p>
 
                         @php $p = $progreso[$zona->id]; @endphp
-                        <div class="flex items-center gap-3 mt-5">
-                            <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div class="mt-5">
+                            <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
                                 <div class="h-full bg-green-500 rounded-full"
                                      style="width: {{ $p['total'] > 0 ? round($p['hechas'] / $p['total'] * 100) : 0 }}%"></div>
                             </div>
-                            <span class="text-sm text-gray-600 whitespace-nowrap">
-                                {{ $p['hechas'] }} / {{ $p['total'] }}
-                            </span>
+                            <x-desglose-estados :progreso="$p" class="mt-3" />
                         </div>
 
                         {{-- Dos botones, no siete. El resto vive dentro de la zona.

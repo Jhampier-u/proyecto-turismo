@@ -85,10 +85,18 @@ class ConmutadorVistaTest extends TestCase
 
         $html = $this->actingAs($this->jefe)->get('/mis-zonas')->assertOk()->getContent();
 
-        // Mismo cálculo que usa el controlador, para no inventar un número
-        // de progreso que luego no coincida con el que pinta la vista.
+        // El «3 / 10» dejó de ser el dato que llevan las dos maquetaciones:
+        // ahora es el desglose por estado, que distingue lo que nadie ha
+        // abierto de lo que espera validación. El test no se relaja -sigue
+        // exigiendo el mismo dato en las dos-, se actualiza a lo que el dato
+        // pasa a ser.
+        //
+        // Se compara sobre la insignia que una zona recién creada tiene
+        // seguro -las diez sin empezar-, no sobre las tres: las otras dos no
+        // se pintan cuando están a cero, y afirmar sobre algo que esta zona
+        // no tiene mediría el <x-desglose-estados> de otro caso.
         $p = EstadoZona::progresoDe(collect([$this->zona]))[$this->zona->id];
-        $progreso = "{$p['hechas']} / {$p['total']}";
+        $desglose = "{$p['sin_empezar']} sin empezar";
 
         // 3, no 2, desde la Tarea 3 del plan de dashboard: una zona recién
         // creada tiene progreso pendiente, así que el panel nuevo de
@@ -100,7 +108,7 @@ class ConmutadorVistaTest extends TestCase
         $this->assertSame(3, substr_count($html, $this->zona->nombre), 'El nombre debe aparecer una vez por maquetación, más una en el panel de siguiente paso.');
         $this->assertSame(2, substr_count($html, '📍 ' . $this->zona->lugar->nombre), 'El lugar debe aparecer una vez por maquetación.');
         $this->assertSame(2, substr_count($html, 'Zona costera con senderos y miradores.'), 'La descripción debe aparecer una vez por maquetación.');
-        $this->assertSame(2, substr_count($html, $progreso), 'El progreso debe aparecer una vez por maquetación.');
+        $this->assertSame(2, substr_count($html, $desglose), 'El desglose debe aparecer una vez por maquetación.');
     }
 
     public function test_la_lista_del_admin_trae_las_dos_maquetaciones(): void
