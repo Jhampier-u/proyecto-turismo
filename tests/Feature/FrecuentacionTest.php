@@ -163,13 +163,36 @@ class FrecuentacionTest extends TestCase
             ->assertDontSee('falta la Superficie Territorial');
     }
 
+    /**
+     * «Editable» de verdad, no solo «presente».
+     *
+     * Este test se llamaba así comprobando unicamente que el campo existía y
+     * que su formulario apuntaba a la ruta correcta. El campo lleva
+     * `@disabled(! $puedeEditar)`, así que podía llegar deshabilitado y el
+     * test seguiría en verde afirmando por su nombre que se puede escribir en
+     * él. Ahora mira el atributo, con el mismo recorte que usan los dos tests
+     * del final de este fichero: la clase Tailwind `disabled:bg-gray-100` está
+     * SIEMPRE, activo o no, así que buscar «disabled» a secas no distingue
+     * nada y solo la parte de la etiqueta anterior a `class=` puede llevar el
+     * atributo HTML real.
+     */
     public function test_el_campo_de_superficie_sigue_siendo_editable(): void
     {
-        $this->actingAs($this->jefe)
+        $html = $this->actingAs($this->jefe)
             ->get($this->urlIndex($this->zona))
             ->assertOk()
             ->assertSee('name="st"', false)
-            ->assertSee($this->urlSuperficie(), false);
+            ->assertSee($this->urlSuperficie(), false)
+            ->getContent();
+
+        preg_match('/<input[^>]*name="st"[^>]*>/', $html, $campoSt);
+        $this->assertNotEmpty($campoSt, 'No se encontró el campo de la Superficie Territorial.');
+        [$antesDeClase] = explode('class=', $campoSt[0]);
+        $this->assertStringNotContainsString(
+            'disabled',
+            $antesDeClase,
+            'El campo de la ST llega deshabilitado, así que no es editable por más que el nombre del test lo diga.'
+        );
     }
 
     /**
