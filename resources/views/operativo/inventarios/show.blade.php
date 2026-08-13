@@ -6,6 +6,8 @@
     </x-slot>
 
     <div class="py-12">
+        <x-migas :zona="$zona" clave="inventario" :actual="$inventario->nombre_recurso" />
+
             <div class="mb-6 flex justify-between">
                 <a href="{{ route('operativo.inventarios.index', $zona->id) }}" class="text-blue-600 hover:underline">&larr; Volver al listado</a>
                 

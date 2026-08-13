@@ -6,6 +6,8 @@
     </x-slot>
 
     <div class="py-12">
+        <x-migas :zona="$zona" clave="inventario" actual="Nuevo recurso" />
+
             <x-tarjeta class="overflow-hidden">
 
                 <form method="POST" action="{{ route('operativo.inventarios.store', $zona->id) }}" enctype="multipart/form-data">
