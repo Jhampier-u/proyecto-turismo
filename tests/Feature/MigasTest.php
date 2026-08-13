@@ -109,6 +109,35 @@ class MigasTest extends TestCase
         );
     }
 
+    /**
+     * Una matriz derivada no enlaza a un formulario que no tiene.
+     *
+     * `vtt` es de tipo 'resultado': se calcula a partir de FIT y FET y no
+     * tiene pantalla de edición, así que su entrada del Registro trae `ver` y
+     * NO trae `editar`. Pedirle `editar` reventaba con un aviso de índice
+     * indefinido, que es un error feo por una situación legítima.
+     *
+     * El tramo se pinta igual —el nombre hace falta para saber dónde estás—
+     * pero sin enlace.
+     */
+    public function test_una_matriz_sin_formulario_nombra_pero_no_enlaza(): void
+    {
+        $html = $this->migas($this->jefe, '<x-migas :zona="$zona" clave="vtt" actual="Resultados" />');
+
+        $this->assertStringContainsString(
+            \App\Matrices\Registro::ENTRADAS['vtt']['nombre'],
+            $html
+        );
+
+        // No hay ruta 'editar' que ofrecer, así que tampoco hay <a> para ese
+        // tramo: el único enlace que queda por encima es el de la zona.
+        $this->assertSame(
+            2,
+            substr_count($html, '<a href'),
+            'La miga de una matriz derivada enlaza a algo, y no debería: solo la raíz y la zona son enlaces.'
+        );
+    }
+
     public function test_una_clave_desconocida_revienta(): void
     {
         $this->expectException(\Illuminate\View\ViewException::class);

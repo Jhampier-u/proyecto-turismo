@@ -47,10 +47,19 @@
     }
 
     if ($clave !== null) {
-        $entrada  = \App\Matrices\Registro::ENTRADAS[$clave];
+        $entrada = \App\Matrices\Registro::ENTRADAS[$clave];
+
+        // `editar` y no `ver` porque la miga lleva al sitio donde se trabaja,
+        // no al de solo lectura. Y con `?? null` porque no todas las entradas
+        // lo tienen: `vtt` es de tipo 'resultado' -se calcula a partir de FIT
+        // y FET- y no tiene formulario al que llevar. Ese tramo se pinta
+        // igual, porque el nombre hace falta para saber dónde estás, pero sin
+        // enlace: es más honesto que inventarle un destino.
+        $rutaEditar = $entrada['rutas']['editar'] ?? null;
+
         $tramos[] = [
             'texto'   => $entrada['nombre'],
-            'destino' => route($entrada['rutas']['editar'], $zona->id),
+            'destino' => $rutaEditar ? route($rutaEditar, $zona->id) : null,
         ];
     }
 
@@ -58,9 +67,14 @@
         $tramos[] = ['texto' => $actual, 'destino' => null];
     }
 
-    // El último nunca es enlace, lo haya puesto quien lo haya puesto: un enlace
+    // Cuál es la hoja se decide por posición y NO por «no tiene destino»: son
+    // dos cosas distintas desde que hay matrices sin formulario. Confundirlas
+    // marcaría un tramo intermedio como la página actual.
+    $ultimo = array_key_last($tramos);
+
+    // La hoja nunca es enlace, lo haya puesto quien lo haya puesto: un enlace
     // a la página en la que ya estás no hace nada y se pulsa igual.
-    $tramos[array_key_last($tramos)]['destino'] = null;
+    $tramos[$ultimo]['destino'] = null;
 @endphp
 
 <nav aria-label="Migas de pan" {{ $attributes->merge(['class' => 'mb-4']) }}>
@@ -75,8 +89,13 @@
                     <a href="{{ $tramo['destino'] }}" class="hover:text-gray-900 hover:underline">
                         {{ $tramo['texto'] }}
                     </a>
-                @else
+                @elseif($i === $ultimo)
                     <span class="font-medium text-gray-900" aria-current="page">{{ $tramo['texto'] }}</span>
+                @else
+                    {{-- Tramo intermedio sin destino: una matriz derivada, que
+                         no tiene formulario al que llevar. Ni enlace ni
+                         aria-current, porque no es la página actual. --}}
+                    <span>{{ $tramo['texto'] }}</span>
                 @endif
             </li>
         @endforeach
