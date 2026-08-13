@@ -184,6 +184,78 @@ class MigasTest extends TestCase
         );
     }
 
+    /**
+     * Ningún tramo enlaza a la página en la que ya estás, no solo la hoja.
+     *
+     * La ruta `editar` de una matriz ES la página del formulario, así que en
+     * los nueve formularios el tramo de la matriz apuntaba a la pantalla que se
+     * estaba viendo: «FIT» recargaba lo que ya tenías delante. La regla ya
+     * estaba escrita en el componente —un enlace a donde ya estás no hace nada
+     * y se pulsa igual— pero solo se aplicaba al último tramo.
+     *
+     * Se mira solo dentro del rastro: las pestañas de debajo son otro
+     * componente y otra conversación.
+     */
+    public function test_ningun_tramo_enlaza_a_la_pagina_en_la_que_ya_estas(): void
+    {
+        $aqui = route('operativo.evaluacion_fit.edit', $this->zona->id);
+
+        $rastro = $this->rastro(
+            $this->actingAs($this->jefe)->get($aqui)->assertOk()->getContent()
+        );
+
+        $this->assertStringContainsString(
+            \App\Matrices\Registro::ENTRADAS['fit']['nombre'],
+            $rastro,
+            'El tramo de la matriz tiene que seguir pintándose: el nombre es lo que dice dónde estás.'
+        );
+
+        $this->assertStringNotContainsString(
+            'href="' . $aqui . '"',
+            $rastro,
+            'Un tramo de la miga enlaza a la página que ya se está viendo.'
+        );
+    }
+
+    /**
+     * Contraparte del anterior: cuando el tramo lleva a OTRA página, sigue
+     * siendo enlace. Sin esto, un componente que no pintara nunca el enlace de
+     * la matriz pasaría los dos.
+     *
+     * Se usa «nuevo recurso» del inventario porque su tramo padre —el índice—
+     * es una página distinta de la que se está viendo, y porque no hace falta
+     * sembrar una evaluación para llegar a ella.
+     */
+    public function test_un_tramo_que_lleva_a_otra_pagina_si_es_enlace(): void
+    {
+        $rastro = $this->rastro(
+            $this->actingAs($this->jefe)
+                ->get(route('operativo.inventarios.create', $this->zona->id))
+                ->assertOk()
+                ->getContent()
+        );
+
+        $this->assertStringContainsString(
+            'href="' . route('operativo.inventarios.index', $this->zona->id) . '"',
+            $rastro,
+            'El tramo del inventario debería llevar a su índice, que es otra página.'
+        );
+    }
+
+    /**
+     * El rastro y nada más. Una página entera trae enlaces de las pestañas, de
+     * la barra y de las tarjetas; afirmar sobre todos ellos mediría cualquier
+     * cosa menos la miga.
+     */
+    private function rastro(string $html): string
+    {
+        $encontrado = preg_match('/<nav aria-label="Migas de pan".*?<\/nav>/s', $html, $coincidencias);
+
+        $this->assertSame(1, $encontrado, 'La página no trae ningún rastro de migas que revisar.');
+
+        return $coincidencias[0];
+    }
+
     public function test_una_clave_desconocida_revienta(): void
     {
         $this->expectException(\Illuminate\View\ViewException::class);

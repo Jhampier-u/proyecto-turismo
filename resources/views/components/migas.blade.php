@@ -75,6 +75,20 @@
     // La hoja nunca es enlace, lo haya puesto quien lo haya puesto: un enlace
     // a la página en la que ya estás no hace nada y se pulsa igual.
     $tramos[$ultimo]['destino'] = null;
+
+    // Y la regla vale para TODO el rastro, no solo para la hoja. La ruta
+    // `editar` de una matriz es la página del formulario, así que en los nueve
+    // formularios el tramo de la matriz apuntaba a la pantalla que se estaba
+    // viendo: «Mis Zonas / Zona / FIT / Formulario», y pulsar «FIT» recargaba
+    // lo mismo. El tramo se sigue pintando -el nombre dice dónde estás- pero
+    // sin enlace, igual que una matriz derivada.
+    $aqui = url()->current();
+
+    foreach ($tramos as $i => $tramo) {
+        if ($tramo['destino'] === $aqui) {
+            $tramos[$i]['destino'] = null;
+        }
+    }
 @endphp
 
 <nav aria-label="Migas de pan" {{ $attributes->merge(['class' => 'mb-4']) }}>
