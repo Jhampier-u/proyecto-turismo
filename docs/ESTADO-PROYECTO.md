@@ -3,14 +3,15 @@
 **Fecha:** 15 de agosto de 2026 (actualizado al cerrar la Fase 3 del rediseño)
 **Para:** continuar en otro ordenador sin perder contexto.
 
-**Estado en una línea:** rama `fase-3-detalle-zona` terminada y revisada, con
-**646 tests verdes** comprobados el 15 de agosto; **pendiente de fusionar en
-`main`**. La deuda de revisión de la Fase 2 —punto 17 de §6— ya está saldada.
+**Estado en una línea:** `main` con la Fase 3 ya fusionada (merge `069d3a7`) y
+subida a `origin`, árbol limpio, **646 tests verdes comprobados sobre el
+resultado fusionado**, no solo sobre la rama. No hay ninguna rama que
+retomar. La deuda de revisión de la Fase 2 —punto 17 de §6— ya está saldada.
 
-El último commit que toca **código** en esa rama es `a381089`, y es sobre él
-donde se corrieron esos 646. Lo que haya encima son commits de este documento:
-si el árbol está limpio y `git log --oneline -1` enseña un `docs(traspaso)`, la
-cifra sigue valiendo sin volver a correr nada.
+El último commit que toca **código** es `a381089`, dentro de ese merge. Lo que
+haya encima en `main` son commits de este documento: si el árbol está limpio y
+`git log --oneline -1` enseña un `docs(traspaso)`, la cifra sigue valiendo sin
+volver a correr nada.
 
 *(La cabecera decía «10 de agosto, al terminar `cabos-sueltos`» cuando el
 documento ya contaba `permisos-y-navegacion`, `frecuentacion` y tres fases del
@@ -1628,7 +1629,7 @@ deliberado: la regla 3 de `CLAUDE.md` manda que los informes viajen con el
 repositorio. Tampoco se copiaron a la raíz de `sdd/`, donde ya viven los de la
 Fase 1 y copiarlos encima destruiría justamente ese rastro.
 
-### Rama `fase-3-detalle-zona` — Fase 3 del rediseño, terminada y revisada (15 de agosto)
+### Rama `fase-3-detalle-zona` — Fase 3 del rediseño, terminada, revisada y fusionada (merge `069d3a7`, 15 de agosto)
 
 Suite **632 → 646**. `operativo/zona/panel` pasa de una columna a dos: un
 panel lateral de 320 px, fijo (`lg:sticky`), con lugar, jefe, equipo,
