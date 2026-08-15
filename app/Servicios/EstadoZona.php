@@ -94,17 +94,46 @@ final class EstadoZona
         };
     }
 
-    public function totalMatrices(): int
+    /**
+     * El desglose de ESTA zona por estado: cuántas matrices lleva
+     * validadas, cuántas en borrador, y cuántas nadie ha abierto.
+     *
+     * Sustituye a validadas()/totalMatrices(), que solo tenían un
+     * consumidor fuera de esta clase -panel.blade.php- y entre los dos
+     * contaban la mitad de lo que este método reparte. No llama a
+     * progresoDe(): esa versión existe para resolver MUCHAS zonas con un
+     * número fijo de consultas por lote, un problema que aquí no hay -el
+     * constructor ya hizo, una por una, las diez consultas de
+     * Registro::matrices() que $this->evaluaciones necesita para pintar
+     * grupos()-. Repetirlas con progresoDe() sería la misma pregunta dos
+     * veces, cada una con su propio viaje a la base.
+     *
+     * @return array{hechas: int, borradores: int, sin_empezar: int, total: int}
+     */
+    public function desglose(): array
     {
-        return count(Registro::matrices());
-    }
+        $total      = count(Registro::matrices());
+        $hechas     = 0;
+        $borradores = 0;
 
-    public function validadas(): int
-    {
-        return count(array_filter(
-            $this->evaluaciones,
-            fn(?Model $e) => $e !== null && $e->estado === 'confirmado'
-        ));
+        foreach ($this->evaluaciones as $evaluacion) {
+            if ($evaluacion === null) {
+                continue;
+            }
+
+            if ($evaluacion->estado === 'confirmado') {
+                $hechas++;
+            } else {
+                $borradores++;
+            }
+        }
+
+        return [
+            'hechas'      => $hechas,
+            'borradores'  => $borradores,
+            'sin_empezar' => $total - $hechas - $borradores,
+            'total'       => $total,
+        ];
     }
 
     /**

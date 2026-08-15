@@ -225,17 +225,53 @@ class EstadoZonaTest extends TestCase
         $this->assertStringNotContainsString('Factores intrínsecos', $detalle);
     }
 
-    public function test_el_progreso_cuenta_solo_matrices_validadas(): void
+    /**
+     * El desglose de una zona: una validada, una en borrador y las ocho
+     * restantes sin fila ninguna. Sustituye a
+     * test_el_progreso_cuenta_solo_matrices_validadas -fijaba
+     * validadas()/totalMatrices(), retirados en esta misma tarea: desglose()
+     * cuenta lo mismo y además reparte lo que a ellos les faltaba-.
+     */
+    public function test_el_desglose_reparte_validadas_borradores_y_sin_empezar(): void
     {
         $estado = new EstadoZona($this->zona, $this->jefe);
-        $this->assertSame(0, $estado->validadas());
-        $this->assertSame(10, $estado->totalMatrices());
+        $vacio  = $estado->desglose();
+
+        $this->assertSame(0, $vacio['hechas']);
+        $this->assertSame(0, $vacio['borradores']);
+        $this->assertSame(10, $vacio['sin_empezar']);
+        $this->assertSame(10, $vacio['total']);
 
         EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'confirmado']);
         EvaluacionFet::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
 
         $estado = new EstadoZona($this->zona, $this->jefe);
-        $this->assertSame(1, $estado->validadas());
+        $p      = $estado->desglose();
+
+        $this->assertSame(1, $p['hechas']);
+        $this->assertSame(1, $p['borradores']);
+        $this->assertSame(8, $p['sin_empezar']);
+        $this->assertSame(10, $p['total']);
+        $this->assertSame(
+            $p['total'],
+            $p['hechas'] + $p['borradores'] + $p['sin_empezar'],
+            'El desglose tiene que repartir el total, no aproximarlo.'
+        );
+    }
+
+    /**
+     * Zona sin ninguna evaluación: entera en sin_empezar, con las cuatro
+     * claves puestas -quien la consume las lee sin comprobar si existen,
+     * mismo contrato que EstadoZona::progresoDe().
+     */
+    public function test_una_zona_sin_evaluaciones_desglosa_entera_en_sin_empezar(): void
+    {
+        $estado = new EstadoZona($this->zona, $this->jefe);
+
+        $this->assertSame(
+            ['hechas' => 0, 'borradores' => 0, 'sin_empezar' => 10, 'total' => 10],
+            $estado->desglose()
+        );
     }
 
     public function test_solo_el_jefe_puede_validar(): void

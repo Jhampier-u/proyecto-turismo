@@ -7,69 +7,31 @@
 > `*.diff` y los `*-brief.md` no viajan: se derivan de `git diff` y de los
 > planes de `docs/superpowers/plans/`, que ya están versionados.
 
-# Progreso — Dashboard «Mis Zonas» (Fase 2 del rediseño de interfaz)
+# Progreso — Detalle de zona en dos columnas (Fase 3 del rediseño de interfaz)
 
-Spec: `docs/superpowers/specs/2026-08-13-dashboard-mis-zonas-design.md`
-Plan: `docs/superpowers/plans/2026-08-13-dashboard-mis-zonas.md`
-Rama: dashboard-mis-zonas
-Base de la rama: 0cd8ecf
-Suite en la base: 608 tests
+Spec: `docs/superpowers/specs/2026-08-15-detalle-zona-design.md`
+Plan: `docs/superpowers/plans/2026-08-15-detalle-zona.md`
+Rama: fase-3-detalle-zona
+Base de la rama: a625645
+Suite en la base: 632 tests
 
-Lo de la Fase 1 que estaba aquí antes ya está volcado en el traspaso, así que
-sobrescribir este fichero no pierde nada.
-
-Objetivo: cifras de conjunto, un orden que se pueda pedir por URL, y un estado
-que distinga lo que nadie ha abierto de lo que espera validación.
+Objetivo: panel lateral con lugar, jefe, equipo, descripción y progreso;
+columna principal con la misma lista de matrices agrupadas de siempre.
 
 ## Decisiones que vienen del diseño y no se replantean
 
-- **La ordenación va en el servidor**, por parámetro de URL. Playwright no está
-  instalado en esta máquina: con Alpine sería invisible para la suite.
-- **Desglose por estado, no una insignia de «zona terminada».** Los colores de
-  `ESTILOS_ESTADO` significan el estado de una MATRIZ.
-- **Ninguna pantalla de admin se toca**, y `hechas` no se renombra.
-- **El orden por defecto pasa a ser nombre ascendente.**
+- **Sin componente Blade nuevo.** El envoltorio de dos columnas se escribe
+  directo en panel.blade.php, como ya hacen los formularios de matriz.
+- **`<x-desglose-estados>` sustituye la fracción «X de Y validadas»**, igual
+  que ya hizo en el dashboard.
+- **La insignia de rol «Equipo» pasa de verde a teal**: colisiona con el
+  verde de `<x-badge estado="validada">` en la misma tarjeta.
+- **El panel lateral dice lo mismo para los tres roles**, salvo la línea de
+  rol.
+- **Sin icono nuevo para «lugar».** Cualquier icono del catálogo ya es la
+  identidad de una de las diez matrices que esta misma página lista.
 
 ## Tareas
 
-T1 el desglose en el servicio · T2 la ordenación en el servidor · T3 la franja
-de cifras · T4 el desglose en las dos maquetaciones · T5 la tabla ordenable ·
-T6 cero zonas · T7 revisión y traspaso.
-
-## Estado al 13 de agosto — fusionada con la revisión de rama pendiente
-
-**Cerrada.** Fusionada en `main` con el merge `d6f3516`, y `main` (`d0e03a2`)
-está subida a `origin` con 632 tests verdes comprobados sobre ese commit. Esta
-bitácora ya no describe una rama en curso: lo que sobrevive de ella está en
-`docs/ESTADO-PROYECTO.md` §3 y en el punto 17 de §6. **La siguiente rama
-sobrescribe este fichero**, y no se pierde nada al hacerlo.
-
-**Seis tareas de siete. La sesión se cortó tras la T6 y se fusionó igualmente,
-por decisión explícita, para no dejar la rama a medias entre dos máquinas.** La
-T7 —mirar la página funcionando y revisar la rama entera— quedó como deuda con
-fecha: punto 17 de §6 del traspaso, que lleva el guion completo.
-
-| Tarea | Commit | Suite | Revisión |
-|---|---|---|---|
-| T1 el desglose en el servicio | `7b3c247` | 611 | ✅ limpia |
-| T2 la ordenación en el servidor | `7ffe6a6` | 619 | ✅ limpia |
-| T3 la franja de cifras | `272453c` | 622 | ✅ limpia |
-| T4 el desglose en las maquetaciones | `c0910ed` | 626 | ✅ limpia |
-| T5 la tabla ordenable | `3fb0732` | 631 | ✅ limpia |
-| T6 cero zonas | `1bcffd1` | **632** | **pendiente** — el paquete quedó armado y la sesión murió antes de que volviera el revisor |
-| T7 revisión de rama y traspaso | — | — | **no hecha**; el traspaso sí se escribió |
-
-El recuento cierra en **632 y no en 633**: la tabla del plan traía un error
-aritmético —contaba nueve tests en T2 donde el brief lista ocho— que se detectó
-al ejecutar T2 y arrastra un uno de menos desde ahí. No falta ningún test.
-
-**Para retomar**, el detalle largo está en
-`.superpowers/sdd/2026-08-13-dashboard-mis-zonas/progress.md`: los rulings de
-cada tarea, los seis menores aplazados que la revisión de rama debe ver, y los
-cinco pasos de la T7. Los `task-N-report.md` de esa carpeta son el porqué de
-cada commit.
-
-Lo que queda, en corto: **mirar la página de verdad** (en las cuatro últimas
-ramas ese paso encontró lo que ningún test veía) y **revisar la rama entera**
-contra `0cd8ecf`. Las dos cosas se hacen ya sobre `main`, que es donde vive el
-código; el diff sigue siendo el mismo.
+T1 EstadoZona::desglose() · T2 las dos columnas y el progreso · T3 equipo y
+descripción · T4 verificación de navegador · T5 revisión final y traspaso.
