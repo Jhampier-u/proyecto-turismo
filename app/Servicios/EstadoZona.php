@@ -3,6 +3,8 @@
 namespace App\Servicios;
 
 use App\Matrices\Registro;
+use App\Models\Involucrado;
+use App\Models\SitioFrecuentacion;
 use App\Models\User;
 use App\Models\Zona;
 use Illuminate\Database\Eloquent\Model;
@@ -71,6 +73,29 @@ final class EstadoZona
         'bloqueada'   => 'Bloqueada',
     ];
 
+    /**
+     * Las dos entradas que se pueden empezar SIN crear su fila de
+     * configuración: clave del registro => modelo de sus filas hijas.
+     *
+     * En las otras ocho, la evaluación ES el trabajo, así que su ausencia
+     * significa «nadie la ha tocado». En estas dos el trabajo son las filas
+     * hijas y la configuración es aparte: dar de alta un actor o un sitio no
+     * la crea -solo la crean guardar la Superficie Territorial y validar-,
+     * así que contar solo por ella daba «sin empezar» sobre listas que ya
+     * tenían filas, y su propia fila las pintaba de borrador.
+     *
+     * Aquí y no repetida en los dos contadores porque desglose() y
+     * progresoDe() tienen que decidir con la misma lista: si divergen, la
+     * tarjeta de una zona en el dashboard y el panel lateral de esa misma
+     * zona dan cifras distintas del mismo progreso.
+     *
+     * @var array<string, class-string<Model>>
+     */
+    private const LISTAS_CON_FILAS_HIJAS = [
+        'involucrados'  => Involucrado::class,
+        'frecuentacion' => SitioFrecuentacion::class,
+    ];
+
     /** @var array<string, ?Model> evaluación cargada por clave de matriz */
     private array $evaluaciones = [];
 
@@ -108,6 +133,12 @@ final class EstadoZona
      * grupos()-. Repetirlas con progresoDe() sería la misma pregunta dos
      * veces, cada una con su propio viaje a la base.
      *
+     * Añade dos consultas de existencia, las de actores y sitios: en esas dos
+     * entradas la fila de configuración no es prueba suficiente de que nadie
+     * las haya tocado. Ver esEmpezadaSinConfig(); progresoDe() aplica la
+     * misma regla en su versión por lotes, y hay un test que exige que las
+     * dos den el mismo resultado para la misma zona.
+     *
      * @return array{hechas: int, borradores: int, sin_empezar: int, total: int}
      */
     public function desglose(): array
@@ -116,8 +147,22 @@ final class EstadoZona
         $hechas     = 0;
         $borradores = 0;
 
-        foreach ($this->evaluaciones as $evaluacion) {
+        // Una consulta de existencia por cada lista con filas hijas: dos.
+        $listasEmpezadas = [];
+
+        foreach (self::LISTAS_CON_FILAS_HIJAS as $clave => $modeloHijo) {
+            $listasEmpezadas[$clave] = $modeloHijo::where('zona_id', $this->zona->id)->exists();
+        }
+
+        foreach ($this->evaluaciones as $clave => $evaluacion) {
             if ($evaluacion === null) {
+                // Sin configuración puede haber trabajo igual: dar de alta un
+                // sitio o un actor no crea la fila de configuración, que solo
+                // nace al guardar la Superficie Territorial o al validar.
+                if ($listasEmpezadas[$clave] ?? false) {
+                    $borradores++;
+                }
+
                 continue;
             }
 
@@ -160,7 +205,7 @@ final class EstadoZona
         $hechasPorZona     = $ids->mapWithKeys(fn(int $id) => [$id => 0])->all();
         $borradoresPorZona = $ids->mapWithKeys(fn(int $id) => [$id => 0])->all();
 
-        foreach (Registro::matrices() as $entrada) {
+        foreach (Registro::matrices() as $clave => $entrada) {
             $modelo = $entrada['modelo'];
 
             // Pedir estado además de zona_id no añade una consulta: es la
@@ -176,6 +221,31 @@ final class EstadoZona
                 } else {
                     $borradoresPorZona[$zonaId]++;
                 }
+            }
+
+            // Las dos listas con filas hijas se pueden empezar sin crear su
+            // configuración; sin esto el dashboard contaría «sin empezar» una
+            // lista que su propia fila pinta de borrador, y daría una cifra
+            // distinta de la que desglose() da para la misma zona. Ver
+            // LISTAS_CON_FILAS_HIJAS.
+            //
+            // Una consulta agrupada más por lista, no una por zona: el coste
+            // sigue siendo fijo, que es la razón de ser de este método. Las
+            // zonas que ya tienen configuración quedan fuera con
+            // whereNotIn, así que ninguna se cuenta dos veces.
+            $modeloHijo = self::LISTAS_CON_FILAS_HIJAS[$clave] ?? null;
+
+            if ($modeloHijo === null) {
+                continue;
+            }
+
+            $conFilasHijas = $modeloHijo::whereIn('zona_id', $ids)
+                ->whereNotIn('zona_id', $estados->keys())
+                ->distinct()
+                ->pluck('zona_id');
+
+            foreach ($conFilasHijas as $zonaId) {
+                $borradoresPorZona[$zonaId]++;
             }
         }
 
