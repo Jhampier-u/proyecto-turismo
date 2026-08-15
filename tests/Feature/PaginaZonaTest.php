@@ -125,7 +125,51 @@ class PaginaZonaTest extends TestCase
 
         $this->actingAs($this->jefe)->get($this->url())
             ->assertOk()
-            ->assertSee('1 de 10');
+            ->assertSee('1 validadas')
+            ->assertSee('9 sin empezar');
+    }
+
+    /**
+     * La fracción vieja no se cuela de vuelta. Un assertDontSee de una sola
+     * cara pasaría igual si el panel lateral entero dejara de pintarse, así
+     * que lleva su contraparte positiva -que el reemplazo sí está- en el
+     * mismo test.
+     */
+    public function test_el_progreso_ya_no_usa_la_fraccion_de_antes(): void
+    {
+        EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'confirmado']);
+
+        $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('de 10 validadas', $html);
+        $this->assertStringContainsString('1 validadas', $html);
+    }
+
+    public function test_la_pagina_tiene_panel_lateral_y_columna_principal(): void
+    {
+        $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+
+        $this->assertStringContainsString('id="zona-panel-lateral"', $html);
+        $this->assertStringContainsString('id="zona-panel-matrices"', $html);
+    }
+
+    /**
+     * La insignia de rol «Equipo» no puede volver a bg-green-100: en esta
+     * tarjeta convive con <x-badge estado="validada">, que usa ese mismo
+     * verde para «matriz validada». No se afirma la AUSENCIA del verde -es
+     * un color legítimo aquí, para la insignia de progreso- sino la
+     * PRESENCIA del teal nuevo, que es lo que de verdad prueba el arreglo.
+     */
+    public function test_la_insignia_de_rol_equipo_no_usa_el_verde_de_validada(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $html = $this->actingAs($equipo)->get($this->url())->assertOk()->getContent();
+
+        $this->assertStringContainsString('bg-teal-100 text-teal-800', $html);
     }
 
     public function test_vocacion_aparece_bloqueada_y_luego_disponible(): void
