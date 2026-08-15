@@ -2078,32 +2078,63 @@ niveles de anidamiento— y ninguno se movió con el cambio.
       después. Un ayudante genérico escondería justo el dato del que depende
       cada prueba, que es peor que la repetición. `dosSitiosUnoSinDet()` existe
       para el caso que sí se repite igual, y ahí ya se usa.
-17. **La revisión de la Fase 2, que se fusionó sin correr.** Es lo primero de
-    esta lista, no lo último: cada día que pase, el código revisado y el sin
-    revisar se mezclan más. Son dos pasos, y ninguno necesita escribir código:
+17. ~~**La revisión de la Fase 2, que se fusionó sin correr.**~~ — hecha el 14
+    de agosto de 2026, **sin hallazgos críticos ni importantes**. Los dos
+    pasos:
 
-    - **Mirar «Mis Zonas» funcionando**, con un jefe de tres o más zonas en
-      estados distintos. Seis comprobaciones: que la franja de cifras cuadre con
-      lo que suman las tarjetas; que las tres insignias quepan sin desbordar la
-      tarjeta ni partir una palabra; que cada cabecera ordene y la flecha señale
-      el sentido correcto; que a ~375 px la tabla haga scroll **dentro de su
-      tarjeta** y no empuje la página; que con una sola zona no haya franja y
-      con ninguna solo el aviso; y que el panel de «siguiente paso» señale a la
-      misma zona ordenes como ordenes.
-    - **Revisar la rama entera**, `git diff 0cd8ecf..1bcffd1`. Dos cosas
-      llamarán la atención de cualquier revisor y **son decisiones, no
-      descuidos**: `hechas` no se renombra a `validadas` —eso entra el día que
-      una fase toque admin de verdad— y el desglose no lleva insignia de «zona
-      terminada», porque los colores de `ESTILOS_ESTADO` significan el estado de
-      una MATRIZ. La respuesta está escrita en la spec; no se rehacen.
+    - **«Mis Zonas» funcionando de verdad**, con un jefe con tres zonas en
+      estados distintos (una mixta —3 validadas/1 borrador/6 sin empezar—, una
+      recién creada y una con las diez validadas; creadas para la revisión y
+      borradas al terminar). Las seis comprobaciones, todas correctas:
+      - La franja cuadró con la suma de las tarjetas: 3 zonas, 13 validadas de
+        30, 1 terminada de 3 — exactamente 10 + 3 + 0.
+      - Las tres insignias no desbordan la tarjeta ni parten palabra, medido
+        con `getBoundingClientRect()` a 1280 px y a 375 px: ninguna insignia
+        cruza el borde de su tarjeta y el contenedor no tiene scroll propio.
+      - Cada cabecera ordena y la flecha señala el sentido correcto: probado
+        nombre asc/desc y progreso desc — `aria-sort`, la flecha (↑/↓) y el
+        `href` de la siguiente pulsación coinciden en los tres casos.
+      - A 375 px la tabla (766 px) hace scroll **dentro de** `#zonas-lista`
+        (`overflow-x: auto`, `scrollWidth` 766 sobre `clientWidth` 341);
+        `<body>`/`<html>` se quedan en 375 px, no se mueve la página.
+      - Con una zona no aparece `#zonas-kpis`; con cero zonas solo se pinta el
+        aviso ámbar y ni `#zonas-kpis`, `#zonas-lista` ni `#zonas-tarjetas`
+        existen en el HTML.
+      - El panel de «siguiente paso» siguió señalando la misma zona
+        (`REVISION Zona Terminada` / `REVISION Zona Vacia`) con
+        `orden=nombre&dir=desc` y con `orden=progreso&dir=desc`.
+    - **La rama entera**, `git diff 0cd8ecf..1bcffd1`, incluida la Tarea 6
+      —la única que se fusionó sin que volviera su revisor—. Las dos
+      decisiones que la spec ya justifica se dejaron como están, sin
+      tocarlas ni reportarlas: `hechas` sin renombrar a `validadas`, y el
+      desglose sin insignia de «zona terminada» porque `ESTILOS_ESTADO`
+      significa el estado de una MATRIZ. El arreglo de T6 en
+      `cabecera-ordenable.blade.php` (quitar la prop `alineacion` sin uso y
+      la clase Tailwind que construía por concatenación) se verificó
+      correcto y necesario, no un exceso de alcance.
 
-    Los **seis menores aplazados** que la revisión debe ver están en
-    `.superpowers/sdd/2026-08-13-dashboard-mis-zonas/progress.md`, cada uno con
-    su razón. El que más peso tiene: `PaisajeTest` y `ValoracionTerritorialTest`
-    cambiaron su `assertSee('0 / 10')` por `'10 sin empezar'`. Fue obligado y no
-    relaja nada —la zona es nueva, así que las diez sin empezar son un dato real
-    que fallaría con el dashboard roto—, pero son dos tests afirmando sobre una
-    cadena que no eligió su autor.
+      El cambio de `assertSee('0 / 10')` a `assertSee('10 sin empezar')` en
+      `PaisajeTest` y `ValoracionTerritorialTest` —el menor con más peso de
+      `progress.md`— **se comprobó, no se dio por bueno**: sigue protegiendo
+      lo mismo. «10 sin empezar» solo puede salir si `total = 10` (las diez
+      matrices del registro; el bug de Paisaje era exactamente que faltaba
+      una) y si `hechas = borradores = 0`, así que el test sigue siendo un
+      guardián real, no relajado a una cadena vacía de contenido.
+
+      Búsqueda explícita de los dos patrones que este proyecto lleva meses
+      quitando —cifras calculadas sobre un conjunto distinto del que
+      muestran, y tests en verde por la razón equivocada (aserciones de una
+      sola cara, `assertSee('disabled', false)`, `Str::between()` sin
+      delimitador, frases partidas que `assertSee` no vería)—: **ninguna
+      instancia en esta rama.**
+
+      Suite reconfirmada sobre el resultado final: **632/632**, 3973
+      aserciones.
+
+    Los seis menores aplazados de
+    `.superpowers/sdd/2026-08-13-dashboard-mis-zonas/progress.md` se leyeron
+    uno a uno; ninguno cambia el veredicto y ninguno es nuevo respecto a lo
+    que esa bitácora ya explica.
 
 ### Fuera de código, en Render
 
