@@ -1,14 +1,14 @@
 # Estado del proyecto — traspaso entre máquinas
 
-**Fecha:** 13 de agosto de 2026 (actualizado al cerrar la Fase 2 del rediseño)
+**Fecha:** 15 de agosto de 2026 (actualizado al cerrar la Fase 3 del rediseño)
 **Para:** continuar en otro ordenador sin perder contexto.
 
-**Estado en una línea:** `main` subida a `origin`, árbol limpio, **632 tests
-verdes** comprobados el 13 de agosto. No hay ninguna rama que retomar; sí hay
-una deuda de revisión, el punto 17 de §6.
+**Estado en una línea:** rama `fase-3-detalle-zona` terminada y revisada, con
+**646 tests verdes** comprobados el 15 de agosto; **pendiente de fusionar en
+`main`**. La deuda de revisión de la Fase 2 —punto 17 de §6— ya está saldada.
 
-El último commit que toca **código** es `d0e03a2`, y es sobre él donde se
-corrieron esos 632. Lo que haya encima en `main` son commits de este documento:
+El último commit que toca **código** en esa rama es `a381089`, y es sobre él
+donde se corrieron esos 646. Lo que haya encima son commits de este documento:
 si el árbol está limpio y `git log --oneline -1` enseña un `docs(traspaso)`, la
 cifra sigue valiendo sin volver a correr nada.
 
@@ -1628,6 +1628,122 @@ deliberado: la regla 3 de `CLAUDE.md` manda que los informes viajen con el
 repositorio. Tampoco se copiaron a la raíz de `sdd/`, donde ya viven los de la
 Fase 1 y copiarlos encima destruiría justamente ese rastro.
 
+### Rama `fase-3-detalle-zona` — Fase 3 del rediseño, terminada y revisada (15 de agosto)
+
+Suite **632 → 646**. `operativo/zona/panel` pasa de una columna a dos: un
+panel lateral de 320 px, fijo (`lg:sticky`), con lugar, jefe, equipo,
+descripción y el progreso de la zona; y la columna principal con la misma
+lista de matrices agrupadas por fase de siempre.
+
+Spec y plan: `docs/superpowers/specs/2026-08-15-detalle-zona-design.md` y
+`docs/superpowers/plans/2026-08-15-detalle-zona.md`. Bitácora con el detalle
+largo: `.superpowers/sdd/progress.md`.
+
+**Lo que cambió, en orden:**
+
+- `EstadoZona::desglose()` **sustituye a `validadas()` y `totalMatrices()`,
+  que ya no existen** —si algún documento viejo los nombra, está desfasado—.
+  Devuelve el reparto entero (`hechas`, `borradores`, `sin_empezar`, `total`)
+  en vez de un numerador, y no añade consultas: reutiliza las evaluaciones que
+  el constructor ya carga.
+- El progreso del panel pasa a `<x-desglose-estados>`, igual que ya hizo el
+  dashboard en la Fase 2. Se acabó el «X de Y validadas».
+- La insignia de rol «Equipo» pasa de verde a **teal**: en esta tarjeta convive
+  con `<x-badge estado="validada">`, que usa el verde para «matriz validada».
+- El controlador carga `equipo` además de `lugar` y `jefe`.
+- Ningún componente Blade nuevo: el envoltorio de dos columnas va escrito
+  directo en `panel.blade.php`, como ya hacían los ocho formularios de matriz
+  con su propio aside.
+
+#### La verificación de navegador salió limpia, y por primera vez con medidas
+
+Los siete puntos del guion —dos columnas, `lg:items-start`, apilado a 375 px
+sin scroll horizontal, insignias que no desbordan, el equipo con tres nombres
+largos, los tres roles, y la regla de los 14 px sin `uppercase`— **pasaron
+todos, sin un solo arreglo**.
+
+La diferencia con las fases anteriores es cómo: el plan lo daba por manual
+porque Playwright no está instalado, pero la sesión tenía navegador
+integrado, así que las medidas están **leídas del DOM**
+(`getBoundingClientRect`, `getComputedStyle`, `scrollWidth`) y no estimadas a
+ojo. El detalle, con los números, está en `.superpowers/sdd/progress.md`.
+
+Conviene saber que **esto no necesita Playwright**: es el navegador de la
+propia sesión. El punto 8 de §6 —el conmutador lista/tarjetas, que sigue sin
+verificar— probablemente se pueda cerrar igual, sin cambiar el entorno.
+
+#### Lo que encontró la revisión de rama, y ningún test veía
+
+Los tests estaban verdes y la verificación de navegador limpia. La revisión
+encontró igualmente **dos defectos reales**, los dos ya arreglados aquí con su
+test (`39ac023` y `a381089`):
+
+1. **El panel se contradecía con la fila que tiene al lado.** `desglose()`
+   contaba por la fila de configuración; `filaActores()`/`filaSitios()`
+   decidían por el recuento de filas hijas. Las dos direcciones divergían:
+   - Guardar la Superficie Territorial antes de dar de alta ningún sitio crea
+     una configuración en borrador con cero sitios → el panel decía «1 en
+     borrador» y la fila, a 32 px, «sin empezar».
+   - Dar de alta un sitio antes de guardar la ST no crea configuración → el
+     panel decía «10 sin empezar» y la fila «Borrador · 1 sitios». **Este es
+     el más probable de los dos**, porque es el orden natural de trabajo.
+
+   Ahora hay **una sola regla en los dos caminos**: una entrada está empezada
+   si tiene configuración **o** al menos una fila hija. Vive una vez, en
+   `EstadoZona::LISTAS_CON_FILAS_HIJAS`, y hay un test que exige que
+   `desglose()` y `progresoDe()` devuelvan el mismo array para la misma zona
+   —si divergen, la tarjeta del dashboard y el panel de esa zona dan cifras
+   distintas del mismo progreso—.
+
+   **La contradicción es anterior a esta rama**: `progresoDe()` ya contaba así
+   en el dashboard desde la Fase 2. Lo que hizo la Fase 3 fue **hacerla
+   visible**, porque hasta que el panel no tuvo insignia de «en borrador» no
+   había nada que la enseñara. Cuesta poco imaginar cuánto tiempo llevaba ahí.
+
+   De propina salió un tercero: con cero filas, `$incompletos === 0` se cumple
+   por vacuidad, así que la fila habría dicho «0 sitios completos» y habría
+   **ofrecido validar** —que los dos controladores rechazan sin al menos una
+   fila—. Arreglado en el mismo commit.
+
+2. **Un test intermitente de esta misma rama.** Comparaba nombres de
+   `UserFactory` contra el HTML ya renderizado con
+   `assertStringContainsString`, y Blade escapa con `e()`: un apóstrofo sale
+   como `&#039;` y el nombre crudo no aparece. El catálogo `en_US` de Faker
+   lleva `O'Connell`, `O'Kon`, `D'Amore` —medido: **1,4 %** de los nombres, y
+   el test miraba dos—, o sea **un rojo espurio cada ~35 corridas**. Pasa a
+   `assertSee`, que escapa la aguja, y el miembro de equipo lleva ahora un
+   apóstrofo fijo para que el test falle de verdad si alguien vuelve a
+   compararlo sin escapar.
+
+   **Vale la pena mirar si el patrón está en más sitios**: lo que lo hacía
+   invisible es que solo falla el 3 % de las veces, y en otra máquina se leería
+   como una regresión de la rama que se esté tocando.
+
+#### El `📍` se queda, y esta vez es una decisión, no un aplazamiento
+
+El traspaso de la Fase 2 lo dejaba como «se arregla donde se arreglen los
+demás». Esta vez se miró: **no se pone un icono del catálogo porque cada uno
+de ellos ya es la identidad de una de las diez matrices que esta misma página
+lista debajo**, y reutilizarlo para «lugar» diría que lugar es una de ellas.
+El emoji se queda hasta que exista un icono neutro que no signifique otra
+cosa.
+
+#### Restos que la rama deja escritos y no toca
+
+- **El orden del equipo no es determinista** (`panel.blade.php`): se pinta
+  `$zona->equipo->pluck('name')->join(', ')` sin `orderBy`, así que lo decide
+  el motor. No rompe nada, pero un panel que reordena nombres entre visitas se
+  lee como un fallo. Un `->orderBy('name')` en `Zona::equipo()` lo cierra.
+- **`descripcion` vacía (`''`) no cae en el texto de reserva**: `??` solo
+  captura `null`. Hoy no es alcanzable desde el formulario de admin, que
+  normaliza a `null`. Si se arregla, **hay que arreglar las tres a la vez** —la
+  misma línea está en `operativo/dashboard.blade.php` dos veces—, o se crea la
+  discrepancia que la spec quería evitar.
+- **N+1 anterior a esta rama**, no introducido aquí: `EstadoZona::firma()` hace
+  `$evaluacion->user?->name` y el constructor no carga `user`, así que son
+  hasta diez consultas extra por render. Queda anotado para que no se le
+  atribuya a la Fase 3 si alguien lo mide después.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -2031,8 +2147,16 @@ niveles de anidamiento— y ninguno se movió con el cambio.
       tabla que ordena **en el servidor**, por parámetro de URL, porque
       Playwright no está instalado y con Alpine el orden sería invisible para la
       suite. **Se fusionó con la revisión de rama sin correr:** punto 17.
-    - **Fase 3 — detalle de zona** en dos columnas, con panel lateral de
-      información de la zona.
+    - ~~**Fase 3 — detalle de zona**~~ — hecha en `fase-3-detalle-zona` (§3).
+      Suite **632 → 646**. Panel lateral fijo de 320 px con lugar, jefe,
+      equipo, descripción y progreso; la lista de matrices, intacta, en la
+      columna principal. `validadas()`/`totalMatrices()` **ya no existen**: los
+      sustituye `EstadoZona::desglose()`. La verificación de navegador salió
+      limpia y **con medidas leídas del DOM**, no a ojo —el navegador de la
+      sesión basta, no hace falta Playwright—. La revisión de rama encontró
+      dos defectos que ningún test veía, los dos arreglados aquí: el panel se
+      contradecía con la fila de al lado en las dos direcciones, y un test de
+      la propia rama fallaba una de cada 35 corridas por el escapado de Blade.
     - **Fase 4 — formularios.** Consolidar el banner de borrador y la escala de
       valoración en una sola franja compacta. **Ojo:** la barra lateral con
       índice, progreso y botón de guardar **ya existe** (`<x-barra-lateral-formulario>`,

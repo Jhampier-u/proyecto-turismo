@@ -4,7 +4,11 @@ namespace Tests\Unit;
 
 use App\Models\EvaluacionFet;
 use App\Models\EvaluacionFit;
+use App\Models\FrecuentacionConfig;
 use App\Models\Inventario;
+use App\Models\Involucrado;
+use App\Models\InvolucradosConfig;
+use App\Models\SitioFrecuentacion;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Zona;
@@ -225,17 +229,53 @@ class EstadoZonaTest extends TestCase
         $this->assertStringNotContainsString('Factores intrínsecos', $detalle);
     }
 
-    public function test_el_progreso_cuenta_solo_matrices_validadas(): void
+    /**
+     * El desglose de una zona: una validada, una en borrador y las ocho
+     * restantes sin fila ninguna. Sustituye a
+     * test_el_progreso_cuenta_solo_matrices_validadas -fijaba
+     * validadas()/totalMatrices(), retirados en esta misma tarea: desglose()
+     * cuenta lo mismo y además reparte lo que a ellos les faltaba-.
+     */
+    public function test_el_desglose_reparte_validadas_borradores_y_sin_empezar(): void
     {
         $estado = new EstadoZona($this->zona, $this->jefe);
-        $this->assertSame(0, $estado->validadas());
-        $this->assertSame(10, $estado->totalMatrices());
+        $vacio  = $estado->desglose();
+
+        $this->assertSame(0, $vacio['hechas']);
+        $this->assertSame(0, $vacio['borradores']);
+        $this->assertSame(10, $vacio['sin_empezar']);
+        $this->assertSame(10, $vacio['total']);
 
         EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'confirmado']);
         EvaluacionFet::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
 
         $estado = new EstadoZona($this->zona, $this->jefe);
-        $this->assertSame(1, $estado->validadas());
+        $p      = $estado->desglose();
+
+        $this->assertSame(1, $p['hechas']);
+        $this->assertSame(1, $p['borradores']);
+        $this->assertSame(8, $p['sin_empezar']);
+        $this->assertSame(10, $p['total']);
+        $this->assertSame(
+            $p['total'],
+            $p['hechas'] + $p['borradores'] + $p['sin_empezar'],
+            'El desglose tiene que repartir el total, no aproximarlo.'
+        );
+    }
+
+    /**
+     * Zona sin ninguna evaluación: entera en sin_empezar, con las cuatro
+     * claves puestas -quien la consume las lee sin comprobar si existen,
+     * mismo contrato que EstadoZona::progresoDe().
+     */
+    public function test_una_zona_sin_evaluaciones_desglosa_entera_en_sin_empezar(): void
+    {
+        $estado = new EstadoZona($this->zona, $this->jefe);
+
+        $this->assertSame(
+            ['hechas' => 0, 'borradores' => 0, 'sin_empezar' => 10, 'total' => 10],
+            $estado->desglose()
+        );
     }
 
     public function test_solo_el_jefe_puede_validar(): void
@@ -712,6 +752,146 @@ class EstadoZonaTest extends TestCase
         $progreso = EstadoZona::progresoDe(collect([$this->zona, $otra]));
 
         $this->assertSame(1, $progreso[$this->zona->id]['borradores']);
+        $this->assertSame(0, $progreso[$otra->id]['borradores']);
+        $this->assertSame(10, $progreso[$otra->id]['sin_empezar']);
+    }
+
+    /**
+     * Una configuración de Frecuentación en borrador con CERO sitios sigue
+     * siendo un borrador en su fila, no un «sin empezar».
+     *
+     * Es alcanzable con dos clics: guardar la Superficie Territorial antes de
+     * dar de alta ningún sitio. FrecuentacionController::guardarSt() hace un
+     * updateOrCreate sin fijar `estado`, y la migración lo deja en 'borrador'
+     * por defecto.
+     *
+     * Lo encontró la revisión de esta rama. La contradicción no la introdujo
+     * la Fase 3 -progresoDe() ya contaba así en el dashboard-, pero hasta que
+     * el panel lateral no pasó a <x-desglose-estados> no había ninguna
+     * insignia de «en borrador» que la enseñara: la tarjeta vieja solo decía
+     * «X de Y validadas». Con el desglose, el panel decía «1 en borrador · 9
+     * sin empezar» mientras la fila de al lado se pintaba en gris de «sin
+     * empezar», a 32 px de distancia.
+     *
+     * El orden de las comprobaciones es el arreglo: el estado de la
+     * configuración manda sobre el recuento de sitios, igual que ya hacía
+     * para 'validada' -ver el docblock de filaSitios()-. Ese razonamiento se
+     * escribió solo para el caso confirmado y se dejó fuera el de borrador.
+     */
+    public function test_una_config_de_sitios_en_borrador_sin_sitios_es_borrador_no_sin_empezar(): void
+    {
+        FrecuentacionConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'st'      => 12.5,
+        ]);
+
+        $estado = new EstadoZona($this->zona->fresh(), $this->jefe);
+        $fila   = $estado->filaDeClave('frecuentacion');
+
+        $this->assertSame('borrador', $fila->estado);
+        $this->assertSame(0, $this->zona->frecuentacionSitios()->count());
+
+        // La fila y la insignia del panel cuentan lo mismo: si el desglose
+        // dice «1 en borrador», la fila no puede decir «sin empezar».
+        $this->assertSame(1, $estado->desglose()['borradores']);
+    }
+
+    /**
+     * El mismo caso en actores, por simetría de la regla.
+     *
+     * A diferencia del de sitios, este NO es alcanzable por la interfaz de
+     * hoy: InvolucradosConfig solo se crea al validar, y validar rechaza con
+     * cero actores. Se fija igualmente porque la regla -el estado de la
+     * configuración manda sobre el recuento- es la misma en las dos, y dejar
+     * una de las dos con el orden viejo es cómo vuelven estas cosas.
+     */
+    public function test_una_config_de_actores_en_borrador_sin_actores_es_borrador(): void
+    {
+        InvolucradosConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'borrador',
+        ]);
+
+        $estado = new EstadoZona($this->zona->fresh(), $this->jefe);
+        $fila   = $estado->filaDeClave('involucrados');
+
+        $this->assertSame('borrador', $fila->estado);
+        $this->assertSame(1, $estado->desglose()['borradores']);
+    }
+
+    /**
+     * El caso espejo del anterior, y el más probable de los dos: un sitio
+     * dado de alta ANTES de guardar la Superficie Territorial.
+     *
+     * FrecuentacionController::store() crea el sitio y no crea configuración
+     * -solo guardarSt() y validar() la crean-, así que la entrada se queda
+     * sin fila de estado mientras ya hay trabajo hecho. Contando solo por la
+     * configuración, el panel decía «10 sin empezar» mientras la fila de al
+     * lado decía «Borrador · 1 sitios, 1 sin DET».
+     *
+     * Este lado no se puede arreglar en la fila: llamar «sin empezar» a una
+     * lista con un sitio dado de alta escondería trabajo real. Lo arregla el
+     * contador, con la misma regla que la fila ya usa: una entrada está
+     * empezada si tiene configuración O al menos una fila hija.
+     */
+    public function test_un_sitio_sin_configuracion_cuenta_como_empezado(): void
+    {
+        SitioFrecuentacion::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Mirador alto',
+        ]);
+
+        $estado = new EstadoZona($this->zona->fresh(), $this->jefe);
+
+        $this->assertNull(FrecuentacionConfig::where('zona_id', $this->zona->id)->first());
+        $this->assertSame('borrador', $estado->filaDeClave('frecuentacion')->estado);
+        $this->assertSame(1, $estado->desglose()['borradores']);
+        $this->assertSame(9, $estado->desglose()['sin_empezar']);
+    }
+
+    /** Lo mismo en actores, por la misma regla. */
+    public function test_un_actor_sin_configuracion_cuenta_como_empezado(): void
+    {
+        Involucrado::create([
+            'zona_id' => $this->zona->id,
+            'nombre'  => 'Cooperativa de guías',
+        ]);
+
+        $estado = new EstadoZona($this->zona->fresh(), $this->jefe);
+
+        $this->assertSame('borrador', $estado->filaDeClave('involucrados')->estado);
+        $this->assertSame(1, $estado->desglose()['borradores']);
+        $this->assertSame(9, $estado->desglose()['sin_empezar']);
+    }
+
+    /**
+     * progresoDe() -el camino por lotes del dashboard- tiene que contar igual
+     * que desglose(). Si divergen, la tarjeta de una zona en el dashboard y
+     * el panel lateral de esa misma zona dan cifras distintas del mismo
+     * progreso, que es la segunda fuente de verdad que este servicio existe
+     * para no tener.
+     */
+    public function test_progresoDe_cuenta_las_filas_hijas_igual_que_desglose(): void
+    {
+        SitioFrecuentacion::create(['zona_id' => $this->zona->id, 'nombre' => 'Mirador alto']);
+        Involucrado::create(['zona_id' => $this->zona->id, 'nombre' => 'Cooperativa de guías']);
+
+        $otra = Zona::create([
+            'lugar_id'     => DB::table('lugares')->value('id'),
+            'jefe_user_id' => $this->jefe->id,
+            'nombre'       => 'Zona sin tocar',
+        ]);
+
+        $progreso = EstadoZona::progresoDe(collect([$this->zona, $otra]));
+        $desglose = (new EstadoZona($this->zona->fresh(), $this->jefe))->desglose();
+
+        $this->assertSame($desglose, $progreso[$this->zona->id]);
+        $this->assertSame(2, $progreso[$this->zona->id]['borradores']);
+        $this->assertSame(8, $progreso[$this->zona->id]['sin_empezar']);
+
+        // La zona intacta no se contagia de las filas hijas de la otra.
         $this->assertSame(0, $progreso[$otra->id]['borradores']);
         $this->assertSame(10, $progreso[$otra->id]['sin_empezar']);
     }

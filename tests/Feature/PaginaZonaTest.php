@@ -125,7 +125,51 @@ class PaginaZonaTest extends TestCase
 
         $this->actingAs($this->jefe)->get($this->url())
             ->assertOk()
-            ->assertSee('1 de 10');
+            ->assertSee('1 validadas')
+            ->assertSee('9 sin empezar');
+    }
+
+    /**
+     * La fracción vieja no se cuela de vuelta. Un assertDontSee de una sola
+     * cara pasaría igual si el panel lateral entero dejara de pintarse, así
+     * que lleva su contraparte positiva -que el reemplazo sí está- en el
+     * mismo test.
+     */
+    public function test_el_progreso_ya_no_usa_la_fraccion_de_antes(): void
+    {
+        EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'confirmado']);
+
+        $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('de 10 validadas', $html);
+        $this->assertStringContainsString('1 validadas', $html);
+    }
+
+    public function test_la_pagina_tiene_panel_lateral_y_columna_principal(): void
+    {
+        $html = $this->actingAs($this->jefe)->get($this->url())->assertOk()->getContent();
+
+        $this->assertStringContainsString('id="zona-panel-lateral"', $html);
+        $this->assertStringContainsString('id="zona-panel-matrices"', $html);
+    }
+
+    /**
+     * La insignia de rol «Equipo» no puede volver a bg-green-100: en esta
+     * tarjeta convive con <x-badge estado="validada">, que usa ese mismo
+     * verde para «matriz validada». No se afirma la AUSENCIA del verde -es
+     * un color legítimo aquí, para la insignia de progreso- sino la
+     * PRESENCIA del teal nuevo, que es lo que de verdad prueba el arreglo.
+     */
+    public function test_la_insignia_de_rol_equipo_no_usa_el_verde_de_validada(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $html = $this->actingAs($equipo)->get($this->url())->assertOk()->getContent();
+
+        $this->assertStringContainsString('bg-teal-100 text-teal-800', $html);
     }
 
     public function test_vocacion_aparece_bloqueada_y_luego_disponible(): void
@@ -258,5 +302,88 @@ class PaginaZonaTest extends TestCase
             'El nombre de la zona se pinta tantas veces como matrices hay: '
             . '<x-fila-matriz> ha vuelto a recibir :zona.'
         );
+    }
+
+    public function test_el_panel_lateral_muestra_el_equipo_de_la_zona(): void
+    {
+        $ana = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+            'name'    => 'Ana Pérez',
+        ]);
+        $bruno = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+            'name'    => 'Bruno Ríos',
+        ]);
+        $this->zona->equipo()->attach([$ana->id, $bruno->id]);
+
+        $this->actingAs($this->jefe)->get($this->url())
+            ->assertOk()
+            ->assertSee('Ana Pérez')
+            ->assertSee('Bruno Ríos');
+    }
+
+    public function test_sin_equipo_asignado_el_panel_lateral_lo_dice(): void
+    {
+        $this->actingAs($this->jefe)->get($this->url())
+            ->assertOk()
+            ->assertSee('Sin equipo asignado');
+    }
+
+    public function test_el_panel_lateral_muestra_la_descripcion_de_la_zona(): void
+    {
+        $this->zona->update(['descripcion' => 'Costa rocosa con dos miradores habilitados.']);
+
+        $this->actingAs($this->jefe)->get($this->url())
+            ->assertOk()
+            ->assertSee('Costa rocosa con dos miradores habilitados.');
+    }
+
+    public function test_sin_descripcion_el_panel_lateral_usa_el_texto_de_reserva(): void
+    {
+        $this->actingAs($this->jefe)->get($this->url())
+            ->assertOk()
+            ->assertSee('Sin descripción disponible.');
+    }
+
+    /**
+     * El panel lateral cuenta la ZONA, no a quien mira: las cuatro cosas de
+     * abajo tienen que salir igual para los tres roles. Solo la línea de rol
+     * cambia, y a propósito no se comprueba aquí -comprobarla haría fallar
+     * el test por el motivo equivocado-.
+     *
+     * Comprueba con assertSee y no con assertStringContainsString sobre
+     * getContent(): Blade escapa con e(), así que un apóstrofo sale del
+     * render como &#039; y el nombre CRUDO no aparece en el HTML. La revisión
+     * de la rama midió la versión anterior de este test —que sí comparaba en
+     * crudo— en un 1,4 % de nombres con apóstrofo por cada uno de los dos que
+     * mira, o sea un rojo espurio cada ~35 corridas, porque UserFactory usa
+     * fake()->name() en en_US y su catálogo lleva O'Connell, O'Kon y D'Amore.
+     * assertSee escapa la aguja antes de buscarla y da igual el nombre.
+     *
+     * El miembro de equipo lleva un apóstrofo a propósito y fijo: así este
+     * test no solo deja de fallar por azar, sino que falla de verdad si
+     * alguien vuelve a comparar contra el HTML sin escapar.
+     */
+    public function test_el_panel_lateral_es_igual_para_los_tres_roles(): void
+    {
+        $equipoMiembro = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+            'name'    => "Nicolás O'Brien",
+        ]);
+        $this->zona->equipo()->attach($equipoMiembro->id);
+        $this->zona->update(['descripcion' => 'Zona piloto de la costa norte.']);
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        foreach ([$this->jefe, $equipoMiembro, $admin] as $usuario) {
+            $this->actingAs($usuario)->get($this->url())
+                ->assertOk()
+                ->assertSee($this->zona->lugar->nombre)
+                ->assertSee($this->jefe->name)
+                ->assertSee($equipoMiembro->name)
+                ->assertSee('Zona piloto de la costa norte.');
+        }
     }
 }

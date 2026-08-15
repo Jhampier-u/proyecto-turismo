@@ -3,6 +3,8 @@
 namespace App\Servicios;
 
 use App\Matrices\Registro;
+use App\Models\Involucrado;
+use App\Models\SitioFrecuentacion;
 use App\Models\User;
 use App\Models\Zona;
 use Illuminate\Database\Eloquent\Model;
@@ -71,6 +73,29 @@ final class EstadoZona
         'bloqueada'   => 'Bloqueada',
     ];
 
+    /**
+     * Las dos entradas que se pueden empezar SIN crear su fila de
+     * configuración: clave del registro => modelo de sus filas hijas.
+     *
+     * En las otras ocho, la evaluación ES el trabajo, así que su ausencia
+     * significa «nadie la ha tocado». En estas dos el trabajo son las filas
+     * hijas y la configuración es aparte: dar de alta un actor o un sitio no
+     * la crea -solo la crean guardar la Superficie Territorial y validar-,
+     * así que contar solo por ella daba «sin empezar» sobre listas que ya
+     * tenían filas, y su propia fila las pintaba de borrador.
+     *
+     * Aquí y no repetida en los dos contadores porque desglose() y
+     * progresoDe() tienen que decidir con la misma lista: si divergen, la
+     * tarjeta de una zona en el dashboard y el panel lateral de esa misma
+     * zona dan cifras distintas del mismo progreso.
+     *
+     * @var array<string, class-string<Model>>
+     */
+    private const LISTAS_CON_FILAS_HIJAS = [
+        'involucrados'  => Involucrado::class,
+        'frecuentacion' => SitioFrecuentacion::class,
+    ];
+
     /** @var array<string, ?Model> evaluación cargada por clave de matriz */
     private array $evaluaciones = [];
 
@@ -94,17 +119,66 @@ final class EstadoZona
         };
     }
 
-    public function totalMatrices(): int
+    /**
+     * El desglose de ESTA zona por estado: cuántas matrices lleva
+     * validadas, cuántas en borrador, y cuántas nadie ha abierto.
+     *
+     * Sustituye a validadas()/totalMatrices(), que solo tenían un
+     * consumidor fuera de esta clase -panel.blade.php- y entre los dos
+     * contaban la mitad de lo que este método reparte. No llama a
+     * progresoDe(): esa versión existe para resolver MUCHAS zonas con un
+     * número fijo de consultas por lote, un problema que aquí no hay -el
+     * constructor ya hizo, una por una, las diez consultas de
+     * Registro::matrices() que $this->evaluaciones necesita para pintar
+     * grupos()-. Repetirlas con progresoDe() sería la misma pregunta dos
+     * veces, cada una con su propio viaje a la base.
+     *
+     * Añade dos consultas de existencia, las de actores y sitios: en esas dos
+     * entradas la fila de configuración no es prueba suficiente de que nadie
+     * las haya tocado. Ver esEmpezadaSinConfig(); progresoDe() aplica la
+     * misma regla en su versión por lotes, y hay un test que exige que las
+     * dos den el mismo resultado para la misma zona.
+     *
+     * @return array{hechas: int, borradores: int, sin_empezar: int, total: int}
+     */
+    public function desglose(): array
     {
-        return count(Registro::matrices());
-    }
+        $total      = count(Registro::matrices());
+        $hechas     = 0;
+        $borradores = 0;
 
-    public function validadas(): int
-    {
-        return count(array_filter(
-            $this->evaluaciones,
-            fn(?Model $e) => $e !== null && $e->estado === 'confirmado'
-        ));
+        // Una consulta de existencia por cada lista con filas hijas: dos.
+        $listasEmpezadas = [];
+
+        foreach (self::LISTAS_CON_FILAS_HIJAS as $clave => $modeloHijo) {
+            $listasEmpezadas[$clave] = $modeloHijo::where('zona_id', $this->zona->id)->exists();
+        }
+
+        foreach ($this->evaluaciones as $clave => $evaluacion) {
+            if ($evaluacion === null) {
+                // Sin configuración puede haber trabajo igual: dar de alta un
+                // sitio o un actor no crea la fila de configuración, que solo
+                // nace al guardar la Superficie Territorial o al validar.
+                if ($listasEmpezadas[$clave] ?? false) {
+                    $borradores++;
+                }
+
+                continue;
+            }
+
+            if ($evaluacion->estado === 'confirmado') {
+                $hechas++;
+            } else {
+                $borradores++;
+            }
+        }
+
+        return [
+            'hechas'      => $hechas,
+            'borradores'  => $borradores,
+            'sin_empezar' => $total - $hechas - $borradores,
+            'total'       => $total,
+        ];
     }
 
     /**
@@ -131,7 +205,7 @@ final class EstadoZona
         $hechasPorZona     = $ids->mapWithKeys(fn(int $id) => [$id => 0])->all();
         $borradoresPorZona = $ids->mapWithKeys(fn(int $id) => [$id => 0])->all();
 
-        foreach (Registro::matrices() as $entrada) {
+        foreach (Registro::matrices() as $clave => $entrada) {
             $modelo = $entrada['modelo'];
 
             // Pedir estado además de zona_id no añade una consulta: es la
@@ -147,6 +221,31 @@ final class EstadoZona
                 } else {
                     $borradoresPorZona[$zonaId]++;
                 }
+            }
+
+            // Las dos listas con filas hijas se pueden empezar sin crear su
+            // configuración; sin esto el dashboard contaría «sin empezar» una
+            // lista que su propia fila pinta de borrador, y daría una cifra
+            // distinta de la que desglose() da para la misma zona. Ver
+            // LISTAS_CON_FILAS_HIJAS.
+            //
+            // Una consulta agrupada más por lista, no una por zona: el coste
+            // sigue siendo fijo, que es la razón de ser de este método. Las
+            // zonas que ya tienen configuración quedan fuera con
+            // whereNotIn, así que ninguna se cuenta dos veces.
+            $modeloHijo = self::LISTAS_CON_FILAS_HIJAS[$clave] ?? null;
+
+            if ($modeloHijo === null) {
+                continue;
+            }
+
+            $conFilasHijas = $modeloHijo::whereIn('zona_id', $ids)
+                ->whereNotIn('zona_id', $estados->keys())
+                ->distinct()
+                ->pluck('zona_id');
+
+            foreach ($conFilasHijas as $zonaId) {
+                $borradoresPorZona[$zonaId]++;
             }
         }
 
@@ -498,7 +597,15 @@ final class EstadoZona
             );
         }
 
-        if ($cuantos === 0) {
+        // Sin configuración Y sin actores no la ha tocado nadie. Con
+        // configuración, aunque no haya ni un actor, es un borrador: es lo
+        // que cuentan desglose() y progresoDe(), que deciden por la fila de
+        // configuración y no por el recuento. Comprobar 'sin actores' antes
+        // que la existencia de la configuración dejaba la fila en «sin
+        // empezar» mientras el panel lateral ya decía «1 en borrador» —el
+        // mismo desajuste que el bloque de arriba arregla para 'validada',
+        // razonado entonces solo para el caso confirmado—.
+        if ($cuantos === 0 && $config === null) {
             return new FilaMatriz(
                 clave:   $clave,
                 nombre:  $entrada['nombre'],
@@ -512,9 +619,19 @@ final class EstadoZona
 
         $incompletos = $this->zona->involucrados()->incompletos()->count();
 
-        $detalle = $incompletos === 0
-            ? "Borrador · {$cuantos} actores, todos completos"
-            : "Borrador · {$cuantos} actores, {$incompletos} sin completar";
+        // Una lista vacía no está «completa», está vacía. Sin este caso,
+        // $incompletos === 0 se cumple por vacuidad: la fila diría «0
+        // actores, todos completos» y además ofrecería validar, que
+        // InvolucradosController::validar() rechaza sin al menos un actor.
+        // Es el desajuste entre lo que se ofrece y lo que el controlador
+        // acepta que filaMatriz() ya documenta evitar.
+        $lista = $cuantos > 0 && $incompletos === 0;
+
+        $detalle = match (true) {
+            $cuantos === 0     => 'Borrador · todavía sin actores registrados',
+            $incompletos === 0 => "Borrador · {$cuantos} actores, todos completos",
+            default            => "Borrador · {$cuantos} actores, {$incompletos} sin completar",
+        };
 
         return new FilaMatriz(
             clave:   $clave,
@@ -526,8 +643,8 @@ final class EstadoZona
             // actores como el equipo, esté completo o no.
             url:     route($entrada['rutas']['editar'], $this->zona->id),
             accion:  'Continuar',
-            puedeValidar:    $incompletos === 0 && $this->usuario->esJefe(),
-            avisoValidacion: $incompletos === 0 && $this->usuario->esEquipo()
+            puedeValidar:    $lista && $this->usuario->esJefe(),
+            avisoValidacion: $lista && $this->usuario->esEquipo()
                 ? 'Lista para validar — avísale a ' . ($this->zona->jefe?->name ?? 'tu Jefe de Zona')
                 : null,
         );
@@ -570,7 +687,14 @@ final class EstadoZona
             );
         }
 
-        if ($cuantos === 0) {
+        // Mismo orden que en filaActores(): sin configuración Y sin sitios no
+        // la ha tocado nadie; con configuración, aunque no haya ni un sitio,
+        // es un borrador. Guardar la Superficie Territorial antes de dar de
+        // alta ningún sitio crea justo esa fila -guardarSt() hace un
+        // updateOrCreate sin fijar `estado`, que la migración deja en
+        // 'borrador'-, y con el orden viejo el panel lateral decía «1 en
+        // borrador» mientras esta fila, al lado, se pintaba de «sin empezar».
+        if ($cuantos === 0 && $config === null) {
             return new FilaMatriz(
                 clave:   $clave,
                 nombre:  $entrada['nombre'],
@@ -590,14 +714,20 @@ final class EstadoZona
         // sitio", la otra "falta un dato de la zona"- y conviene que el
         // detalle las distinga en vez de fundirlas en una frase que no dice
         // cuál de las dos hace falta resolver.
+        //
+        // La lista vacía va primero: con cero sitios, $incompletos === 0 se
+        // cumple por vacuidad, así que sin esta rama la fila diría «0 sitios
+        // completos» y, con la ST ya guardada, ofrecería validar —que
+        // FrecuentacionController::validar() rechaza sin al menos un sitio—.
         $detalle = match (true) {
+            $cuantos === 0                   => 'Borrador · todavía sin sitios registrados',
             $incompletos > 0 && ! $stDefinida => "Borrador · {$cuantos} sitios, {$incompletos} sin DET, falta la Superficie Territorial",
             $incompletos > 0                  => "Borrador · {$cuantos} sitios, {$incompletos} sin DET",
             ! $stDefinida                      => "Borrador · {$cuantos} sitios completos, falta la Superficie Territorial",
             default                            => "Borrador · {$cuantos} sitios, todos completos",
         };
 
-        $listaCompleta = $incompletos === 0 && $stDefinida;
+        $listaCompleta = $cuantos > 0 && $incompletos === 0 && $stDefinida;
 
         return new FilaMatriz(
             clave:   $clave,
