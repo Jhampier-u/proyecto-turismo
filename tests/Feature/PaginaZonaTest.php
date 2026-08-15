@@ -303,4 +303,73 @@ class PaginaZonaTest extends TestCase
             . '<x-fila-matriz> ha vuelto a recibir :zona.'
         );
     }
+
+    public function test_el_panel_lateral_muestra_el_equipo_de_la_zona(): void
+    {
+        $ana = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+            'name'    => 'Ana Pérez',
+        ]);
+        $bruno = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+            'name'    => 'Bruno Ríos',
+        ]);
+        $this->zona->equipo()->attach([$ana->id, $bruno->id]);
+
+        $this->actingAs($this->jefe)->get($this->url())
+            ->assertOk()
+            ->assertSee('Ana Pérez')
+            ->assertSee('Bruno Ríos');
+    }
+
+    public function test_sin_equipo_asignado_el_panel_lateral_lo_dice(): void
+    {
+        $this->actingAs($this->jefe)->get($this->url())
+            ->assertOk()
+            ->assertSee('Sin equipo asignado');
+    }
+
+    public function test_el_panel_lateral_muestra_la_descripcion_de_la_zona(): void
+    {
+        $this->zona->update(['descripcion' => 'Costa rocosa con dos miradores habilitados.']);
+
+        $this->actingAs($this->jefe)->get($this->url())
+            ->assertOk()
+            ->assertSee('Costa rocosa con dos miradores habilitados.');
+    }
+
+    public function test_sin_descripcion_el_panel_lateral_usa_el_texto_de_reserva(): void
+    {
+        $this->actingAs($this->jefe)->get($this->url())
+            ->assertOk()
+            ->assertSee('Sin descripción disponible.');
+    }
+
+    /**
+     * El panel lateral cuenta la ZONA, no a quien mira: las cuatro cosas de
+     * abajo tienen que salir igual para los tres roles. Solo la línea de rol
+     * cambia, y a propósito no se comprueba aquí -comprobarla haría fallar
+     * el test por el motivo equivocado-.
+     */
+    public function test_el_panel_lateral_es_igual_para_los_tres_roles(): void
+    {
+        $equipoMiembro = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipoMiembro->id);
+        $this->zona->update(['descripcion' => 'Zona piloto de la costa norte.']);
+
+        $admin = User::factory()->create([
+            'role_id' => Role::where('nombre', 'admin')->value('id'),
+        ]);
+
+        foreach ([$this->jefe, $equipoMiembro, $admin] as $usuario) {
+            $html = $this->actingAs($usuario)->get($this->url())->assertOk()->getContent();
+
+            $this->assertStringContainsString($this->zona->lugar->nombre, $html);
+            $this->assertStringContainsString($this->jefe->name, $html);
+            $this->assertStringContainsString($equipoMiembro->name, $html);
+            $this->assertStringContainsString('Zona piloto de la costa norte.', $html);
+        }
+    }
 }

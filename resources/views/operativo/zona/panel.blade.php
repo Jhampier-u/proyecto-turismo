@@ -62,6 +62,16 @@
                                 <dt class="text-gray-500">Jefe de zona</dt>
                                 <dd class="text-gray-800 mt-0.5">{{ $zona->jefe->name ?? 'Sin asignar' }}</dd>
                             </div>
+                            <div>
+                                <dt class="text-gray-500">Equipo</dt>
+                                <dd class="text-gray-800 mt-0.5">
+                                    {{ $zona->equipo->isNotEmpty() ? $zona->equipo->pluck('name')->join(', ') : 'Sin equipo asignado' }}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-gray-500">Descripción</dt>
+                                <dd class="text-gray-800 mt-0.5">{{ $zona->descripcion ?? 'Sin descripción disponible.' }}</dd>
+                            </div>
                         </dl>
 
                         {{-- El desglose reemplaza la fracción «X de Y

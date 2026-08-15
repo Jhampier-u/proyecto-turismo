@@ -18,7 +18,7 @@ class ZonaPanelController extends Controller
 {
     public function show($zonaId)
     {
-        $zona   = Zona::with('lugar', 'jefe')->findOrFail($zonaId);
+        $zona   = Zona::with('lugar', 'jefe', 'equipo')->findOrFail($zonaId);
         $estado = new EstadoZona($zona, Auth::user());
 
         return view('operativo.zona.panel', compact('zona', 'estado'));
