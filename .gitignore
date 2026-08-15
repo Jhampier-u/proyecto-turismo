@@ -38,3 +38,10 @@ __pycache__/
 # tarea son el rastro de por qué el código quedó como quedó, y tienen que
 # viajar con el repositorio para poder retomar el trabajo en otra máquina.
 # Lo que se sigue ignorando está en .superpowers/sdd/.gitignore.
+
+# Las maquetas del companion visual del brainstorming sí se ignoran, por el
+# mismo motivo que los *.diff de sdd/: son un andamio de la conversación que
+# produjo el diseño, no el diseño. Lo que hay que conservar de esa charla
+# acaba en docs/superpowers/specs/, que sí viaja. Además cada sesión crea su
+# propia carpeta con PID y marca de tiempo, así que se acumulan solas.
+/.superpowers/brainstorm/
