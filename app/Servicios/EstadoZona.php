@@ -527,7 +527,15 @@ final class EstadoZona
             );
         }
 
-        if ($cuantos === 0) {
+        // Sin configuración Y sin actores no la ha tocado nadie. Con
+        // configuración, aunque no haya ni un actor, es un borrador: es lo
+        // que cuentan desglose() y progresoDe(), que deciden por la fila de
+        // configuración y no por el recuento. Comprobar 'sin actores' antes
+        // que la existencia de la configuración dejaba la fila en «sin
+        // empezar» mientras el panel lateral ya decía «1 en borrador» —el
+        // mismo desajuste que el bloque de arriba arregla para 'validada',
+        // razonado entonces solo para el caso confirmado—.
+        if ($cuantos === 0 && $config === null) {
             return new FilaMatriz(
                 clave:   $clave,
                 nombre:  $entrada['nombre'],
@@ -541,9 +549,19 @@ final class EstadoZona
 
         $incompletos = $this->zona->involucrados()->incompletos()->count();
 
-        $detalle = $incompletos === 0
-            ? "Borrador · {$cuantos} actores, todos completos"
-            : "Borrador · {$cuantos} actores, {$incompletos} sin completar";
+        // Una lista vacía no está «completa», está vacía. Sin este caso,
+        // $incompletos === 0 se cumple por vacuidad: la fila diría «0
+        // actores, todos completos» y además ofrecería validar, que
+        // InvolucradosController::validar() rechaza sin al menos un actor.
+        // Es el desajuste entre lo que se ofrece y lo que el controlador
+        // acepta que filaMatriz() ya documenta evitar.
+        $lista = $cuantos > 0 && $incompletos === 0;
+
+        $detalle = match (true) {
+            $cuantos === 0     => 'Borrador · todavía sin actores registrados',
+            $incompletos === 0 => "Borrador · {$cuantos} actores, todos completos",
+            default            => "Borrador · {$cuantos} actores, {$incompletos} sin completar",
+        };
 
         return new FilaMatriz(
             clave:   $clave,
@@ -555,8 +573,8 @@ final class EstadoZona
             // actores como el equipo, esté completo o no.
             url:     route($entrada['rutas']['editar'], $this->zona->id),
             accion:  'Continuar',
-            puedeValidar:    $incompletos === 0 && $this->usuario->esJefe(),
-            avisoValidacion: $incompletos === 0 && $this->usuario->esEquipo()
+            puedeValidar:    $lista && $this->usuario->esJefe(),
+            avisoValidacion: $lista && $this->usuario->esEquipo()
                 ? 'Lista para validar — avísale a ' . ($this->zona->jefe?->name ?? 'tu Jefe de Zona')
                 : null,
         );
@@ -599,7 +617,14 @@ final class EstadoZona
             );
         }
 
-        if ($cuantos === 0) {
+        // Mismo orden que en filaActores(): sin configuración Y sin sitios no
+        // la ha tocado nadie; con configuración, aunque no haya ni un sitio,
+        // es un borrador. Guardar la Superficie Territorial antes de dar de
+        // alta ningún sitio crea justo esa fila -guardarSt() hace un
+        // updateOrCreate sin fijar `estado`, que la migración deja en
+        // 'borrador'-, y con el orden viejo el panel lateral decía «1 en
+        // borrador» mientras esta fila, al lado, se pintaba de «sin empezar».
+        if ($cuantos === 0 && $config === null) {
             return new FilaMatriz(
                 clave:   $clave,
                 nombre:  $entrada['nombre'],
@@ -619,14 +644,20 @@ final class EstadoZona
         // sitio", la otra "falta un dato de la zona"- y conviene que el
         // detalle las distinga en vez de fundirlas en una frase que no dice
         // cuál de las dos hace falta resolver.
+        //
+        // La lista vacía va primero: con cero sitios, $incompletos === 0 se
+        // cumple por vacuidad, así que sin esta rama la fila diría «0 sitios
+        // completos» y, con la ST ya guardada, ofrecería validar —que
+        // FrecuentacionController::validar() rechaza sin al menos un sitio—.
         $detalle = match (true) {
+            $cuantos === 0                   => 'Borrador · todavía sin sitios registrados',
             $incompletos > 0 && ! $stDefinida => "Borrador · {$cuantos} sitios, {$incompletos} sin DET, falta la Superficie Territorial",
             $incompletos > 0                  => "Borrador · {$cuantos} sitios, {$incompletos} sin DET",
             ! $stDefinida                      => "Borrador · {$cuantos} sitios completos, falta la Superficie Territorial",
             default                            => "Borrador · {$cuantos} sitios, todos completos",
         };
 
-        $listaCompleta = $incompletos === 0 && $stDefinida;
+        $listaCompleta = $cuantos > 0 && $incompletos === 0 && $stDefinida;
 
         return new FilaMatriz(
             clave:   $clave,

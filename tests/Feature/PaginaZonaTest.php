@@ -350,11 +350,25 @@ class PaginaZonaTest extends TestCase
      * abajo tienen que salir igual para los tres roles. Solo la línea de rol
      * cambia, y a propósito no se comprueba aquí -comprobarla haría fallar
      * el test por el motivo equivocado-.
+     *
+     * Comprueba con assertSee y no con assertStringContainsString sobre
+     * getContent(): Blade escapa con e(), así que un apóstrofo sale del
+     * render como &#039; y el nombre CRUDO no aparece en el HTML. La revisión
+     * de la rama midió la versión anterior de este test —que sí comparaba en
+     * crudo— en un 1,4 % de nombres con apóstrofo por cada uno de los dos que
+     * mira, o sea un rojo espurio cada ~35 corridas, porque UserFactory usa
+     * fake()->name() en en_US y su catálogo lleva O'Connell, O'Kon y D'Amore.
+     * assertSee escapa la aguja antes de buscarla y da igual el nombre.
+     *
+     * El miembro de equipo lleva un apóstrofo a propósito y fijo: así este
+     * test no solo deja de fallar por azar, sino que falla de verdad si
+     * alguien vuelve a comparar contra el HTML sin escapar.
      */
     public function test_el_panel_lateral_es_igual_para_los_tres_roles(): void
     {
         $equipoMiembro = User::factory()->create([
             'role_id' => Role::where('nombre', 'equipo')->value('id'),
+            'name'    => "Nicolás O'Brien",
         ]);
         $this->zona->equipo()->attach($equipoMiembro->id);
         $this->zona->update(['descripcion' => 'Zona piloto de la costa norte.']);
@@ -364,12 +378,12 @@ class PaginaZonaTest extends TestCase
         ]);
 
         foreach ([$this->jefe, $equipoMiembro, $admin] as $usuario) {
-            $html = $this->actingAs($usuario)->get($this->url())->assertOk()->getContent();
-
-            $this->assertStringContainsString($this->zona->lugar->nombre, $html);
-            $this->assertStringContainsString($this->jefe->name, $html);
-            $this->assertStringContainsString($equipoMiembro->name, $html);
-            $this->assertStringContainsString('Zona piloto de la costa norte.', $html);
+            $this->actingAs($usuario)->get($this->url())
+                ->assertOk()
+                ->assertSee($this->zona->lugar->nombre)
+                ->assertSee($this->jefe->name)
+                ->assertSee($equipoMiembro->name)
+                ->assertSee('Zona piloto de la costa norte.');
         }
     }
 }

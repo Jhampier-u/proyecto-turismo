@@ -4,7 +4,9 @@ namespace Tests\Unit;
 
 use App\Models\EvaluacionFet;
 use App\Models\EvaluacionFit;
+use App\Models\FrecuentacionConfig;
 use App\Models\Inventario;
+use App\Models\InvolucradosConfig;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Zona;
@@ -750,5 +752,70 @@ class EstadoZonaTest extends TestCase
         $this->assertSame(1, $progreso[$this->zona->id]['borradores']);
         $this->assertSame(0, $progreso[$otra->id]['borradores']);
         $this->assertSame(10, $progreso[$otra->id]['sin_empezar']);
+    }
+
+    /**
+     * Una configuración de Frecuentación en borrador con CERO sitios sigue
+     * siendo un borrador en su fila, no un «sin empezar».
+     *
+     * Es alcanzable con dos clics: guardar la Superficie Territorial antes de
+     * dar de alta ningún sitio. FrecuentacionController::guardarSt() hace un
+     * updateOrCreate sin fijar `estado`, y la migración lo deja en 'borrador'
+     * por defecto.
+     *
+     * Lo encontró la revisión de esta rama. La contradicción no la introdujo
+     * la Fase 3 -progresoDe() ya contaba así en el dashboard-, pero hasta que
+     * el panel lateral no pasó a <x-desglose-estados> no había ninguna
+     * insignia de «en borrador» que la enseñara: la tarjeta vieja solo decía
+     * «X de Y validadas». Con el desglose, el panel decía «1 en borrador · 9
+     * sin empezar» mientras la fila de al lado se pintaba en gris de «sin
+     * empezar», a 32 px de distancia.
+     *
+     * El orden de las comprobaciones es el arreglo: el estado de la
+     * configuración manda sobre el recuento de sitios, igual que ya hacía
+     * para 'validada' -ver el docblock de filaSitios()-. Ese razonamiento se
+     * escribió solo para el caso confirmado y se dejó fuera el de borrador.
+     */
+    public function test_una_config_de_sitios_en_borrador_sin_sitios_es_borrador_no_sin_empezar(): void
+    {
+        FrecuentacionConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'st'      => 12.5,
+        ]);
+
+        $estado = new EstadoZona($this->zona->fresh(), $this->jefe);
+        $fila   = $estado->filaDeClave('frecuentacion');
+
+        $this->assertSame('borrador', $fila->estado);
+        $this->assertSame(0, $this->zona->frecuentacionSitios()->count());
+
+        // La fila y la insignia del panel cuentan lo mismo: si el desglose
+        // dice «1 en borrador», la fila no puede decir «sin empezar».
+        $this->assertSame(1, $estado->desglose()['borradores']);
+    }
+
+    /**
+     * El mismo caso en actores, por simetría de la regla.
+     *
+     * A diferencia del de sitios, este NO es alcanzable por la interfaz de
+     * hoy: InvolucradosConfig solo se crea al validar, y validar rechaza con
+     * cero actores. Se fija igualmente porque la regla -el estado de la
+     * configuración manda sobre el recuento- es la misma en las dos, y dejar
+     * una de las dos con el orden viejo es cómo vuelven estas cosas.
+     */
+    public function test_una_config_de_actores_en_borrador_sin_actores_es_borrador(): void
+    {
+        InvolucradosConfig::create([
+            'zona_id' => $this->zona->id,
+            'user_id' => $this->jefe->id,
+            'estado'  => 'borrador',
+        ]);
+
+        $estado = new EstadoZona($this->zona->fresh(), $this->jefe);
+        $fila   = $estado->filaDeClave('involucrados');
+
+        $this->assertSame('borrador', $fila->estado);
+        $this->assertSame(1, $estado->desglose()['borradores']);
     }
 }
