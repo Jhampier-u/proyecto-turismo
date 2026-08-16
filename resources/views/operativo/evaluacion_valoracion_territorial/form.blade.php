@@ -41,36 +41,14 @@
             <div class="lg:grid lg:grid-cols-[1fr_256px] lg:gap-6 lg:items-start">
             <div class="lg:min-w-0">
 
-            @if($evaluacion?->exists && $evaluacion->user)
-                <p class="text-sm text-gray-500 mb-4">
-                    Última edición: {{ $evaluacion->user->name }},
-                    {{ $evaluacion->updated_at->diffForHumans() }}
-                </p>
-            @endif
-
-            @if($estaConfirmado)
-                <div class="mb-6 bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <strong class="font-bold text-lg">✓ Valoración Territorial Validada</strong>
-                            <p>Esta evaluación ha sido confirmada por el Jefe de Zona.</p>
-                        </div>
-                    </div>
-                </div>
-            @else
-                <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded">
-                    <strong class="font-bold">Modo Borrador</strong>
-                    <p>Los datos ingresados son preliminares.</p>
-                </div>
-            @endif
+            <x-franja-matriz :evaluacion="$evaluacion"
+                             :niveles="[0 => 'Desfavorable', 1 => 'Parcial', 2 => 'Favorable']" />
 
             <x-flash-exito />
 
 
             <form method="POST" action="{{ route('operativo.evaluacion_valoracion_territorial.update', $zona->id) }}" id="form-valoracion-territorial">
                 @csrf
-
-                <x-leyenda-escala />
 
                 @php
                     // Nada preseleccionado: con todo en 0 se podía enviar el
