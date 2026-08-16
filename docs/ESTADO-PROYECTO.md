@@ -3,13 +3,14 @@
 **Fecha:** 15 de agosto de 2026 (actualizado al cerrar la Fase 4 del rediseño)
 **Para:** continuar en otro ordenador sin perder contexto.
 
-**Estado en una línea:** rama `fase-4-formularios` terminada y revisada, con
-**662 tests verdes**; **pendiente de fusionar en `main`**, que sigue en la
-Fase 3 (merge `069d3a7`, 646 tests). **Con la Fase 4 el rediseño de interfaz
-queda cerrado: las cuatro fases hechas.**
+**Estado en una línea:** `main` con la Fase 4 ya fusionada (merge `082f69e`) y
+subida a `origin`, árbol limpio, **662 tests verdes comprobados sobre el
+resultado fusionado**, no solo sobre la rama. No hay ninguna rama que retomar.
+**Con la Fase 4 el rediseño de interfaz queda cerrado: las cuatro fases
+hechas.**
 
-El último commit que toca **código** en esa rama es `d4b34a0`. Lo que haya
-encima son commits de este documento: si el árbol está limpio y
+El último commit que toca **código** es `d4b34a0`, dentro de ese merge. Lo que
+haya encima en `main` son commits de este documento: si el árbol está limpio y
 `git log --oneline -1` enseña un `docs(traspaso)`, la cifra sigue valiendo sin
 volver a correr nada.
 
@@ -1745,7 +1746,7 @@ cosa.
   hasta diez consultas extra por render. Queda anotado para que no se le
   atribuya a la Fase 3 si alguien lo mide después.
 
-### Rama `fase-4-formularios` — Fase 4 del rediseño, terminada y revisada (15 de agosto)
+### Rama `fase-4-formularios` — Fase 4 del rediseño, terminada, revisada y fusionada (merge `082f69e`, 15 de agosto)
 
 Suite **646 → 662**. **Cierra el rediseño de interfaz: es la última de las
 cuatro fases.**
