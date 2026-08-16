@@ -37,3 +37,38 @@ T1 el componente · T2 FIT y FET · T3 Paisaje y VT · T4 Percepción,
 Concentración e Irritación · T5 Potencialidad · T6 retirar los dos
 componentes y el aviso de la barra lateral · T7 verificación de navegador ·
 T8 revisión final y traspaso.
+
+## T7 — verificación de navegador: sin hallazgos
+
+Los siete puntos del plan, medidos sobre el DOM con `getBoundingClientRect()`,
+`getComputedStyle()` y `scrollWidth`, no a ojo. **Sin Playwright**: basta el
+navegador de la propia sesión, igual que en la Fase 3.
+
+Datos: zona 1 con FIT en borrador —cuatro niveles, el caso ancho—, FET y
+Potencialidad validadas, y tres personas de equipo para ver el tercer estado.
+
+| # | Qué pedía | Medido |
+|---|---|---|
+| 1 | una sola caja a 1280 px, sin empujar la barra lateral | franja de **74 px** donde antes había tres cajas; borde izquierdo ámbar `rgb(245,158,11)` de 4 px; el `<aside>` arranca en y=285, **la misma altura** que la franja |
+| 2 | a 375 px, el caso de cuatro niveles | 343×150 px; `scrollWidth === clientWidth === 375` en `<html>` y `<body>`; **cero** hijos se salen de la franja; las cuatro píldoras a 20 px, una línea cada una |
+| 3 | que el verde y el neutro se distingan de verdad | borrador `rgb(245,158,11)` · validada `rgb(34,197,94)` · cerrada `rgb(148,163,184)`. Comprobado que el tercero **no** es el mismo verde que el segundo |
+| 4 | «quién y cuándo» sin solaparse | dentro de la caja a 375 px, con la escala envuelta |
+| 5 | Potencialidad, con su CSS propio | franja **encima** de la rejilla (y=286, rejilla en 454) y a todo el ancho: la desviación documentada. Sus avisos de configuración —«Modo Jefe», «activar o desactivar campos»— **siguen ahí**; el banner viejo con ✅/✏️ no |
+| 6 | las dos sin escala | Concentración e Irritación: **46 px**, solo «Borrador», sin separador, sin frase de método y sin hueco donde iría la escala |
+| 7 | 14 px y sin `uppercase` | todos los nodos con texto de la franja miden **exactamente 14 px** en las vistas comprobadas; ningún `uppercase` |
+
+**De propina, y es lo que más valía comprobar:** en una FET validada mirada
+por el jefe, la barra lateral **sí** pinta ahora «Esta matriz está validada.
+Guardarla la devolverá a borrador y habrá que validarla de nuevo.». Es el
+hueco que el diseño destapó —su botón «Guardar Borrador» reabría sin avisar—
+cerrado y visto en el navegador, no solo en un test.
+
+Y en la misma página vista por el equipo: la franja dice «Validada · solo
+lectura» arriba, no hay botón de guardar, no hay «Actualizar Datos», y el
+aviso que antes había que bajar a buscar al pie ya no existe.
+
+Todas las cargas en 200. El único 404 de la consola fue una URL mal tecleada
+al explorar (`/potencialidad` en vez de `/evaluacion-potencialidad`), no un
+fallo de la página — el mismo tropiezo que en la Fase 3.
+
+**Ningún arreglo: ni T2 ni T5 se reabren por esta tarea.**
