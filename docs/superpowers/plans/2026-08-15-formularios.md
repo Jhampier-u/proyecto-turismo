@@ -69,13 +69,21 @@ no reargumenta sus decisiones, solo las ejecuta; quien ejecute lee las dos.
 | Tarea | Añade | Total |
 |---|---|---|
 | base | — | 646 |
-| T1 | 7 | 653 |
-| T2 | 0 (migra 4 aserciones dentro de tests que ya existen) | 653 |
-| T3 | 0 | 653 |
-| T4 | 0 (migra 3 aserciones) | 653 |
-| T5 | 0 | 653 |
-| T6 | 5 (3 del recorrido por el registro, 2 de la barra lateral) | 658 |
-| T7–T8 | 0 | 658 |
+| T1 | **8** | **654** |
+| T2 | 0 (migra 4 aserciones dentro de tests que ya existen) | 654 |
+| T3 | 0 | 654 |
+| T4 | 0 (migra 3 aserciones) | 654 |
+| T5 | 0 | 654 |
+| T6 | 5 (3 del recorrido por el registro, 2 de la barra lateral) | **659** |
+| T7–T8 | 0 | **659** |
+
+> **T1 acabó con 8 tests, no con los 7 que decía este plan.** La revisión de
+> esa tarea señaló que `$paletas[count($niveles)] ?? $paletas[3]` degradaba en
+> silencio para una escala de un tamaño sin paleta: caía en la de 3 y se salía
+> del array, con un aviso de PHP y un punto sin color en vez de un error. Se
+> cambió por una guarda que revienta, como la de `:total`/`:respondidos` en
+> `<x-barra-lateral-formulario>`, y el test que la fija es el octavo. De ahí
+> que todos los totales de abajo suban en uno respecto de lo planeado.
 
 Si el número no cuadra al terminar una tarea, para y mira por qué antes de
 seguir: en este repositorio un test que desaparece sin que nadie lo note ya ha
@@ -445,6 +453,11 @@ php artisan test
 Esperado: **653 tests en verde** (646 + 7). Ninguna vista ha cambiado
 todavía, así que nada más debería moverse.
 
+> **Acabó en 654, no en 653**, y el motivo está en la nota del recuento de
+> arriba: la revisión de esta tarea cambió el `?? $paletas[3]` por una guarda
+> que revienta, y eso trajo un octavo test. De la Tarea 2 en adelante, la
+> cifra de referencia es **654**.
+
 - [ ] **Paso 7: commit**
 
 ```bash
@@ -596,7 +609,7 @@ Esperado: PASAN todos.
 php artisan test
 ```
 
-Esperado: **653 tests en verde**. El número no sube: se migraron aserciones
+Esperado: **654 tests en verde**. El número no sube: se migraron aserciones
 dentro de tests que ya existían.
 
 - [ ] **Paso 7: commit**
@@ -679,7 +692,7 @@ Esperado: PASAN.
 php artisan test
 ```
 
-Esperado: **653 tests en verde**.
+Esperado: **654 tests en verde**.
 
 - [ ] **Paso 5: commit**
 
@@ -817,7 +830,7 @@ Esperado: PASAN todos.
 php artisan test
 ```
 
-Esperado: **653 tests en verde**.
+Esperado: **654 tests en verde**.
 
 - [ ] **Paso 8: commit**
 
@@ -957,7 +970,7 @@ Esperado: PASAN.
 php artisan test
 ```
 
-Esperado: **653 tests en verde**. Los ocho formularios ya llevan franja.
+Esperado: **654 tests en verde**. Los ocho formularios ya llevan franja.
 
 - [ ] **Paso 6: commit**
 
@@ -1297,7 +1310,7 @@ npm run build
 php artisan test
 ```
 
-Esperado: **658 tests en verde** (653 + 5).
+Esperado: **659 tests en verde** (654 + 5).
 
 - [ ] **Paso 7: commit**
 
@@ -1411,13 +1424,13 @@ de `:niveles`.
 php artisan test
 ```
 
-Esperado: **658 tests en verde**.
+Esperado: **659 tests en verde**.
 
 - [ ] **Paso 3: el traspaso al día**
 
 En `docs/ESTADO-PROYECTO.md`:
 - Entrada de la rama `fase-4-formularios`: qué se hizo, el recuento nuevo
-  (658), y lo que las tareas 7 y 8 encontraron —o que no encontraron nada—.
+  (659), y lo que las tareas 7 y 8 encontraron —o que no encontraron nada—.
 - **Tacha la Fase 4 de §6, punto 14, y con ella el punto entero: es la última
   de las cuatro.** El rediseño de interfaz queda cerrado.
 - Anota que `<x-leyenda-escala>` y `<x-aviso-bloqueo-matriz>` **ya no
