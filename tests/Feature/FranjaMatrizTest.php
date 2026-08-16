@@ -164,4 +164,29 @@ class FranjaMatrizTest extends TestCase
 
         $this->assertStringContainsString('bg-orange-500', $html);
     }
+
+    /**
+     * Solo hay paleta para 3 y 4 niveles. Los colores se consumen por
+     * posición ($colores[$loop->index]), así que una escala de otro tamaño
+     * -aquí, dos- caería en la paleta de 3 y se saldría del array: un punto
+     * sin color y un aviso de PHP, en vez de un error claro. Mejor que
+     * reviente aquí, con un mensaje que dice qué falta, a que adivine mal en
+     * silencio.
+     */
+    public function test_una_escala_sin_paleta_definida_revienta_en_vez_de_adivinar(): void
+    {
+        $this->actingAs($this->jefe);
+
+        // Blade envuelve cualquier excepción lanzada al renderizar un
+        // componente en ViewException -no deja pasar la original tal cual-,
+        // igual que en BarraLateralFormularioTest, así que se comprueba el
+        // mensaje en vez del tipo original.
+        $this->expectException(\Illuminate\View\ViewException::class);
+        $this->expectExceptionMessage('no hay paleta para una escala de 2 niveles');
+
+        $this->render(
+            EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']),
+            [0 => 'No', 1 => 'Sí']
+        );
+    }
 }

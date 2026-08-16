@@ -52,7 +52,21 @@
 
     if ($niveles !== null) {
         ksort($niveles);
-        $colores = $paletas[count($niveles)] ?? $paletas[3];
+
+        // Revienta en vez de adivinar, igual que <x-barra-lateral-formulario>
+        // con :total/:respondidos. Los colores se consumen por POSICIÓN, así
+        // que una escala de un tamaño sin paleta caería en la de 3 y se
+        // saldría del array: un punto sin color y un aviso de PHP, en vez de
+        // un error. Las diez matrices de hoy usan 3 o 4 niveles; una nueva
+        // que use otro número tiene que traer su paleta, no heredar una que
+        // no le sirve.
+        if (! isset($paletas[count($niveles)])) {
+            throw new \InvalidArgumentException(
+                '<x-franja-matriz>: no hay paleta para una escala de ' . count($niveles) . ' niveles.'
+            );
+        }
+
+        $colores = $paletas[count($niveles)];
     }
 @endphp
 
