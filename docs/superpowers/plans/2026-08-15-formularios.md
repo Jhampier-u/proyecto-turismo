@@ -74,8 +74,8 @@ no reargumenta sus decisiones, solo las ejecuta; quien ejecute lee las dos.
 | T3 | 0 | 655 |
 | T4 | 0 (migra 3 aserciones) | 655 |
 | T5 | 0 | 655 |
-| T6 | 5 (3 del recorrido por el registro, 2 de la barra lateral) | **660** |
-| T7–T8 | 0 | **660** |
+| T6 | 6 (**4** del recorrido por el registro, 2 de la barra lateral) | **661** |
+| T7–T8 | 0 | **661** |
 
 > **T1 acabó con 8 tests, no con los 7 que decía este plan.** La revisión de
 > esa tarea señaló que `$paletas[count($niveles)] ?? $paletas[3]` degradaba en
@@ -1014,7 +1014,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 **Interfaces:** ninguna nueva. Es la limpieza y el cierre del hueco 1 de la
 spec.
 
-- [ ] **Paso 1: escribir los cinco tests que fallan**
+- [ ] **Paso 1: escribir los seis tests que fallan**
 
 Crea `tests/Feature/FranjaEnLosOchoTest.php`:
 
@@ -1125,6 +1125,38 @@ class FranjaEnLosOchoTest extends TestCase
      * hay escala, así que su presencia y su ausencia dicen exactamente cuál
      * de los dos casos se cableó.
      */
+    /**
+     * El botón «Actualizar Datos» no se ofrece a quien no puede pulsarlo.
+     *
+     * Vivía en la rama @else del pie —la que solo se alcanza con $bloqueado—,
+     * y `$bloqueado = $estaConfirmado && ! $esJefe`, así que el `@if($esJefe)`
+     * que lo envolvía no podía cumplirse nunca. Era un resto de cuando
+     * $bloqueado tenía dos causas: el admin bloqueado por ROL y el equipo por
+     * ESTADO. Desde que el admin edita, solo queda la segunda, y el botón se
+     * quedó inalcanzable.
+     *
+     * Apareció en FIT (T2) y en Percepción (T4), en las dos por separado.
+     * Este barrido lo cierra para las ocho de una vez, que es lo que evita
+     * encontrarlo una tercera vez en la novena.
+     */
+    public function test_ningun_formulario_ofrece_actualizar_datos_a_quien_no_es_jefe(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        foreach ($this->formularios() as $clave => $url) {
+            $html = $this->actingAs($equipo)->get($url)->assertOk()->getContent();
+
+            $this->assertStringNotContainsString(
+                'Actualizar Datos',
+                $html,
+                "{$clave}: ofrece «Actualizar Datos» a quien no es jefe."
+            );
+        }
+    }
+
     public function test_las_seis_con_escala_la_pintan_y_las_dos_sin_escala_no(): void
     {
         $sinEscala = ['concentracion', 'irritacion'];
@@ -1215,7 +1247,7 @@ Esperado, con precisión —de los cinco, **solo falla uno**—:
   porque hoy no hay aviso en ninguno de los dos casos. Se vuelve significativo
   en el paso 3, cuando el aviso exista y haya que comprobar que no se pinta de
   más.
-- Los **tres** de `FranjaEnLosOchoTest`: **pasan ya**, porque T2 a T5 dejaron
+- Los **cuatro** de `FranjaEnLosOchoTest`: **pasan ya**, porque T2 a T5 dejaron
   los ocho formularios convertidos. Son una red de seguridad, no una
   funcionalidad nueva. **Si alguno falla, hay una vista mal convertida** y hay
   que arreglarla antes de seguir —el mensaje del test dice cuál—.
@@ -1313,7 +1345,7 @@ pasa a:
 php artisan test --filter="FranjaEnLosOchoTest|BarraLateralFormularioTest"
 ```
 
-Esperado: PASAN los cinco.
+Esperado: PASAN los seis.
 
 - [ ] **Paso 6: construir los assets y correr la suite entera**
 
@@ -1322,7 +1354,7 @@ npm run build
 php artisan test
 ```
 
-Esperado: **660 tests en verde** (655 + 5).
+Esperado: **661 tests en verde** (655 + 6).
 
 - [ ] **Paso 7: commit**
 
@@ -1436,13 +1468,13 @@ de `:niveles`.
 php artisan test
 ```
 
-Esperado: **660 tests en verde**.
+Esperado: **661 tests en verde**.
 
 - [ ] **Paso 3: el traspaso al día**
 
 En `docs/ESTADO-PROYECTO.md`:
 - Entrada de la rama `fase-4-formularios`: qué se hizo, el recuento nuevo
-  (660), y lo que las tareas 7 y 8 encontraron —o que no encontraron nada—.
+  (661), y lo que las tareas 7 y 8 encontraron —o que no encontraron nada—.
 - **Tacha la Fase 4 de §6, punto 14, y con ella el punto entero: es la última
   de las cuatro.** El rediseño de interfaz queda cerrado.
 - Anota que `<x-leyenda-escala>` y `<x-aviso-bloqueo-matriz>` **ya no
