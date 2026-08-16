@@ -32,30 +32,7 @@
             <div class="lg:grid lg:grid-cols-[1fr_256px] lg:gap-6 lg:items-start">
             <div class="lg:min-w-0">
 
-            @if($evaluacion?->exists && $evaluacion->user)
-                <p class="text-sm text-gray-500 mb-4">
-                    Última edición: {{ $evaluacion->user->name }},
-                    {{ $evaluacion->updated_at->diffForHumans() }}
-                </p>
-            @endif
-
-            @if($estaConfirmado)
-            <div class="mb-6 bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <strong class="font-bold text-lg">✓ Evaluación FET Validada</strong>
-                        <p>Esta evaluación ha sido confirmada por el Jefe de Zona.</p>
-                    </div>
-                </div>
-            </div>
-            @else
-            <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded">
-                <strong class="font-bold">Modo Borrador</strong>
-                <p>Los datos ingresados son preliminares.</p>
-            </div>
-            @endif
-
-            <x-leyenda-escala :niveles="$niveles" />
+            <x-franja-matriz :evaluacion="$evaluacion" :niveles="$niveles" />
 
             <x-flash-exito />
 
@@ -139,8 +116,6 @@
                         Validar y Finalizar FET
                     </x-boton>
                     @endif
-                    @else
-                    <span class="text-gray-500 italic self-center"><x-aviso-bloqueo-matriz sustantivo="evaluación" /></span>
                     @endif
                 </div>
             </form>

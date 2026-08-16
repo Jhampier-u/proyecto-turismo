@@ -262,7 +262,7 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($equipo)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit")
             ->assertOk()
-            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.');
+            ->assertSee('Validada · solo lectura');
     }
 
     /**
@@ -327,7 +327,7 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($equipo)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fet")
             ->assertOk()
-            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.');
+            ->assertSee('Validada · solo lectura');
     }
 
     /**

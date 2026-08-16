@@ -268,7 +268,7 @@ class ReabrirMatrizTest extends TestCase
         $this->actingAs($this->equipo)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit")
             ->assertOk()
-            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.');
+            ->assertSee('Validada · solo lectura');
 
         $this->actingAs($this->jefe)->post(
             "/operativo/zona/{$this->zona->id}/evaluacion-fit",
@@ -280,7 +280,7 @@ class ReabrirMatrizTest extends TestCase
         $this->actingAs($this->equipo)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit")
             ->assertOk()
-            ->assertDontSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.')
+            ->assertDontSee('Validada · solo lectura')
             ->assertSee('Guardar Borrador');
     }
 }
