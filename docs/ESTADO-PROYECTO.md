@@ -1,15 +1,15 @@
 # Estado del proyecto — traspaso entre máquinas
 
-**Fecha:** 15 de agosto de 2026 (actualizado al cerrar la Fase 3 del rediseño)
+**Fecha:** 15 de agosto de 2026 (actualizado al cerrar la Fase 4 del rediseño)
 **Para:** continuar en otro ordenador sin perder contexto.
 
-**Estado en una línea:** `main` con la Fase 3 ya fusionada (merge `069d3a7`) y
-subida a `origin`, árbol limpio, **646 tests verdes comprobados sobre el
-resultado fusionado**, no solo sobre la rama. No hay ninguna rama que
-retomar. La deuda de revisión de la Fase 2 —punto 17 de §6— ya está saldada.
+**Estado en una línea:** rama `fase-4-formularios` terminada y revisada, con
+**662 tests verdes**; **pendiente de fusionar en `main`**, que sigue en la
+Fase 3 (merge `069d3a7`, 646 tests). **Con la Fase 4 el rediseño de interfaz
+queda cerrado: las cuatro fases hechas.**
 
-El último commit que toca **código** es `a381089`, dentro de ese merge. Lo que
-haya encima en `main` son commits de este documento: si el árbol está limpio y
+El último commit que toca **código** en esa rama es `d4b34a0`. Lo que haya
+encima son commits de este documento: si el árbol está limpio y
 `git log --oneline -1` enseña un `docs(traspaso)`, la cifra sigue valiendo sin
 volver a correr nada.
 
@@ -1745,6 +1745,102 @@ cosa.
   hasta diez consultas extra por render. Queda anotado para que no se le
   atribuya a la Fase 3 si alguien lo mide después.
 
+### Rama `fase-4-formularios` — Fase 4 del rediseño, terminada y revisada (15 de agosto)
+
+Suite **646 → 662**. **Cierra el rediseño de interfaz: es la última de las
+cuatro fases.**
+
+Las tres cajas que había encima del primer criterio de cada formulario de
+matriz —una línea suelta de «Última edición», el banner de estado y la tarjeta
+de la escala de valoración— pasan a ser **una sola franja**, en los ocho.
+
+Spec y plan: `docs/superpowers/specs/2026-08-15-formularios-design.md` y
+`docs/superpowers/plans/2026-08-15-formularios.md`. Bitácora:
+`.superpowers/sdd/progress.md`. Informe de la revisión final:
+`.superpowers/sdd/2026-08-15-formularios/task-8-report.md`.
+
+**Lo que cambió:**
+
+- **`<x-franja-matriz>`**, componente nuevo. **`<x-leyenda-escala>` y
+  `<x-aviso-bloqueo-matriz>` ya no existen** —si un documento viejo los
+  nombra, está desfasado—. El neto de componentes baja en uno.
+- **La franja deriva su estado**, no lo recibe por prop. Siete vistas llamaban
+  a eso `$estaConfirmado`/`$bloqueado` y Potencialidad `$isConfirmado`/
+  `$soloLectura`; un booleano por prop habrían sido ocho ocasiones de pasar el
+  contrario. La revisión final comprobó además que la derivación **coincide
+  con el predicado de autorización** del controlador, admin incluido.
+- **Tres estados donde había dos.** El verde queda para «validada y todavía
+  puedes editarla»; para quien no puede, la franja es neutra y dice «Validada ·
+  solo lectura» **en la primera línea de la página**, no al final. Antes el
+  equipo leía un verde de «todo correcto» y descubría el bloqueo al bajar.
+- **`:niveles` es `null` por defecto, y `null` significa «sin escala».** El
+  componente retirado tenía 0/1/2 por defecto, así que «no tengo escala» y
+  «tengo la corriente» se escribían igual. Valoración Territorial, que se
+  apoyaba en ese defecto sin decirlo, ahora declara su escala.
+
+#### Dos huecos que el diseño destapó, y que no venían en el encargo
+
+1. **La barra lateral guardaba sin avisar.** `<x-aviso-reapertura>` vivía solo
+   junto a los botones del pie, y la barra lateral tiene su propio «Guardar
+   Borrador» —el que está siempre a la vista—: el jefe reabría una matriz
+   validada sin que nada se lo hubiera advertido. Cerrado, y **visto en el
+   navegador**, no solo en un test.
+2. **El aviso de solo lectura faltaba en tres de los ocho.** Paisaje,
+   Potencialidad y Valoración Territorial nunca lo tuvieron. Ahora lo dice la
+   franja, en los ocho.
+
+#### Un botón inalcanzable, encontrado dos veces por separado
+
+En la rama `@else` del pie —la que solo se alcanza con `$bloqueado`— había un
+`@if($esJefe)` envolviendo un botón «Actualizar Datos». Como
+`$bloqueado = $estaConfirmado && ! $esJefe`, esa condición no podía cumplirse
+nunca. Resto de cuando `$bloqueado` tenía dos causas: el admin bloqueado por
+ROL y el equipo por ESTADO; desde que el admin edita, solo queda la segunda.
+
+Apareció en **FIT** y, tres tareas después, en **Percepción**. Las dos veces a
+mano. De ahí que la rama acabara con un barrido sobre las ocho en vez de un
+test por vista.
+
+#### Lo que más enseña esta rama: dos tests que no podían fallar
+
+Los dos defectos que encontró la revisión final **no estaban en el código de
+producción, sino en los tests**, y los dos eran del mismo tipo: verdes que no
+probaban lo que decían.
+
+- Un barrido comprobaba que la franja estaba en las ocho vistas afirmando una
+  clase de Tailwind. Pero `<x-criterio-pildoras>` pinta esa misma clase.
+  **Comprobado borrando la franja entera de FIT: el test seguía pasando.**
+- El barrido del botón inalcanzable **nunca confirmaba ninguna matriz**, así
+  que la rama del pie que decía vigilar no se pintaba en ninguna de las ocho;
+  y el texto que buscaba ya no existía en el repositorio. No podía fallar
+  aunque alguien restaurara el código muerto entero.
+
+El arreglo del primero fue darle a la franja un **ancla propia**
+(`data-franja`), como la Fase 3 hizo con `id="zona-panel-lateral"`: no
+comprobar la franja por una clase que comparte con otros. El del segundo,
+confirmar las matrices dentro del bucle — lo que de paso cerró el único hueco
+de cobertura que quedaba.
+
+**La lección que merece sobrevivir:** cuando un test nuevo pasa a la primera,
+conviene romper a propósito lo que dice vigilar y comprobar que se pone rojo.
+En esta rama esa comprobación encontró dos tests inútiles que cuatro
+revisiones anteriores habían dado por buenos.
+
+#### Restos que la rama deja escritos y no toca
+
+- **El CSS a medida de Potencialidad**, que sigue con su bloque `<style>` y
+  sus atributos `style=` en línea. Es la única de las ocho sin convertir al
+  sistema de diseño, y por eso su franja va **encima** de su rejilla y no
+  dentro de la columna izquierda como en las otras siete: bajarla exigiría
+  mover más de cien líneas de marcado propio. **Deuda con nombre propio.**
+- **La consulta extra de la barra lateral** para saber si la matriz está
+  validada: en siete de ocho llamantes duplica una que el propio componente
+  hace más arriba. Una columna, una vez por render; la alternativa era pasar
+  un prop por ocho vistas que no se ponen de acuerdo en los nombres.
+  Documentada como conocida y aceptada.
+- **Paisaje pinta su flash una tarjeta más abajo** que las demás, porque tiene
+  una tarjeta de metadatos entre medias. Anterior a esta rama.
+
 ## 4. Lo que hay que saber para continuar
 
 ### GP3 ya está revisado
@@ -2003,10 +2099,16 @@ niveles de anidamiento— y ninguno se movió con el cambio.
    servido y que cada pantalla usa su propia variable. El componente no guarda
    nada —`<x-conmutador-vista modelo="...">` solo emite dos `<button>` con
    `@click` de Alpine—, así que **conmutar y persistir solo ocurre en el
-   navegador**. Cerrarlo exige Playwright, que no está instalado, y ponerlo con
-   su Chromium es un cambio de entorno que merece decidirse aparte. **No es
-   código: es la única entrada de esta lista que un test de PHP no puede
-   cubrir.**
+   navegador**. **No es código: es la única entrada de esta lista que un test
+   de PHP no puede cubrir.**
+
+   **Lo de «cerrarlo exige Playwright» ya no es cierto, y esta es la entrada
+   más barata que queda.** Las fases 3 y 4 cerraron sus verificaciones de
+   navegador con el navegador de la propia sesión, midiendo sobre el DOM con
+   `getBoundingClientRect()`, `getComputedStyle()` y `scrollWidth` —dos veces,
+   y con hallazgos reales—. Pulsar los dos botones del conmutador y recargar
+   para ver si la preferencia sobrevive entra exactamente en lo mismo. No hace
+   falta instalar nada ni decidir ningún cambio de entorno.
 9. ~~**Dashboard vacío y ancho de los formularios**~~ — hecho en
    `dashboard-y-formularios` (Parte A) y `barra-lateral` (Parte B), las dos
    fusionadas. Ver §3.
@@ -2158,12 +2260,17 @@ niveles de anidamiento— y ninguno se movió con el cambio.
       dos defectos que ningún test veía, los dos arreglados aquí: el panel se
       contradecía con la fila de al lado en las dos direcciones, y un test de
       la propia rama fallaba una de cada 35 corridas por el escapado de Blade.
-    - **Fase 4 — formularios.** Consolidar el banner de borrador y la escala de
-      valoración en una sola franja compacta. **Ojo:** la barra lateral con
-      índice, progreso y botón de guardar **ya existe** (`<x-barra-lateral-formulario>`,
-      en los ocho formularios de matriz más Potencialidad), y las píldoras de
-      criterio ya son un control segmentado (`<x-criterio-pildoras>`). El
-      encargo original pedía las dos cosas como si no existieran.
+    - ~~**Fase 4 — formularios.**~~ — hecha en `fase-4-formularios` (§3).
+      Suite **646 → 662**. Las tres cajas que había encima del primer criterio
+      —«Última edición», el banner de estado y la tarjeta de la escala— pasan
+      a ser una sola franja, `<x-franja-matriz>`, en los ocho formularios.
+      De las tres cosas que pedía el encargo original solo quedaba esta: la
+      barra lateral y el control segmentado ya existían de fases anteriores.
+      `<x-leyenda-escala>` y `<x-aviso-bloqueo-matriz>` **ya no existen**.
+
+    **Con esto el rediseño de interfaz queda cerrado: las cuatro fases están
+    hechas.** Lo que quede de interfaz a partir de aquí es trabajo nuevo, no
+    parte de este plan.
 
     **Fuera de las cuatro fases, hasta que se diseñe como funcionalidad:** el
     badge de notificaciones. No hay sistema de notificaciones —solo el

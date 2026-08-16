@@ -72,3 +72,38 @@ al explorar (`/potencialidad` en vez de `/evaluacion-potencialidad`), no un
 fallo de la página — el mismo tropiezo que en la Fase 3.
 
 **Ningún arreglo: ni T2 ni T5 se reabren por esta tarea.**
+
+## T8 — revisión final y traspaso
+
+Detalle largo en `.superpowers/sdd/2026-08-15-formularios/task-8-report.md`.
+
+| Tarea | Qué encontró que el plan no decía |
+|---|---|
+| T1 | La paleta degradaba en silencio para una escala sin paleta: caía en la de 3 y se salía del array. Ahora revienta, como `<x-barra-lateral-formulario>` con sus props. +1 test. |
+| T2 | Una rama `@else` **inalcanzable** en FIT: `$bloqueado` implica `! $esJefe`, así que el `@if($esJefe)` de dentro no podía cumplirse. El plan decía conservar ese botón; el plan se equivocaba. |
+| T3 | Sin sorpresas. Valoración Territorial deja de heredar en silencio la escala 0/1/2 del componente retirado. |
+| T4 | **La misma rama muerta, otra vez, en Percepción.** Encontrada por separado tres tareas después. De ahí que T6 acabara con un barrido sobre las ocho. |
+| T5 | Potencialidad, sin incidencias. Su franja va encima de la rejilla, desviación documentada. |
+| T6 | Dos componentes retirados y el hueco de la barra lateral cerrado. |
+| T7 | Los siete puntos, **sin un solo hallazgo**, medidos sobre el DOM. |
+| T8 | **Dos tests que no podían fallar.** Ninguno de los dos defectos estaba en el código de producción. |
+
+**Lo que merece sobrevivir al borrado de este fichero:**
+
+- **Un test que pasa a la primera no está verificado.** Los dos defectos de
+  T8 eran tests verdes que no probaban nada: uno afirmaba una clase de
+  Tailwind que otro componente también pinta —comprobado borrando la franja
+  entera de una vista y viéndolo seguir en verde—, y el otro nunca llegaba a
+  pintar la rama que decía vigilar. **Rompe a propósito lo que el test dice
+  cubrir y mira si se pone rojo.** Cuatro revisiones anteriores los habían
+  dado por buenos.
+- **Un defecto que aparece dos veces es un barrido, no dos parches.** La rama
+  muerta salió en FIT y en Percepción por separado; el test que las cierra
+  recorre `Registro` y no depende de que nadie se acuerde de la novena vista.
+- **Los errores estaban en el plan, no en quien lo ejecutó.** Tres de los
+  cinco defectos de esta rama —el `?? $paletas[3]`, el botón que «se queda», y
+  el barrido inerte— los escribí yo antes de que existiera el código.
+- **La verificación de navegador ya no necesita Playwright**, y van dos fases
+  demostrándolo. El punto 8 de §6 del traspaso está a un rato de cerrarse.
+
+Suite final: **662 tests en verde** (646 base + 16).
