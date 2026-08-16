@@ -2,12 +2,13 @@
 
 {{--
     El aviso que ve el Jefe de Zona cuando guardar sobre una matriz o
-    evaluación ya validada la va a devolver a borrador. Hermano de
-    <x-aviso-bloqueo-matriz>: aquel avisa a quien NO puede tocar el
-    formulario en ese estado, este avisa a quien sí puede y no sabe la
-    consecuencia. Mismo reparto de responsabilidades que su hermano -y mismo
-    prop $sustantivo para "matriz" vs "evaluación"-: el componente pone el
-    texto, la vista decide si mostrarlo. La condición
+    evaluación ya validada la va a devolver a borrador. Su hermano
+    <x-aviso-bloqueo-matriz> -que avisaba a quien NO puede tocar el
+    formulario- lo absorbió la franja de estado en la Fase 4. Este se queda
+    porque avisa a quien SÍ puede y no sabe la consecuencia, y desde esa fase
+    acompaña a los DOS botones de guardar: el del pie y el de la barra
+    lateral. Mismo prop $sustantivo para "matriz" vs "evaluación": el
+    componente pone el texto, la vista decide si mostrarlo. La condición
     `@if($validada && $esJefe)` se queda en cada formulario porque el nombre
     de esas dos variables cambia de un fichero a otro ($estaConfirmado /
     $esJefe en siete, $isConfirmado / $user->esJefe() en Potencialidad).

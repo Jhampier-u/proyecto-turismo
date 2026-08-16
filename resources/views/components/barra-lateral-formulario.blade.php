@@ -55,6 +55,13 @@
     }
 
     $porcentaje = $total > 0 ? round($respondidos / $total * 100) : 0;
+
+    // Deriva de la base, no de la rama de arriba: cuando el llamante pasa
+    // :total y :respondidos -Potencialidad-, $evaluacion no se llega a cargar.
+    $entradaFranja       = \App\Matrices\Registro::ENTRADAS[$clave];
+    $modeloFranja        = $entradaFranja['modelo'];
+    $filaFranja          = $modeloFranja::where('zona_id', $zona->id)->first(['estado']);
+    $evaluacionValidada  = $filaFranja?->estado === 'confirmado';
 @endphp
 
 <aside class="hidden lg:block lg:sticky lg:top-6 lg:self-start w-64 shrink-0">
@@ -91,6 +98,15 @@
         </nav>
 
         @unless($bloqueado)
+            {{-- El aviso acompaña al botón, no a la franja de arriba: no dice
+                 QUÉ ES la matriz sino QUÉ VA A HACER este clic. Hasta la Fase
+                 4 solo estaba junto a los botones del final del formulario, y
+                 este de aquí -el que está siempre a la vista- reabría una
+                 matriz validada sin advertirlo. --}}
+            @if($evaluacionValidada)
+                <x-aviso-reapertura class="mb-2" />
+            @endif
+
             <button type="submit" form="{{ $formulario }}" name="accion_estado" value="borrador"
                     class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded shadow-sm text-sm">
                 Guardar Borrador
