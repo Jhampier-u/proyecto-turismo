@@ -58,6 +58,17 @@ class FranjaEnLosOchoTest extends TestCase
             ->all();
     }
 
+    /**
+     * Afirma data-franja="borrador", no una clase Tailwind. La primera
+     * versión de este test buscaba 'border-l-amber-500' en la página
+     * entera, y esa clase no es exclusiva de la franja: <x-criterio-pildoras>
+     * pinta el mismo border-l-amber-500 en sus píldoras de nivel medio, y
+     * cinco de las ocho matrices usan píldoras. Se comprobó borrando la
+     * línea <x-franja-matriz> de FIT y corriendo el test: seguía en verde,
+     * porque las píldoras del formulario sostenían la aserción solas. El
+     * atributo data-franja lo pinta solo este componente, así que ahora sí
+     * hace falta que la franja esté.
+     */
     public function test_los_ocho_formularios_pintan_la_franja_en_borrador(): void
     {
         $urls = $this->formularios();
@@ -68,7 +79,7 @@ class FranjaEnLosOchoTest extends TestCase
             $html = $this->actingAs($this->jefe)->get($url)->assertOk()->getContent();
 
             $this->assertStringContainsString(
-                'border-l-amber-500',
+                'data-franja="borrador"',
                 $html,
                 "{$clave}: el formulario no pinta la franja de borrador."
             );
@@ -79,6 +90,14 @@ class FranjaEnLosOchoTest extends TestCase
      * Los textos retirados no vuelven por la puerta de atrás. Un formulario
      * que se reescriba copiando de una versión vieja los reintroduciría sin
      * que ningún otro test lo viera.
+     *
+     * Dos de los tres textos siguen vivos fuera de las matrices, y a
+     * propósito: 'Modo Borrador' sigue en frecuentacion/index.blade.php e
+     * involucrados/index.blade.php, y 'Última edición' sigue en las vistas
+     * ponderacion.blade.php de cada matriz. Este test es seguro solo
+     * porque formularios() filtra a tipo === 'matriz' -esas otras vistas
+     * quedan fuera del recorrido-; si algún día se ampliara a otro tipo,
+     * esta aserción dejaría de ser válida sin más aviso que este comentario.
      */
     public function test_ningun_formulario_conserva_los_textos_retirados(): void
     {
@@ -138,6 +157,11 @@ class FranjaEnLosOchoTest extends TestCase
      */
     public function test_las_seis_con_escala_la_pintan_y_las_dos_sin_escala_no(): void
     {
+        // No se deriva de Registro::ENTRADAS: esa lista no lleva metadato
+        // de escala, así que esta lista se mantiene a mano. El supuesto por
+        // defecto es "tiene escala" -la rama else de abajo-, así que una
+        // matriz nueva que se olvide de añadir aquí falla ruidoso (se le
+        // exige la frase y no la tiene) en vez de pasar en silencio.
         $sinEscala = ['concentracion', 'irritacion'];
         $frase     = 'Elige la descripción que coincide con el territorio, no el número.';
 

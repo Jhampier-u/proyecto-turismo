@@ -58,10 +58,22 @@
 
     // Deriva de la base, no de la rama de arriba: cuando el llamante pasa
     // :total y :respondidos -Potencialidad-, $evaluacion no se llega a cargar.
-    $entradaFranja       = \App\Matrices\Registro::ENTRADAS[$clave];
-    $modeloFranja        = $entradaFranja['modelo'];
-    $filaFranja          = $modeloFranja::where('zona_id', $zona->id)->first(['estado']);
-    $evaluacionValidada  = $filaFranja?->estado === 'confirmado';
+    //
+    // Para las otras siete vistas esto repite la misma consulta que ya hizo
+    // el bloque de arriba (la de $evaluacion, sin el :total explícito): es
+    // una columna, una vez por render, y se acepta a sabiendas -la
+    // alternativa era pasar un prop por las ocho vistas con el nombre de
+    // variable cambiando en cada una, que es justo el problema que
+    // <x-franja-matriz> ya resolvió derivando en vez de recibiendo-.
+    //
+    // Nombrado aparte de $entrada/$modelo/$evaluacion de arriba, y sin la
+    // palabra "franja": esto no tiene nada que ver con <x-franja-matriz> -es
+    // el aviso de reapertura del botón de la barra lateral-, y reutilizar su
+    // nombre solo invitaría a confundirlo con un hermano real.
+    $entradaMatriz      = \App\Matrices\Registro::ENTRADAS[$clave];
+    $modeloMatriz       = $entradaMatriz['modelo'];
+    $filaEstado         = $modeloMatriz::where('zona_id', $zona->id)->first(['estado']);
+    $evaluacionValidada = $filaEstado?->estado === 'confirmado';
 @endphp
 
 <aside class="hidden lg:block lg:sticky lg:top-6 lg:self-start w-64 shrink-0">

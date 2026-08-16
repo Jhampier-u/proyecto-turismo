@@ -22,6 +22,13 @@
     Concentración e Irritación -que no tienen escala- habrían recibido una
     inventada. Valoración Territorial, que se apoyaba en ese defecto, ahora
     pasa la suya explícitamente.
+
+    data-franja lleva el estado derivado para que los tests puedan afirmar
+    ESTE componente en concreto: sus clases Tailwind (border-l-amber-500 y
+    hermanas) las comparte <x-criterio-pildoras>, que pinta el mismo
+    border-l-amber-500 en sus píldoras de nivel medio. Un test que solo
+    busque esa clase en la página pasa igual con la franja borrada, en
+    cualquier formulario que use píldoras -y cinco de los ocho lo hacen-.
 --}}
 
 @php
@@ -70,7 +77,7 @@
     }
 @endphp
 
-<div class="bg-white border border-gray-200/80 border-l-4 {{ $estilos['marco'] }} rounded-xl shadow-sm px-4 py-3 mb-6">
+<div data-franja="{{ $estado }}" class="bg-white border border-gray-200/80 border-l-4 {{ $estilos['marco'] }} rounded-xl shadow-sm px-4 py-3 mb-6">
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
         <span class="font-semibold {{ $estilos['texto'] }}">{{ $estilos['etiqueta'] }}</span>
 
