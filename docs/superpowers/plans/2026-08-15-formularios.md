@@ -70,12 +70,12 @@ no reargumenta sus decisiones, solo las ejecuta; quien ejecute lee las dos.
 |---|---|---|
 | base | — | 646 |
 | T1 | **8** | **654** |
-| T2 | 0 (migra 4 aserciones dentro de tests que ya existen) | 654 |
-| T3 | 0 | 654 |
-| T4 | 0 (migra 3 aserciones) | 654 |
-| T5 | 0 | 654 |
-| T6 | 5 (3 del recorrido por el registro, 2 de la barra lateral) | **659** |
-| T7–T8 | 0 | **659** |
+| T2 | **1** (migra 4 aserciones, y suma la del boton inalcanzable) | **655** |
+| T3 | 0 | 655 |
+| T4 | 0 (migra 3 aserciones) | 655 |
+| T5 | 0 | 655 |
+| T6 | 5 (3 del recorrido por el registro, 2 de la barra lateral) | **660** |
+| T7–T8 | 0 | **660** |
 
 > **T1 acabó con 8 tests, no con los 7 que decía este plan.** La revisión de
 > esa tarea señaló que `$paletas[count($niveles)] ?? $paletas[3]` degradaba en
@@ -574,8 +574,19 @@ Después, en el pie del formulario, sustituye la línea del aviso de bloqueo
                     <span class="text-gray-500 italic self-center"><x-aviso-bloqueo-matriz sustantivo="evaluación" /></span>
 ```
 
-por nada: **bórrala entera**. La franja ya lo dice arriba. El `<x-boton>` de
-«Actualizar Datos» que la acompaña en esa rama `@else` **se queda**.
+por nada: **bórrala entera**. La franja ya lo dice arriba.
+
+> **Corrección: esta instrucción decía que el `<x-boton>` de «Actualizar
+> Datos» que la acompaña en la rama `@else` se quedaba. Estaba mal.** Al
+> quitar el aviso, esa rama queda vacía —y además es inalcanzable—:
+> `$bloqueado = $estaConfirmado && ! $esJefe`, así que entrar en el `@else`
+> exige `! $esJefe`, y el `@if($esJefe)` de dentro no puede cumplirse nunca.
+> Es un resto de cuando `$bloqueado` tenía dos causas —el admin bloqueado por
+> ROL y el equipo por ESTADO— y el botón existía para la del admin; desde que
+> el admin edita, solo queda la segunda. **La rama `@else` de FIT se borra
+> entera**, con lo que FIT queda igual que FET, que no tiene ninguna. Un test
+> nuevo fija que quien no es jefe no ve «Actualizar Datos» sobre una FIT
+> confirmada, para que el botón muerto no vuelva.
 
 - [ ] **Paso 4: convertir FET**
 
@@ -609,8 +620,9 @@ Esperado: PASAN todos.
 php artisan test
 ```
 
-Esperado: **654 tests en verde**. El número no sube: se migraron aserciones
-dentro de tests que ya existían.
+Esperado: **655 tests en verde**: 654 más el test del botón inalcanzable que
+añade la corrección de más abajo. Las cuatro aserciones migradas no suben el
+número, porque viven dentro de tests que ya existían.
 
 - [ ] **Paso 7: commit**
 
@@ -692,7 +704,7 @@ Esperado: PASAN.
 php artisan test
 ```
 
-Esperado: **654 tests en verde**.
+Esperado: **655 tests en verde**.
 
 - [ ] **Paso 5: commit**
 
@@ -830,7 +842,7 @@ Esperado: PASAN todos.
 php artisan test
 ```
 
-Esperado: **654 tests en verde**.
+Esperado: **655 tests en verde**.
 
 - [ ] **Paso 8: commit**
 
@@ -970,7 +982,7 @@ Esperado: PASAN.
 php artisan test
 ```
 
-Esperado: **654 tests en verde**. Los ocho formularios ya llevan franja.
+Esperado: **655 tests en verde**. Los ocho formularios ya llevan franja.
 
 - [ ] **Paso 6: commit**
 
@@ -1310,7 +1322,7 @@ npm run build
 php artisan test
 ```
 
-Esperado: **659 tests en verde** (654 + 5).
+Esperado: **660 tests en verde** (655 + 5).
 
 - [ ] **Paso 7: commit**
 
@@ -1424,13 +1436,13 @@ de `:niveles`.
 php artisan test
 ```
 
-Esperado: **659 tests en verde**.
+Esperado: **660 tests en verde**.
 
 - [ ] **Paso 3: el traspaso al día**
 
 En `docs/ESTADO-PROYECTO.md`:
 - Entrada de la rama `fase-4-formularios`: qué se hizo, el recuento nuevo
-  (659), y lo que las tareas 7 y 8 encontraron —o que no encontraron nada—.
+  (660), y lo que las tareas 7 y 8 encontraron —o que no encontraron nada—.
 - **Tacha la Fase 4 de §6, punto 14, y con ella el punto entero: es la última
   de las cuatro.** El rediseño de interfaz queda cerrado.
 - Anota que `<x-leyenda-escala>` y `<x-aviso-bloqueo-matriz>` **ya no
