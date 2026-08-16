@@ -151,12 +151,6 @@
                                     Validar y Finalizar
                                 </x-boton>
                             @endif
-                        @else
-                            @if($esJefe)
-                                <x-boton tamano="grande" name="accion_estado" value="confirmado">
-                                    Actualizar Datos
-                                </x-boton>
-                            @endif
                         @endif
                     </div>
                 </x-tarjeta>
