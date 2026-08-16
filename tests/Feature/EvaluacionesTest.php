@@ -262,7 +262,33 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($equipo)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit")
             ->assertOk()
-            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.');
+            ->assertSee('Validada · solo lectura');
+    }
+
+    /**
+     * El botón «Actualizar Datos» era del admin bloqueado por ROL, en la
+     * época en que $bloqueado tenía dos causas -rol y estado-. Desde que el
+     * admin edita, la única causa que queda es el estado, y esa implica
+     * ! $esJefe: entrar en la rama que mostraba el botón exige $bloqueado,
+     * que a su vez exige ! $esJefe, así que @if($esJefe) dentro de ella
+     * nunca podía ser cierto. La rama entera quedó muerta y la retiró la
+     * revisión de la Fase 4. Este test fija que no vuelva.
+     */
+    public function test_el_boton_actualizar_datos_no_aparece_en_fit_bloqueada(): void
+    {
+        $equipo = User::factory()->create(['role_id' => Role::where('nombre', 'equipo')->value('id')]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        $this->actingAs($this->jefe)->post(
+            "/operativo/zona/{$this->zona->id}/evaluacion-fit",
+            $this->todos(self::CAMPOS_FIT, 3) + ['accion_estado' => 'confirmado']
+        );
+
+        $this->actingAs($equipo)
+            ->get("/operativo/zona/{$this->zona->id}/evaluacion-fit")
+            ->assertOk()
+            ->assertSee('Validada · solo lectura')
+            ->assertDontSee('Actualizar Datos');
     }
 
     /**
@@ -327,7 +353,7 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($equipo)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-fet")
             ->assertOk()
-            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una evaluación validada.');
+            ->assertSee('Validada · solo lectura');
     }
 
     /**
@@ -410,7 +436,7 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($equipo)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-percepcion")
             ->assertOk()
-            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.');
+            ->assertSee('Validada · solo lectura');
     }
 
     /**

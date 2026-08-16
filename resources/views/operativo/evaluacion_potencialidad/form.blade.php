@@ -146,10 +146,6 @@
            FV4: se quedó atrás cuando `gray` pasó a ser alias de `slate`. */
         .pt-dot-off { background:#cbd5e1; }
 
-        /* Banner confirmado */
-        .pt-banner-ok { background:linear-gradient(135deg,#f0fdf4,#dcfce7); border:1.5px solid #86efac; border-radius:13px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
-        .pt-banner-warn { background:#fffbeb; border:1.5px solid #fde68a; border-radius:13px; padding:12px 16px; margin-bottom:18px; font-size:.83rem; color:#92400e; }
-
         /* Footer */
         .pt-footer { background:#fff; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px 22px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-top:16px; }
         /* color: slate-700. Era #374151, gray-700 de la paleta anterior. */
@@ -175,12 +171,7 @@
         <x-migas :zona="$zona" clave="potencialidad" actual="Formulario" />
         <x-pestanas-matriz clave="potencialidad" :zona="$zona" activa="formulario" />
 
-        @if($evaluacion?->exists && $evaluacion->user)
-            <p class="text-sm text-gray-500 mb-4">
-                Última edición: {{ $evaluacion->user->name }},
-                {{ $evaluacion->updated_at->diffForHumans() }}
-            </p>
-        @endif
+        <x-franja-matriz :evaluacion="$evaluacion" :niveles="$niveles" />
 
         {{-- Mensajes ─────────────────────────────────────────────────────── --}}
         @if(session('success'))
@@ -194,37 +185,11 @@
         </div>
         @endif
 
-        {{-- Banner estado ─────────────────────────────────────────────────── --}}
-        @if($isConfirmado)
-        <div class="pt-banner-ok">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <span style="font-size:22px;">✅</span>
-                <div>
-                    <div style="font-weight:700;color:#15803d;font-size:.93rem;">Evaluación confirmada y validada</div>
-                    @if($user->esEquipo())
-                    <div style="font-size:.8rem;color:#166534;margin-top:2px;">Esta evaluación fue cerrada por el Jefe de Zona. Solo puedes consultar los valores.</div>
-                    @endif
-                </div>
-            </div>
-        </div>
-        @elseif($evaluacion->exists)
-        <div class="pt-banner-warn">
-            ✏️ <strong>Modo Borrador</strong> — Los datos ingresados son preliminares. El Jefe de Zona debe validar para generar el resultado oficial.
-        </div>
-        @endif
-
         @if($user->esEquipo() && !$isConfirmado)
         <div style="background:#eff6ff;border:1.5px solid #bfdbfe;color:#1e40af;padding:11px 16px;border-radius:11px;margin-bottom:14px;font-size:.82rem;display:flex;align-items:center;gap:8px;">
             🔒 Solo el <strong>Jefe de Zona</strong> puede activar o desactivar campos. Tú puedes calificar los campos activos.
         </div>
         @endif
-
-        {{-- Escala de calificación: vivía en una tarjeta de la .pt-sidebar
-             de siempre; se traslada al cuerpo con el mismo componente que
-             ya usan FIT, FET, Paisaje y Valoración Territorial -Potencialidad
-             recibe $niveles desde el controlador desde siempre, pero nunca
-             lo había usado-. --}}
-        <x-leyenda-escala :niveles="$niveles" />
 
         @if($puedeConfigurar)
         {{-- Nota "Modo Jefe": la misma que vivía en su propia tarjeta de la

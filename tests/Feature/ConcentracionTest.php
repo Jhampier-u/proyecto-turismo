@@ -232,7 +232,7 @@ class ConcentracionTest extends TestCase
 
         $this->actingAs($equipo)->get($this->url())
             ->assertOk()
-            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.');
+            ->assertSee('Validada · solo lectura');
     }
 
     /**

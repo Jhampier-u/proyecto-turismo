@@ -30,7 +30,7 @@ namespace App\Matrices;
  * propia por criterio como en Paisaje-. Verificada contra el instrumento
  * original (Documentación/IMPLEMENTADA MATRIZ DE POTENCIALIDAD TURÍSTICA
  * TUR.xlsx) antes de asumir que "más alto es mejor" -que es lo que dan por
- * hecho <x-criterio-pildoras> y <x-leyenda-escala>, coloreando por posición-
+ * hecho <x-criterio-pildoras> y <x-franja-matriz>, coloreando por posición-
  * valía para los 156, no solo para los que suenan obviamente así. Cada una de
  * las 17 hojas de criterios fija la misma leyenda ("Rojo o Ausencia"=0,
  * "Amarillo o Fragilidad"=1, "Verde o Aprovechable"=2) y, revisando las
@@ -47,7 +47,7 @@ namespace App\Matrices;
  * nivel real que reproducir.
  *
  * A diferencia de Fit/Fet (paleta de 4 niveles nueva) esta matriz usa 3
- * niveles: la paleta que <x-criterio-pildoras>/<x-leyenda-escala> ya tenían
+ * niveles: la paleta que <x-criterio-pildoras>/<x-franja-matriz> ya tenían
  * antes de fit-fet-componentes, la misma de Paisaje, ValoracionTerritorial y
  * Percepcion. No hizo falta tocar ninguno de los dos componentes.
  */

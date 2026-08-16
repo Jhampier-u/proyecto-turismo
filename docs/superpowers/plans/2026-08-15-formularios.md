@@ -24,7 +24,10 @@ no reargumenta sus decisiones, solo las ejecuta; quien ejecute lee las dos.
 ## Restricciones globales
 
 - **Suite base de la rama: 646 tests en verde**, confirmados con
-  `php artisan test` (PHP 8.2.33 nativo, ~20 s) sobre `main` en `4d94588`.
+  `php artisan test` (PHP 8.2.33 nativo, ~20 s). La rama sale de `2938e23`;
+  los tres commits que hay entre la última corrida y ese punto son de
+  documentación —el `.gitignore` de las maquetas, la spec y este plan—, así
+  que la cifra sigue valiendo sin volver a correr nada.
 - **Ninguna pantalla fuera de los ocho formularios de matriz se toca.** Ni el
   dashboard, ni el detalle de zona, ni admin, ni las listas de Involucrados y
   Frecuentación —que no son formularios de criterios—.
@@ -66,13 +69,21 @@ no reargumenta sus decisiones, solo las ejecuta; quien ejecute lee las dos.
 | Tarea | Añade | Total |
 |---|---|---|
 | base | — | 646 |
-| T1 | 7 | 653 |
-| T2 | 0 (migra 4 aserciones dentro de tests que ya existen) | 653 |
-| T3 | 0 | 653 |
-| T4 | 0 (migra 3 aserciones) | 653 |
-| T5 | 0 | 653 |
-| T6 | 5 (3 del recorrido por el registro, 2 de la barra lateral) | 658 |
-| T7–T8 | 0 | 658 |
+| T1 | **8** | **654** |
+| T2 | **1** (migra 4 aserciones, y suma la del boton inalcanzable) | **655** |
+| T3 | 0 | 655 |
+| T4 | 0 (migra 3 aserciones) | 655 |
+| T5 | 0 | 655 |
+| T6 | 6 (**4** del recorrido por el registro, 2 de la barra lateral) | **661** |
+| T7–T8 | 0 | **661** |
+
+> **T1 acabó con 8 tests, no con los 7 que decía este plan.** La revisión de
+> esa tarea señaló que `$paletas[count($niveles)] ?? $paletas[3]` degradaba en
+> silencio para una escala de un tamaño sin paleta: caía en la de 3 y se salía
+> del array, con un aviso de PHP y un punto sin color en vez de un error. Se
+> cambió por una guarda que revienta, como la de `:total`/`:respondidos` en
+> `<x-barra-lateral-formulario>`, y el test que la fija es el octavo. De ahí
+> que todos los totales de abajo suban en uno respecto de lo planeado.
 
 Si el número no cuadra al terminar una tarea, para y mira por qué antes de
 seguir: en este repositorio un test que desaparece sin que nadie lo note ya ha
@@ -115,7 +126,7 @@ traspaso. La regla 3 de `CLAUDE.md` manda sobrescribirla al empezar cada rama:
 Spec: `docs/superpowers/specs/2026-08-15-formularios-design.md`
 Plan: `docs/superpowers/plans/2026-08-15-formularios.md`
 Rama: fase-4-formularios
-Base de la rama: 4d94588
+Base de la rama: 2938e23
 Suite en la base: 646 tests
 
 Objetivo: una sola franja donde hoy hay tres cajas, en los ocho formularios
@@ -442,6 +453,11 @@ php artisan test
 Esperado: **653 tests en verde** (646 + 7). Ninguna vista ha cambiado
 todavía, así que nada más debería moverse.
 
+> **Acabó en 654, no en 653**, y el motivo está en la nota del recuento de
+> arriba: la revisión de esta tarea cambió el `?? $paletas[3]` por una guarda
+> que revienta, y eso trajo un octavo test. De la Tarea 2 en adelante, la
+> cifra de referencia es **654**.
+
 - [ ] **Paso 7: commit**
 
 ```bash
@@ -558,8 +574,19 @@ Después, en el pie del formulario, sustituye la línea del aviso de bloqueo
                     <span class="text-gray-500 italic self-center"><x-aviso-bloqueo-matriz sustantivo="evaluación" /></span>
 ```
 
-por nada: **bórrala entera**. La franja ya lo dice arriba. El `<x-boton>` de
-«Actualizar Datos» que la acompaña en esa rama `@else` **se queda**.
+por nada: **bórrala entera**. La franja ya lo dice arriba.
+
+> **Corrección: esta instrucción decía que el `<x-boton>` de «Actualizar
+> Datos» que la acompaña en la rama `@else` se quedaba. Estaba mal.** Al
+> quitar el aviso, esa rama queda vacía —y además es inalcanzable—:
+> `$bloqueado = $estaConfirmado && ! $esJefe`, así que entrar en el `@else`
+> exige `! $esJefe`, y el `@if($esJefe)` de dentro no puede cumplirse nunca.
+> Es un resto de cuando `$bloqueado` tenía dos causas —el admin bloqueado por
+> ROL y el equipo por ESTADO— y el botón existía para la del admin; desde que
+> el admin edita, solo queda la segunda. **La rama `@else` de FIT se borra
+> entera**, con lo que FIT queda igual que FET, que no tiene ninguna. Un test
+> nuevo fija que quien no es jefe no ve «Actualizar Datos» sobre una FIT
+> confirmada, para que el botón muerto no vuelva.
 
 - [ ] **Paso 4: convertir FET**
 
@@ -593,8 +620,9 @@ Esperado: PASAN todos.
 php artisan test
 ```
 
-Esperado: **653 tests en verde**. El número no sube: se migraron aserciones
-dentro de tests que ya existían.
+Esperado: **655 tests en verde**: 654 más el test del botón inalcanzable que
+añade la corrección de más abajo. Las cuatro aserciones migradas no suben el
+número, porque viven dentro de tests que ya existían.
 
 - [ ] **Paso 7: commit**
 
@@ -676,7 +704,7 @@ Esperado: PASAN.
 php artisan test
 ```
 
-Esperado: **653 tests en verde**.
+Esperado: **655 tests en verde**.
 
 - [ ] **Paso 5: commit**
 
@@ -814,7 +842,7 @@ Esperado: PASAN todos.
 php artisan test
 ```
 
-Esperado: **653 tests en verde**.
+Esperado: **655 tests en verde**.
 
 - [ ] **Paso 8: commit**
 
@@ -954,7 +982,7 @@ Esperado: PASAN.
 php artisan test
 ```
 
-Esperado: **653 tests en verde**. Los ocho formularios ya llevan franja.
+Esperado: **655 tests en verde**. Los ocho formularios ya llevan franja.
 
 - [ ] **Paso 6: commit**
 
@@ -986,7 +1014,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 **Interfaces:** ninguna nueva. Es la limpieza y el cierre del hueco 1 de la
 spec.
 
-- [ ] **Paso 1: escribir los cinco tests que fallan**
+- [ ] **Paso 1: escribir los seis tests que fallan**
 
 Crea `tests/Feature/FranjaEnLosOchoTest.php`:
 
@@ -1089,6 +1117,38 @@ class FranjaEnLosOchoTest extends TestCase
     }
 
     /**
+     * El botón «Actualizar Datos» no se ofrece a quien no puede pulsarlo.
+     *
+     * Vivía en la rama @else del pie —la que solo se alcanza con $bloqueado—,
+     * y `$bloqueado = $estaConfirmado && ! $esJefe`, así que el `@if($esJefe)`
+     * que lo envolvía no podía cumplirse nunca. Era un resto de cuando
+     * $bloqueado tenía dos causas: el admin bloqueado por ROL y el equipo por
+     * ESTADO. Desde que el admin edita, solo queda la segunda, y el botón se
+     * quedó inalcanzable.
+     *
+     * Apareció en FIT (T2) y en Percepción (T4), en las dos por separado.
+     * Este barrido lo cierra para las ocho de una vez, que es lo que evita
+     * encontrarlo una tercera vez en la novena.
+     */
+    public function test_ningun_formulario_ofrece_actualizar_datos_a_quien_no_es_jefe(): void
+    {
+        $equipo = User::factory()->create([
+            'role_id' => Role::where('nombre', 'equipo')->value('id'),
+        ]);
+        $this->zona->equipo()->attach($equipo->id);
+
+        foreach ($this->formularios() as $clave => $url) {
+            $html = $this->actingAs($equipo)->get($url)->assertOk()->getContent();
+
+            $this->assertStringNotContainsString(
+                'Actualizar Datos',
+                $html,
+                "{$clave}: ofrece «Actualizar Datos» a quien no es jefe."
+            );
+        }
+    }
+
+    /**
      * Seis llevan escala y dos no, y eso es cableado de cada vista: el test
      * del componente no puede verlo. Sin esto, pasarle :niveles a
      * Concentración -o olvidárselo a Paisaje- no rompería nada visible.
@@ -1179,7 +1239,7 @@ no lo importa.
 php artisan test --filter="FranjaEnLosOchoTest|BarraLateralFormularioTest"
 ```
 
-Esperado, con precisión —de los cinco, **solo falla uno**—:
+Esperado, con precisión —de los seis, **solo falla uno**—:
 
 - `test_la_barra_lateral_avisa_de_que_guardar_reabre_una_validada`: **FALLA**.
   Es el único que prueba lo que esta tarea añade.
@@ -1187,7 +1247,7 @@ Esperado, con precisión —de los cinco, **solo falla uno**—:
   porque hoy no hay aviso en ninguno de los dos casos. Se vuelve significativo
   en el paso 3, cuando el aviso exista y haya que comprobar que no se pinta de
   más.
-- Los **tres** de `FranjaEnLosOchoTest`: **pasan ya**, porque T2 a T5 dejaron
+- Los **cuatro** de `FranjaEnLosOchoTest`: **pasan ya**, porque T2 a T5 dejaron
   los ocho formularios convertidos. Son una red de seguridad, no una
   funcionalidad nueva. **Si alguno falla, hay una vista mal convertida** y hay
   que arreglarla antes de seguir —el mensaje del test dice cuál—.
@@ -1285,7 +1345,7 @@ pasa a:
 php artisan test --filter="FranjaEnLosOchoTest|BarraLateralFormularioTest"
 ```
 
-Esperado: PASAN los cinco.
+Esperado: PASAN los seis.
 
 - [ ] **Paso 6: construir los assets y correr la suite entera**
 
@@ -1294,7 +1354,7 @@ npm run build
 php artisan test
 ```
 
-Esperado: **658 tests en verde** (653 + 5).
+Esperado: **661 tests en verde** (655 + 6).
 
 - [ ] **Paso 7: commit**
 
@@ -1389,7 +1449,7 @@ anteriores y escribir encima destruiría el rastro que la regla 3 de
 - [ ] **Paso 1: revisión de la rama entera**
 
 ```bash
-git diff 4d94588..HEAD > .superpowers/sdd/review-fase4.diff
+git diff 2938e23..HEAD > .superpowers/sdd/review-fase4.diff
 ```
 
 Usa `superpowers:requesting-code-review` sobre ese diff. Lee lo que devuelva
@@ -1408,13 +1468,13 @@ de `:niveles`.
 php artisan test
 ```
 
-Esperado: **658 tests en verde**.
+Esperado: **661 tests en verde**.
 
 - [ ] **Paso 3: el traspaso al día**
 
 En `docs/ESTADO-PROYECTO.md`:
 - Entrada de la rama `fase-4-formularios`: qué se hizo, el recuento nuevo
-  (658), y lo que las tareas 7 y 8 encontraron —o que no encontraron nada—.
+  (661), y lo que las tareas 7 y 8 encontraron —o que no encontraron nada—.
 - **Tacha la Fase 4 de §6, punto 14, y con ella el punto entero: es la última
   de las cuatro.** El rediseño de interfaz queda cerrado.
 - Anota que `<x-leyenda-escala>` y `<x-aviso-bloqueo-matriz>` **ya no

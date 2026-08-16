@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\EvaluacionFit;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Zona;
@@ -167,5 +168,40 @@ class BarraLateralFormularioTest extends TestCase
             '<x-barra-lateral-formulario clave="fit" :zona="$zona" :secciones="$secciones" :bloqueado="false" formulario="form-fit" :respondidos="60" />',
             ['zona' => $this->zona, 'secciones' => []]
         );
+    }
+
+    /**
+     * El hueco que encontró el diseño de la Fase 4: la barra lateral tiene su
+     * propio «Guardar Borrador» -el que está siempre a la vista- y no avisaba
+     * de que guardar una matriz validada la devuelve a borrador. El aviso
+     * estaba solo junto a los botones del pie del formulario.
+     */
+    public function test_la_barra_lateral_avisa_de_que_guardar_reabre_una_validada(): void
+    {
+        EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'confirmado']);
+
+        $html = $this->renderizar([
+            ['ancla' => 'rtt', 'etiqueta' => 'Recursos Turísticos', 'respondidos' => 2, 'total' => 2],
+        ]);
+
+        $this->assertStringContainsString(
+            'Guardarla la devolverá a borrador y habrá que validarla de nuevo.',
+            $html
+        );
+    }
+
+    /**
+     * Y no lo dice sobre un borrador: no habría nada que reabrir. Sin esta
+     * mitad, el test de arriba pasaría igual con un aviso pintado siempre.
+     */
+    public function test_la_barra_lateral_no_avisa_de_reapertura_en_un_borrador(): void
+    {
+        EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']);
+
+        $html = $this->renderizar([
+            ['ancla' => 'rtt', 'etiqueta' => 'Recursos Turísticos', 'respondidos' => 1, 'total' => 2],
+        ]);
+
+        $this->assertStringNotContainsString('devolverá a borrador', $html);
     }
 }
