@@ -21,7 +21,7 @@ namespace App\Matrices;
  * criterios. Se comprobó cada atributo contra el instrumento original
  * (Documentación/IMPLEMENTADA MATRIZ PERCEPCIÓN DE LA LOCALIDAD.xlsx) antes
  * de asumir que "más alto es mejor" -que es lo que dan por hecho
- * <x-criterio-pildoras> y <x-leyenda-escala>, coloreando por posición- valía
+ * <x-criterio-pildoras> y <x-franja-matriz>, coloreando por posición- valía
  * también para los atributos que suenan negativos, como "Presencia de
  * conflictos entre actores y grupos sociales" (NO4). La hoja original fija
  * Positivo=3/Neutral=2/Negativo=1 como una escala ÚNICA para los 16, no una

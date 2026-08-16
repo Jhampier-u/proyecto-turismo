@@ -62,6 +62,7 @@ class FranjaMatrizTest extends TestCase
         $this->assertStringContainsString('Borrador', $html);
         $this->assertStringContainsString('border-l-amber-500', $html);
         $this->assertStringNotContainsString('border-l-green-500', $html);
+        $this->assertStringContainsString('data-franja="borrador"', $html);
     }
 
     public function test_el_jefe_ve_verde_una_validada_porque_todavia_puede_editarla(): void
@@ -75,6 +76,7 @@ class FranjaMatrizTest extends TestCase
         $this->assertStringContainsString('Validada', $html);
         $this->assertStringContainsString('border-l-green-500', $html);
         $this->assertStringNotContainsString('solo lectura', $html);
+        $this->assertStringContainsString('data-franja="validada"', $html);
     }
 
     /**
@@ -97,6 +99,7 @@ class FranjaMatrizTest extends TestCase
 
         $this->assertStringContainsString('Validada · solo lectura', $html);
         $this->assertStringNotContainsString('border-l-green-500', $html);
+        $this->assertStringContainsString('data-franja="cerrada"', $html);
     }
 
     /**
@@ -188,5 +191,39 @@ class FranjaMatrizTest extends TestCase
             EvaluacionFit::create(['zona_id' => $this->zona->id, 'estado' => 'borrador']),
             [0 => 'No', 1 => 'Sí']
         );
+    }
+
+    /**
+     * La línea de autoría es lo que queda de la vieja «Última edición», y sin
+     * este test nadie la vigila: todos los demás crean evaluaciones sin
+     * user_id, así que ese bloque no se ejecutaba nunca y se podía borrar sin
+     * que la suite se enterara. Hay además un test que exige que la frase
+     * «Última edición» NO aparezca, así que lo único que tocaba este contenido
+     * vigilaba su forma vieja, no la nueva.
+     *
+     * El autor es un usuario aparte, con nombre fijado a mano en vez de
+     * $this->jefe->name: ese nombre sale de fake()->name() en el factory
+     * compartido de setUp() y puede traer un apóstrofo (p.ej. "O'Connell"),
+     * que Blade escapa a &#039; al imprimirlo. assertStringContainsString
+     * compara texto crudo, así que ese escape ya rompió una aserción parecida
+     * en este proyecto antes. Un nombre fijo y sin apóstrofo evita el mismo
+     * fallo intermitente aquí.
+     */
+    public function test_pinta_quien_edito_por_ultima_vez_y_cuando(): void
+    {
+        $this->actingAs($this->jefe);
+
+        $autor = User::factory()->create(['name' => 'Ana Torres']);
+
+        $html = $this->render(
+            EvaluacionFit::create([
+                'zona_id' => $this->zona->id,
+                'user_id' => $autor->id,
+                'estado'  => 'borrador',
+            ])
+        );
+
+        $this->assertStringContainsString('Ana Torres', $html);
+        $this->assertStringContainsString('hace', $html);
     }
 }

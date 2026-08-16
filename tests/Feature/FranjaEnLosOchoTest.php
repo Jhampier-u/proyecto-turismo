@@ -115,20 +115,24 @@ class FranjaEnLosOchoTest extends TestCase
     }
 
     /**
-     * El botón «Actualizar Datos» no se ofrece a quien no puede pulsarlo.
+     * La versión anterior de este test se llamaba
+     * test_ningun_formulario_ofrece_actualizar_datos_a_quien_no_es_jefe y no
+     * podía fallar: GETeaba las ocho vistas sin confirmar ninguna matriz, así
+     * que $estaConfirmado era siempre false, $bloqueado también, y la rama
+     * del pie que ofrecía «Actualizar Datos» —solo alcanzable con
+     * $bloqueado— nunca llegaba a renderizarse. Encima, el texto «Actualizar
+     * Datos» ya no existe en resources/ ni en app/: el test habría pasado
+     * igual contra el código muerto completamente restaurado.
      *
-     * Vivía en la rama @else del pie —la que solo se alcanza con $bloqueado—,
-     * y `$bloqueado = $estaConfirmado && ! $esJefe`, así que el `@if($esJefe)`
-     * que lo envolvía no podía cumplirse nunca. Era un resto de cuando
-     * $bloqueado tenía dos causas: el admin bloqueado por ROL y el equipo por
-     * ESTADO. Desde que el admin edita, solo queda la segunda, y el botón se
-     * quedó inalcanzable.
-     *
-     * Apareció en FIT (T2) y en Percepción (T4), en las dos por separado.
-     * Este barrido lo cierra para las ocho de una vez, que es lo que evita
-     * encontrarlo una tercera vez en la novena.
+     * Ahora confirma cada matriz en el bucle antes de pedir la página, así
+     * que $bloqueado sí es true para el equipo y la rama de solo lectura sí
+     * se ejecuta. De paso, este es el único sitio donde ese estado de solo
+     * lectura se comprueba a través de una página real para paisaje,
+     * valoracion_territorial y potencialidad: esas tres nunca tuvieron el
+     * viejo aviso de bloqueo, así que «Validada · solo lectura» es
+     * comportamiento nuevo justo ahí.
      */
-    public function test_ningun_formulario_ofrece_actualizar_datos_a_quien_no_es_jefe(): void
+    public function test_los_ocho_llegan_cerrados_a_quien_no_es_jefe(): void
     {
         $equipo = User::factory()->create([
             'role_id' => Role::where('nombre', 'equipo')->value('id'),
@@ -136,12 +140,27 @@ class FranjaEnLosOchoTest extends TestCase
         $this->zona->equipo()->attach($equipo->id);
 
         foreach ($this->formularios() as $clave => $url) {
+            Registro::ENTRADAS[$clave]['modelo']::updateOrCreate(
+                ['zona_id' => $this->zona->id],
+                ['estado' => 'confirmado']
+            );
+
             $html = $this->actingAs($equipo)->get($url)->assertOk()->getContent();
 
+            $this->assertStringContainsString(
+                'data-franja="cerrada"',
+                $html,
+                "{$clave}: no pinta la franja de solo lectura a quien no es jefe."
+            );
             $this->assertStringNotContainsString(
                 'Actualizar Datos',
                 $html,
-                "{$clave}: ofrece «Actualizar Datos» a quien no es jefe."
+                "{$clave}: ofrece «Actualizar Datos» a quien no puede pulsarlo."
+            );
+            $this->assertStringNotContainsString(
+                'Guardar Borrador',
+                $html,
+                "{$clave}: ofrece guardar sobre una matriz cerrada para quien mira."
             );
         }
     }

@@ -17,6 +17,12 @@
     los ocho formularios de origen usaban dos disposiciones distintas
     (mb-3 suelto, o w-full mb-1 dentro de un contenedor flex), así que ese
     margen y ese ancho siguen siendo cosa de cada vista via $attributes.
+
+    El texto de abajo va en una sola línea a propósito: Blade respeta los
+    saltos del fichero, y una frase partida en dos no la encontraría un
+    assertSee() que busque la frase entera. BarraLateralFormularioTest
+    afirma esta frase completa, así que una edición que la reformatee en
+    varias líneas la rompería en silencio.
 --}}
 <p {{ $attributes->merge(['class' => 'text-sm text-amber-700']) }}>
     <strong>Esta {{ $sustantivo }} está validada.</strong>

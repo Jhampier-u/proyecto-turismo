@@ -29,6 +29,11 @@
     border-l-amber-500 en sus píldoras de nivel medio. Un test que solo
     busque esa clase en la página pasa igual con la franja borrada, en
     cualquier formulario que use píldoras -y cinco de los ocho lo hacen-.
+
+    La escala se pinta UNA VEZ por formulario, no una vez por criterio: con
+    21 criterios -o 156, en Potencialidad- repetirla en cada uno sería ruido,
+    y la tarjeta de cada criterio ya describe lo que significa ese nivel
+    concreto para ese criterio concreto.
 --}}
 
 @php
