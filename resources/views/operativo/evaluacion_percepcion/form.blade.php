@@ -20,9 +20,9 @@
                 </div>
             @endif
 
-            <x-flash-exito />
-
             <x-franja-matriz :evaluacion="$evaluacion" :niveles="$niveles" />
+
+            <x-flash-exito />
 
             <form method="POST" action="{{ route('operativo.evaluacion_percepcion.update', $zona->id) }}" id="form-percepcion">
                 @csrf
