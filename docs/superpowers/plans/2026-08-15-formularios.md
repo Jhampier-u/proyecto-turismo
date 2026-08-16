@@ -1117,15 +1117,6 @@ class FranjaEnLosOchoTest extends TestCase
     }
 
     /**
-     * Seis llevan escala y dos no, y eso es cableado de cada vista: el test
-     * del componente no puede verlo. Sin esto, pasarle :niveles a
-     * Concentración -o olvidárselo a Paisaje- no rompería nada visible.
-     *
-     * La frase de método es el testigo: el componente solo la pinta cuando
-     * hay escala, así que su presencia y su ausencia dicen exactamente cuál
-     * de los dos casos se cableó.
-     */
-    /**
      * El botón «Actualizar Datos» no se ofrece a quien no puede pulsarlo.
      *
      * Vivía en la rama @else del pie —la que solo se alcanza con $bloqueado—,
@@ -1157,6 +1148,15 @@ class FranjaEnLosOchoTest extends TestCase
         }
     }
 
+    /**
+     * Seis llevan escala y dos no, y eso es cableado de cada vista: el test
+     * del componente no puede verlo. Sin esto, pasarle :niveles a
+     * Concentración -o olvidárselo a Paisaje- no rompería nada visible.
+     *
+     * La frase de método es el testigo: el componente solo la pinta cuando
+     * hay escala, así que su presencia y su ausencia dicen exactamente cuál
+     * de los dos casos se cableó.
+     */
     public function test_las_seis_con_escala_la_pintan_y_las_dos_sin_escala_no(): void
     {
         $sinEscala = ['concentracion', 'irritacion'];
@@ -1239,7 +1239,7 @@ no lo importa.
 php artisan test --filter="FranjaEnLosOchoTest|BarraLateralFormularioTest"
 ```
 
-Esperado, con precisión —de los cinco, **solo falla uno**—:
+Esperado, con precisión —de los seis, **solo falla uno**—:
 
 - `test_la_barra_lateral_avisa_de_que_guardar_reabre_una_validada`: **FALLA**.
   Es el único que prueba lo que esta tarea añade.
