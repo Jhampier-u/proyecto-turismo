@@ -22,6 +22,7 @@
 
             <x-flash-exito />
 
+            <x-franja-matriz :evaluacion="$evaluacion" :niveles="$niveles" />
 
             <form method="POST" action="{{ route('operativo.evaluacion_percepcion.update', $zona->id) }}" id="form-percepcion">
                 @csrf
@@ -68,31 +69,6 @@
                 @endphp
 
                 <x-tarjeta class="overflow-hidden mb-6">
-
-                    @if($evaluacion?->exists && $evaluacion->user)
-                        <p class="text-sm text-gray-500 mb-4">
-                            Última edición: {{ $evaluacion->user->name }},
-                            {{ $evaluacion->updated_at->diffForHumans() }}
-                        </p>
-                    @endif
-
-                    @if($estaConfirmado)
-                        <div class="mb-6 bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded">
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <strong class="font-bold text-lg">✓ Matriz Validada</strong>
-                                    <p>Esta matriz ha sido confirmada por el Jefe de Zona.</p>
-                                </div>
-                            </div>
-                        </div>
-                    @else
-                        <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded">
-                            <strong class="font-bold">Modo Borrador</strong>
-                            <p>Los datos ingresados son preliminares. El Jefe de Zona debe revisar y confirmar para generar los resultados oficiales.</p>
-                        </div>
-                    @endif
-
-                    <x-leyenda-escala :niveles="$niveles" />
 
                     {{-- Categorías --}}
                     @foreach($categorias as $codigo => $cat)
@@ -176,7 +152,6 @@
                                 </x-boton>
                             @endif
                         @else
-                            <span class="text-gray-500 italic self-center"><x-aviso-bloqueo-matriz /></span>
                             @if($esJefe)
                                 <x-boton tamano="grande" name="accion_estado" value="confirmado">
                                     Actualizar Datos

@@ -436,7 +436,7 @@ class EvaluacionesTest extends TestCase
         $this->actingAs($equipo)
             ->get("/operativo/zona/{$this->zona->id}/evaluacion-percepcion")
             ->assertOk()
-            ->assertSee('Solo el Jefe de Zona puede reabrir o editar una matriz validada.');
+            ->assertSee('Validada · solo lectura');
     }
 
     /**
