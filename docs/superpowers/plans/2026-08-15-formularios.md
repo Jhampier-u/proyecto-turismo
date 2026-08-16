@@ -24,7 +24,10 @@ no reargumenta sus decisiones, solo las ejecuta; quien ejecute lee las dos.
 ## Restricciones globales
 
 - **Suite base de la rama: 646 tests en verde**, confirmados con
-  `php artisan test` (PHP 8.2.33 nativo, ~20 s) sobre `main` en `4d94588`.
+  `php artisan test` (PHP 8.2.33 nativo, ~20 s). La rama sale de `2938e23`;
+  los tres commits que hay entre la última corrida y ese punto son de
+  documentación —el `.gitignore` de las maquetas, la spec y este plan—, así
+  que la cifra sigue valiendo sin volver a correr nada.
 - **Ninguna pantalla fuera de los ocho formularios de matriz se toca.** Ni el
   dashboard, ni el detalle de zona, ni admin, ni las listas de Involucrados y
   Frecuentación —que no son formularios de criterios—.
@@ -115,7 +118,7 @@ traspaso. La regla 3 de `CLAUDE.md` manda sobrescribirla al empezar cada rama:
 Spec: `docs/superpowers/specs/2026-08-15-formularios-design.md`
 Plan: `docs/superpowers/plans/2026-08-15-formularios.md`
 Rama: fase-4-formularios
-Base de la rama: 4d94588
+Base de la rama: 2938e23
 Suite en la base: 646 tests
 
 Objetivo: una sola franja donde hoy hay tres cajas, en los ocho formularios
@@ -1389,7 +1392,7 @@ anteriores y escribir encima destruiría el rastro que la regla 3 de
 - [ ] **Paso 1: revisión de la rama entera**
 
 ```bash
-git diff 4d94588..HEAD > .superpowers/sdd/review-fase4.diff
+git diff 2938e23..HEAD > .superpowers/sdd/review-fase4.diff
 ```
 
 Usa `superpowers:requesting-code-review` sobre ese diff. Lee lo que devuelva
