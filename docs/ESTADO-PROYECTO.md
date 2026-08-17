@@ -2232,11 +2232,20 @@ niveles de anidamiento— y ninguno se movió con el cambio.
     decoración**: en Postgres `numeric` llega del driver como **cadena** y en
     SQLite como float, así que sin él la aritmética se comportaría distinto en
     producción que en desarrollo y ningún test de SQLite lo vería.
-14. **Las fases 2 a 4 del rediseño de interfaz.** La Fase 0 —la fundación— y la
-    Fase 1 —navbar y migas— están fusionadas (§3). Quedan tres, y **cada una
-    necesita su propio diseño corto antes de tocar código**: el orden importa
-    porque si una vista se rediseña antes de que exista el primitivo que
-    necesita, inventa el suyo y aparece la segunda fuente de verdad de siempre.
+14. ~~**Las fases del rediseño de interfaz.**~~ — **las cinco están fusionadas
+    (§3), y el rediseño queda cerrado.** Suite **553 → 662** desde que empezó.
+
+    La cabecera de este punto decía «quedan tres» con sus cuatro viñetas ya
+    tachadas debajo: **se contradecía a sí misma**. Es la cuarta vez que esta
+    lista falla igual —no se tacha lo que otra rama termina—, y por eso el
+    aviso se queda escrito aquí en vez de borrarse con el punto: **al cerrar
+    una rama hay que tachar su entrada, no solo añadir la sección nueva en §3.**
+
+    Lo que sí conviene conservar del texto original, porque vale para
+    cualquier fase futura: **cada una necesitaba su propio diseño corto antes
+    de tocar código**, y el orden importaba, porque si una vista se rediseña
+    antes de que exista el primitivo que necesita, inventa el suyo y aparece la
+    segunda fuente de verdad de siempre.
 
     - ~~**Fase 1 — navbar y breadcrumbs.**~~ — hecha en `navbar-y-migas` (§3).
       Suite **589 → 608**. `<x-boton-volver>` borrado y sustituido por
