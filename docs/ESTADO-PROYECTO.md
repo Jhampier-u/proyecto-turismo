@@ -6,8 +6,8 @@
 **Estado en una línea:** `main` con la Fase 4 ya fusionada (merge `082f69e`) y
 subida a `origin`, árbol limpio, **662 tests verdes comprobados sobre el
 resultado fusionado**, no solo sobre la rama. No hay ninguna rama que retomar.
-**Con la Fase 4 el rediseño de interfaz queda cerrado: las cuatro fases
-hechas.**
+**Con la Fase 4 el rediseño de interfaz queda cerrado: las cinco fases
+hechas** —la 0 incluida—.
 
 El último commit que toca **código** es `d4b34a0`, dentro de ese merge. Lo que
 haya encima en `main` son commits de este documento: si el árbol está limpio y
@@ -2278,11 +2278,11 @@ niveles de anidamiento— y ninguno se movió con el cambio.
       barra lateral y el control segmentado ya existían de fases anteriores.
       `<x-leyenda-escala>` y `<x-aviso-bloqueo-matriz>` **ya no existen**.
 
-    **Con esto el rediseño de interfaz queda cerrado: las cuatro fases están
-    hechas.** Lo que quede de interfaz a partir de aquí es trabajo nuevo, no
+    **Con esto el rediseño de interfaz queda cerrado: las cinco fases están
+    hechas**, contando la 0. Lo que quede de interfaz a partir de aquí es trabajo nuevo, no
     parte de este plan.
 
-    **Fuera de las cuatro fases, hasta que se diseñe como funcionalidad:** el
+    **Fuera del rediseño, hasta que se diseñe como funcionalidad:** el
     badge de notificaciones. No hay sistema de notificaciones —solo el
     `Notifiable` de Breeze—, así que es un dominio nuevo, no maquetación.
 15. ~~**Los restos de la Fase 0**~~ — hecho en `restos-fase-0` (§3). Suite
