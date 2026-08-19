@@ -2090,7 +2090,8 @@ niveles de anidamiento— y ninguno se movió con el cambio.
    `<x-boton-volver>` y lo sustituye la miga, que sí tiene tests. Se anota así
    y no se tacha a secas: no se cubrió lo que pedía, desapareció lo que había
    que cubrir.
-8. **Verificación visual pendiente** de la rama `permisos-y-navegacion`: el
+8. **El conmutador lista/tarjetas está ROTO** (verificado 16-08-2026; venía de
+   `permisos-y-navegacion` como «verificación visual pendiente»): el
    conmutador lista/tarjetas es Alpine puro y ningún test comprueba que el botón
    conmute ni que la preferencia sobreviva a una recarga.
 
@@ -2103,13 +2104,40 @@ niveles de anidamiento— y ninguno se movió con el cambio.
    navegador**. **No es código: es la única entrada de esta lista que un test
    de PHP no puede cubrir.**
 
-   **Lo de «cerrarlo exige Playwright» ya no es cierto, y esta es la entrada
-   más barata que queda.** Las fases 3 y 4 cerraron sus verificaciones de
-   navegador con el navegador de la propia sesión, midiendo sobre el DOM con
-   `getBoundingClientRect()`, `getComputedStyle()` y `scrollWidth` —dos veces,
-   y con hallazgos reales—. Pulsar los dos botones del conmutador y recargar
-   para ver si la preferencia sobrevive entra exactamente en lo mismo. No hace
-   falta instalar nada ni decidir ningún cambio de entorno.
+   **VERIFICADO EL 16 DE AGOSTO DE 2026, Y ESTÁ ROTO.** No hizo falta
+   Playwright: bastó el navegador de la sesión, como en las fases 3 y 4.
+
+   **Lo que se midió en `/mis-zonas`, como jefe, a 1280 px:**
+
+   - Alpine carga (3.15.2) y el `x-data` del conmutador **sí** es reactivo:
+     `Alpine.$data(...).vista` cambia al pulsar «Lista» y «Tarjetas».
+   - Pero **`x-show` no se aplica nunca**: `#zonas-lista` se queda en
+     `display:block` y `#zonas-tarjetas` en `display:grid` a la vez, pase lo
+     que pase con `vista`. Ninguno de los dos llega a tener atributo `style`.
+   - **Los dos diseños se pintan apilados, siempre.** El conmutador es
+     decorativo: pulsarlo no cambia nada visible.
+   - `localStorage.getItem('zonas_vista')` sigue en `null` después de pulsar,
+     así que el `x-init` con `$watch` tampoco corre.
+
+   **La causa está a la vista en la consola:** un `TypeError` sin capturar
+   dentro del bundle (`app-*.js`), «…[n] is not a function». Ese error aborta
+   el recorrido de directivas de Alpine, que es justo por lo que el `x-data`
+   se inicializa pero los `x-show` de más abajo no se procesan. Falta
+   identificar qué directiva lo dispara: las candidatas del fichero son el
+   `x-transition` de las líneas 96 y 154 de `operativo/dashboard.blade.php` y
+   el `x-init="$watch(...)"` de la 12.
+
+   **Por qué importa más de lo que parece:** `ConmutadorVistaTest` tiene seis
+   tests en verde y **todos pasan igual con esto roto**, porque comprueban que
+   las dos maquetaciones están en el HTML servido —y están, ese es justo el
+   síntoma—. Es el mismo patrón que la Fase 4 encontró dos veces en sus
+   propios tests: verde que no prueba lo que dice.
+
+   **Queda como trabajo pendiente de verdad, no como verificación pendiente.**
+   Afecta a `/mis-zonas` y probablemente a `/admin/zonas` e Inventario, que
+   usan el mismo componente. Merece su propia rama: hay que localizar la
+   directiva que revienta, arreglarla, y dejar un test que falle si el
+   conmutador vuelve a quedarse mudo —que no puede ser un test de PHP—.
 9. ~~**Dashboard vacío y ancho de los formularios**~~ — hecho en
    `dashboard-y-formularios` (Parte A) y `barra-lateral` (Parte B), las dos
    fusionadas. Ver §3.
