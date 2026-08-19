@@ -24,7 +24,7 @@
             </div>
 
             {{-- ═══ VISTA LISTA ══════════════════════════════════════════════════ --}}
-            <x-tarjeta x-show="vista === 'lista'" x-transition class="overflow-hidden">
+            <x-tarjeta x-show="vista === 'lista'" class="overflow-hidden">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
@@ -90,7 +90,7 @@
             </x-tarjeta>
 
             {{-- ═══ VISTA TARJETAS ═══════════════════════════════════════════════ --}}
-            <div x-show="vista === 'tarjetas'" x-transition
+            <div x-show="vista === 'tarjetas'"
                  class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach ($zonas as $zona)
                 <x-tarjeta :padding="false" class="hover:shadow-md transition duration-300">

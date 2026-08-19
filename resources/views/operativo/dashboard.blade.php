@@ -93,7 +93,7 @@
                  esconderse: elegir maquetación es del usuario, su preferencia
                  se guarda, y la de tarjetas -que es la que viene por defecto-
                  sigue siendo la que mejor funciona ahí. --}}
-            <x-tarjeta :padding="false" id="zonas-lista" x-show="vista === 'lista'" x-transition
+            <x-tarjeta :padding="false" id="zonas-lista" x-show="vista === 'lista'"
                  class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -151,7 +151,7 @@
             </x-tarjeta>
 
             {{-- ═══ VISTA TARJETAS ═══════════════════════════════════════════════ --}}
-            <div id="zonas-tarjetas" x-show="vista === 'tarjetas'" x-transition
+            <div id="zonas-tarjetas" x-show="vista === 'tarjetas'"
                  class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($zonas as $zona)
                 <x-tarjeta :padding="false" class="hover:shadow-md transition duration-300">

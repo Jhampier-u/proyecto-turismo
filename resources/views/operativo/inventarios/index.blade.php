@@ -25,7 +25,7 @@
             @endif
 
             {{-- ═══ VISTA LISTA ══════════════════════════════════════════════════ --}}
-            <div x-show="vista === 'lista'" x-transition>
+            <div x-show="vista === 'lista'">
                 <x-tarjeta :padding="false" class="overflow-hidden">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
@@ -94,7 +94,7 @@
             </div>
 
             {{-- ═══ VISTA TARJETAS ═══════════════════════════════════════════════ --}}
-            <div x-show="vista === 'tarjetas'" x-transition>
+            <div x-show="vista === 'tarjetas'">
                 @if($inventarios->isEmpty())
                     <x-tarjeta :padding="false" class="p-10 text-center text-gray-400">No hay recursos registrados.</x-tarjeta>
                 @else
