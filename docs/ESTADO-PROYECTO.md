@@ -2436,7 +2436,7 @@ tenga**. Son punteros a trabajo ya fusionado, no trabajo perdido. Si alguna vez
 hace falta el detalle de una, está en el historial de `main` y en su entrada de
 §3.
 
-En `main`, comprobar que la suite da **632 tests** antes de tocar nada. Si da
+En `main`, comprobar que la suite da **663 tests** antes de tocar nada. Si da
 menos, algo no llegó; si fallan unos 57 de golpe, faltó el `npm run build`
 (ver §2).
 
