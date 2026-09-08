@@ -9,6 +9,33 @@ resultado fusionado**, no solo sobre la rama. No hay ninguna rama que retomar.
 **Con la Fase 4 el rediseño de interfaz queda cerrado: las cinco fases
 hechas** —la 0 incluida—.
 
+> ### Cómo leer este documento (leer esto primero)
+>
+> **La cabecera de arriba y `git log` son la verdad. La lista de §6 no siempre.**
+>
+> El 15 de agosto de 2026 una sesión leyó §6, la creyó, y **rediseñó, planificó
+> y ejecutó tres tareas de la Fase 3 que ya estaban hechas, revisadas y
+> fusionadas**. Lo descubrió solo porque el recuento de tests no cuadraba —
+> esperaba 641 y salieron 663 —, y llegó a commitear una nota de traspaso
+> afirmando que una verificación estaba pendiente cuando el propio documento, 850
+> líneas más arriba, decía que estaba hecha. Se deshizo antes de empujarla.
+>
+> **Antes de creerte que algo está pendiente:**
+>
+> ```bash
+> git log --oneline --merges -8
+> git branch --no-merged main
+> php artisan test
+> ```
+>
+> Si `git branch --no-merged main` no devuelve nada, no hay trabajo a medias,
+> diga lo que diga cualquier lista. Y §6 acumula desde hace semanas: sus puntos
+> se tachan, pero **tachar es más fácil de olvidar que escribir**.
+>
+> Es la misma clase de deriva que este proyecto lleva meses encontrando en su
+> propio código — documentación que se quedó atrás sin que nada fallara —, esta
+> vez dentro del documento que existe para evitarla.
+
 El último commit que toca **código** es `d4b34a0`, dentro de ese merge. Lo que
 haya encima en `main` son commits de este documento: si el árbol está limpio y
 `git log --oneline -1` enseña un `docs(traspaso)`, la cifra sigue valiendo sin
