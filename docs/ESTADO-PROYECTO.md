@@ -2066,6 +2066,7 @@ niveles de anidamiento— y ninguno se movió con el cambio.
 | `docs/superpowers/specs/2026-08-12-fundacion-visual-design.md` | Diseño de la Fase 0: por qué no es React, y qué es «el sistema» |
 | `docs/superpowers/plans/2026-08-12-fundacion-visual.md` | Su plan, once tareas, ejecutado en la rama `fundacion-visual` |
 | `AUDITORIA.md` | Auditoría de seguridad y calidad, con lo ya corregido marcado |
+| `entregables/feria/` | Material para la feria de proyectos (23 nov 2026): presentación `.pptx` de 13 diapositivas con notas, guion `.docx` y documento de estudio `.docx` que explica el proyecto y las diez matrices en lenguaje sencillo. Las cifras (10 matrices, 379 criterios fijos, 663 tests) son las de `main` en esa fecha |
 
 ## 6. Lo que queda, por orden
 
